@@ -24,7 +24,7 @@ fun ReportDialog(
 ) {
     val db = FirebaseFirestore.getInstance()
     val context = LocalContext.current
-    val reportReasons = listOf("垃圾內容 / 廣告", "詐騙行為", "不當言論或圖片", "個人隱私洩露", "其他")
+    val reportReasons = listOf("垃圾內容 / 廣告", "詐騙行為", "不當言論 or 圖片", "個人隱私洩露", "其他")
     var selectedReason by remember { mutableStateOf(reportReasons[0]) }
     var otherReason by remember { mutableStateOf("") }
     var isSubmitting by remember { mutableStateOf(false) }
@@ -50,7 +50,7 @@ fun ReportDialog(
                     ) {
                         RadioButton(
                             selected = (selectedReason == reason),
-                            onClick = null // null recommended for accessibility with screen readers
+                            onClick = null 
                         )
                         Text(
                             text = reason,
@@ -90,6 +90,38 @@ fun ReportDialog(
                     db.collection("reports").add(reportData)
                         .addOnSuccessListener {
                             Toast.makeText(context, "感謝您的檢舉，我們將盡快處理", Toast.LENGTH_SHORT).show()
+                            
+                            if (targetType == "user") {
+                                db.collection("users").document(targetId).get().addOnSuccessListener { userDoc ->
+                                    val profileUrl = userDoc.getString("profileImageUrl") ?: ""
+                                    sendNotification(
+                                        targetId, 
+                                        "report", 
+                                        "帳號檢舉通知", 
+                                        "您的帳號因「$finalReason」收到一則檢舉。管理員將審核您的個人檔案。",
+                                        targetId,
+                                        profileUrl
+                                    )
+                                }
+                            } else if (targetType == "card") {
+                                db.collection("cards").document(targetId).get().addOnSuccessListener { cardDoc ->
+                                    val cardOwnerId = cardDoc.getString("userId") ?: ""
+                                    val rawCardName = cardDoc.getString("memberName") ?: "未命名小卡"
+                                    val cardName = rawCardName.split("|").first()
+                                    val cardImageUrl = cardDoc.getString("imageUrl") ?: ""
+                                    if (cardOwnerId.isNotEmpty()) {
+                                        sendNotification(
+                                            cardOwnerId, 
+                                            "report", 
+                                            "內容檢舉通知", 
+                                            "您發佈的《$cardName》因「$finalReason」收到一則檢舉。請遵守社區規範。",
+                                            targetId,
+                                            cardImageUrl
+                                        )
+                                    }
+                                }
+                            }
+
                             onDismiss()
                         }
                         .addOnFailureListener {

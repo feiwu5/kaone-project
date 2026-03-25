@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
 import coil.compose.AsyncImage
@@ -33,25 +34,6 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.*
 import java.text.SimpleDateFormat
 import java.util.*
-
-@Immutable
-data class ChatMessage(
-    val id: String = "", val senderId: String = "", val text: String = "", val messageType: String = "text",
-    val mediaUrl: String = "", val timestamp: Timestamp? = null, val cardImage: String = "",
-    val cardMember: String = "", val cardGroup: String = "", val tradeTargetCardId: String = "",
-    val tradeOfferCardId: String = "", val tradeOfferImage: String = "", val tradeOfferMember: String = "",
-    val tradeTargetImage: String = "", var tradeStatus: String = "pending", val meetingLocation: String = "",
-    val tradeNotes: String = "", val recipientName: String = "", val recipientPhone: String = "", val meetingDate: String = "",
-    val reviewedBy: List<String> = emptyList()
-)
-
-@Immutable
-data class ChatRoom(
-    val id: String = "", val participantIds: List<String> = emptyList(), val lastMessage: String = "",
-    val lastMessageTime: Timestamp? = null, val activeInquiryCardId: String = "", val unreadCount: Map<String, Int> = emptyMap(),
-    // 用於搜尋
-    var otherNickname: String = ""
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -143,8 +125,18 @@ fun ChatList(userId: String, onRoomClick: (String, String) -> Unit) {
                             textStyle = TextStyle(fontSize = 15.sp, color = Color.Black),
                             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                             decorationBox = { innerTextField ->
-                                if (searchQuery.isEmpty()) Text("搜尋聯絡人...", fontSize = 15.sp, color = Color.Gray)
-                                innerTextField()
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    if (searchQuery.isEmpty()) {
+                                        Text(
+                                            text = "搜尋聯絡人...",
+                                            fontSize = 15.sp,
+                                            color = Color.Gray,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    innerTextField()
+                                }
                             }
                         )
                         if (searchQuery.isNotEmpty()) {
@@ -235,8 +227,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
             }
         }
         db.collection("chatRooms").document(roomId).addSnapshotListener { s, _ -> val cid = s?.getString("activeInquiryCardId") ?: ""; if (cid.isNotEmpty()) db.collection("cards").document(cid).get().addOnSuccessListener { d -> if (d.exists()) {
-            val wishlistImageUrls = (d.get("wishlistImageUrls") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList()
-            inquiryCard = KpopCard(d.id, d.getString("memberName") ?: "", d.getString("groupName") ?: "", d.getString("ownerNickname") ?: "", d.getString("imageUrl") ?: "", d.getString("ownerProfileImageUrl") ?: "", d.getString("wishlist") ?: "", d.getString("remarks") ?: "", wishlistImageUrls, d.getString("userId") ?: "", d.getString("status") ?: "available")
+            inquiryCard = d.toKpopCard()
         } } }
         db.collection("chatRooms").document(roomId).collection("messages").orderBy("timestamp", Query.Direction.ASCENDING).addSnapshotListener { snapshot, _ -> snapshot?.let { messages = it.documents.mapNotNull { d -> d.toObject(ChatMessage::class.java, DocumentSnapshot.ServerTimestampBehavior.ESTIMATE)?.copy(id = d.id) } } }
     }
@@ -250,6 +241,13 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
             "lastMessageTime" to FieldValue.serverTimestamp(),
             "unreadCount.${otherId.value}" to FieldValue.increment(1)
         ))
+        
+        // 僅針對「交換提案」發送通知，一般聊天訊息不再發送系統通知
+        if (type == "trade_proposal") {
+            val notifTitle = "收到新的交換提案"
+            val notifContent = "有人向您發起了交換提案，快去查看吧！"
+            sendNotification(otherId.value, type, notifTitle, notifContent, roomId)
+        }
     }
 
     val mediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { u -> u?.let { isUploading = true; CloudinaryUploader.uploadMedia(context, it, scope, onSuccess = { url -> sendMsg("", "image", url); isUploading = false }, onFailure = { isUploading = false }) } }
@@ -261,6 +259,16 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
             if (newStatus == "accepted") { if (msg.tradeTargetCardId.isNotEmpty()) db.collection("cards").document(msg.tradeTargetCardId).update("status", "trading"); if (msg.tradeOfferCardId != "custom" && msg.tradeOfferCardId.isNotEmpty()) db.collection("cards").document(msg.tradeOfferCardId).update("status", "trading") }
             else if (newStatus == "completed") { if (msg.tradeTargetCardId.isNotEmpty()) db.collection("cards").document(msg.tradeTargetCardId).update("status", "exchanged"); if (msg.tradeOfferCardId != "custom" && msg.tradeOfferCardId.isNotEmpty()) db.collection("cards").document(msg.tradeOfferCardId).update("status", "exchanged") }
             db.collection("chatRooms").document(roomId).update(mapOf("lastMessage" to lastMsgText, "lastMessageTime" to FieldValue.serverTimestamp(), "unreadCount.${otherId.value}" to FieldValue.increment(1)))
+            
+            // 狀態更新通知
+            val statusTitle = when(newStatus) {
+                "accepted" -> "交換提案已接受"
+                "completed" -> "交換已順利完成"
+                "declined" -> "交換提案已被拒絕"
+                "cancelled" -> "交換提案已取消"
+                else -> "交換狀態更新"
+            }
+            sendNotification(otherId.value, "trade_proposal", statusTitle, "您的交換提案狀態已變更為：${lastMsgText}", roomId)
         }
     }
 
@@ -325,10 +333,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
         bottomBar = { Surface(tonalElevation = 4.dp) { Column { if (isUploading || isUploadingTrade) LinearProgressIndicator(Modifier.fillMaxWidth()); Row(modifier = Modifier.padding(8.dp).fillMaxWidth().navigationBarsPadding(), verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = { mediaLauncher.launch("image/*") }) { Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary) }; OutlinedTextField(value = inputText, onValueChange = { inputText = it }, modifier = Modifier.weight(1f), placeholder = { Text("訊息") }, shape = RoundedCornerShape(24.dp), maxLines = 3); IconButton(onClick = { if (inputText.isNotBlank()) { val t = inputText.trim(); inputText = ""; sendMsg(t) } }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.White)) { Icon(Icons.AutoMirrored.Filled.Send, null) } } } } }
     ) { p ->
         Column(Modifier.fillMaxSize().padding(p).background(Color(chatBgColor))) {
-            if (showInquiry && inquiryCard != null) Surface(modifier = Modifier.fillMaxWidth(), color = Color.White.copy(alpha = 0.9f)) { Column(Modifier.padding(12.dp)) { Row(verticalAlignment = Alignment.CenterVertically) { Text(text = "目前詢問商品", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.weight(1f)); IconButton(onClick = { showInquiry = false }, Modifier.size(20.dp)) { Icon(Icons.Default.Close, null, tint = Color.LightGray, modifier = Modifier.size(14.dp)) } }; Surface(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), color = Color.White, shape = RoundedCornerShape(8.dp), border = BorderStroke(0.5.dp, Color.LightGray)) { Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) { AsyncImage(model = inquiryCard!!.imageUrl, contentDescription = null, modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)).clickable { previewImageUrl = inquiryCard!!.imageUrl }, contentScale = ContentScale.Crop); Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text(text = inquiryCard!!.memberName.split(", ").joinToString(", ") { it.split("|").first() }, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1); Text(text = inquiryCard!!.groupName.split("|").first(), fontSize = 11.sp, color = Color.Gray) }; if (inquiryCard!!.userId != userId) { Button(onClick = { db.collection("cards").whereEqualTo("userId", userId).whereEqualTo("status", "available").get().addOnSuccessListener { myAvailableCards = it.documents.map { d -> 
-                val wishlistImageUrls = (d.get("wishlistImageUrls") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList()
-                KpopCard(d.id, d.getString("memberName") ?: "", d.getString("groupName") ?: "", d.getString("ownerNickname") ?: "", d.getString("imageUrl") ?: "", d.getString("ownerProfileImageUrl") ?: "", d.getString("wishlist") ?: "", d.getString("remarks") ?: "", wishlistImageUrls, d.getString("userId") ?: "", d.getString("status") ?: "available")
-            }; showMyCardsDialog = true } }, shape = RoundedCornerShape(16.dp), modifier = Modifier.height(30.dp), contentPadding = PaddingValues(horizontal = 12.dp)) { Text("交換", fontSize = 11.sp) }; Spacer(Modifier.width(8.dp)) }; OutlinedButton(onClick = { sendMsg("", "card", "", mapOf("cardImage" to inquiryCard!!.imageUrl, "cardMember" to inquiryCard!!.memberName, "cardGroup" to inquiryCard!!.groupName)) }, shape = RoundedCornerShape(16.dp), modifier = Modifier.height(30.dp), contentPadding = PaddingValues(horizontal = 12.dp)) { Text("傳送", fontSize = 11.sp) } } } } }
+            if (showInquiry && inquiryCard != null) Surface(modifier = Modifier.fillMaxWidth(), color = Color.White.copy(alpha = 0.9f)) { Column(Modifier.padding(12.dp)) { Row(verticalAlignment = Alignment.CenterVertically) { Text(text = "目前詢問商品", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.weight(1f)); IconButton(onClick = { showInquiry = false }, Modifier.size(20.dp)) { Icon(Icons.Default.Close, null, tint = Color.LightGray, modifier = Modifier.size(14.dp)) } }; Surface(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), color = Color.White, shape = RoundedCornerShape(8.dp), border = BorderStroke(0.5.dp, Color.LightGray)) { Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) { AsyncImage(model = inquiryCard!!.imageUrl, contentDescription = null, modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)).clickable { previewImageUrl = inquiryCard!!.imageUrl }, contentScale = ContentScale.Crop); Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text(text = inquiryCard!!.memberName.split(", ").joinToString(", ") { it.split("|").first() }, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1); Text(text = inquiryCard!!.groupName.split("|").first(), fontSize = 11.sp, color = Color.Gray) }; if (inquiryCard!!.userId != userId) { Button(onClick = { db.collection("cards").whereEqualTo("userId", userId).whereEqualTo("status", "available").get().addOnSuccessListener { myAvailableCards = it.documents.mapNotNull { d -> d.toKpopCard() }; showMyCardsDialog = true } }, shape = RoundedCornerShape(16.dp), modifier = Modifier.height(30.dp), contentPadding = PaddingValues(horizontal = 12.dp)) { Text("交換", fontSize = 11.sp) }; Spacer(Modifier.width(8.dp)) }; OutlinedButton(onClick = { sendMsg("", "card", "", mapOf("cardImage" to inquiryCard!!.imageUrl, "cardMember" to inquiryCard!!.memberName, "cardGroup" to inquiryCard!!.groupName)) }, shape = RoundedCornerShape(16.dp), modifier = Modifier.height(30.dp), contentPadding = PaddingValues(horizontal = 12.dp)) { Text("傳送", fontSize = 11.sp) } } } } }
             LazyColumn(state = listState, modifier = Modifier.weight(1f).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 16.dp)) {
                 itemsIndexed(messages) { index, m ->
                     val isMe = m.senderId == userId; val timeStr = m.timestamp?.let { SimpleDateFormat("HH:mm", Locale.getDefault()).format(it.toDate()) } ?: ""
@@ -444,7 +449,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     }
     
     if (reviewMsgId != null) {
-        var rating by remember { mutableIntStateOf(0) }
+        var rating by remember { mutableStateOf(0) }
         var comment by remember { mutableStateOf("") }
         var isSubmitting by remember { mutableStateOf(false) }
         AlertDialog(
@@ -475,6 +480,10 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                         val reviewData = hashMapOf("reviewerId" to userId, "revieweeId" to otherId.value, "rating" to rating, "comment" to comment, "timestamp" to FieldValue.serverTimestamp())
                         db.collection("reviews").add(reviewData).addOnSuccessListener {
                             db.collection("chatRooms").document(roomId).collection("messages").document(reviewMsgId!!).update("reviewedBy", FieldValue.arrayUnion(userId))
+                            
+                            // 發送通知
+                            sendNotification(otherId.value, "review", "收到新的評價", "有人對您的交換進行了評價！", roomId)
+
                             Toast.makeText(context, "評價已送出", Toast.LENGTH_SHORT).show()
                             isSubmitting = false
                             reviewMsgId = null

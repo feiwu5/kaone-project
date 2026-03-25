@@ -70,8 +70,7 @@ fun AdminScreen(onBack: () -> Unit) {
                             "reports" -> "檢舉內容處理"
                             else -> "管理員後台"
                         },
-                        fontWeight = FontWeight.Bold
-                    )
+                        fontWeight = FontWeight.Bold)
                 },
                 navigationIcon = {
                     IconButton(onClick = { if (currentView == "menu") onBack() else currentView = "menu" }) {
@@ -332,7 +331,7 @@ fun AdminReportListView() {
                                 Text(card.groupName.split("|").first(), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                             }
                             Spacer(Modifier.width(8.dp))
-                            Text(card.memberName, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                            Text(card.memberName.split("|").first(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
                         }
                         
                         if (card.cardType.isNotEmpty()) {
@@ -376,7 +375,7 @@ fun AdminDetailSection(label: String, icon: androidx.compose.ui.graphics.vector.
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.Black.copy(0.05f)).padding(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = Color(0xFF586795), modifier = Modifier.size(14.dp))
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(6.6.dp))
             Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF586795))
         }
         Spacer(Modifier.height(6.dp))

@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -124,12 +125,14 @@ fun HomeScreen(
     var targetInquiryCard by remember { mutableStateOf<KpopCard?>(null) }
     var viewingOtherUserId by remember { mutableStateOf<String?>(null) }
     var viewingAdmin by remember { mutableStateOf(false) }
+    var viewingNotifications by remember { mutableStateOf(false) }
     var isAdmin by remember { mutableStateOf(false) }
 
     var activeExploreView by rememberSaveable { mutableStateOf("menu") }
     var homeSelectedTab by rememberSaveable { mutableIntStateOf(0) }
 
     var totalUnreadCount by remember { mutableIntStateOf(0) }
+    var unreadNotificationCount by remember { mutableIntStateOf(0) }
     val isGuest = userId.isEmpty()
 
     var editingCard by remember { mutableStateOf<KpopCard?>(null) }
@@ -170,11 +173,33 @@ fun HomeScreen(
                     }
                     totalUnreadCount = count
                 }
+
+            db.collection("notifications")
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("isRead", false)
+                .addSnapshotListener { snapshot, _ ->
+                    unreadNotificationCount = snapshot?.size() ?: 0
+                }
         }
     }
 
     if (viewingAdmin) {
         AdminScreen(onBack = { viewingAdmin = false })
+    } else if (viewingNotifications) {
+        NotificationScreen(
+            userId = userId,
+            onBack = { viewingNotifications = false },
+            onNavigateToChat = { roomId ->
+                targetChatRoomId = roomId
+                selectedBottomTab = 3
+                viewingNotifications = false
+            },
+            onNavigateToCard = { cardId, _ ->
+                // 這裡可以實作導向特定卡片，目前先回首頁
+                viewingNotifications = false
+                selectedBottomTab = 0
+            }
+        )
     } else {
         Scaffold(
             modifier = modifier,
@@ -227,7 +252,9 @@ fun HomeScreen(
                             onViewProfile = { viewingOtherUserId = it },
                             selectedTab = homeSelectedTab,
                             onTabChange = { homeSelectedTab = it },
-                            onEditCard = { editingCard = it; selectedBottomTab = 2 }
+                            onEditCard = { editingCard = it; selectedBottomTab = 2 },
+                            unreadNotificationCount = unreadNotificationCount,
+                            onNotificationClick = { viewingNotifications = true }
                         )
                         1 -> ExploreScreen(userId = userId, onViewProfile = { viewingOtherUserId = it }, activeView = activeExploreView, onActiveViewChange = { activeExploreView = it }, onStartChat = { roomId, card -> targetChatRoomId = roomId; targetInquiryCard = card; selectedBottomTab = 3 })
                         2 -> if (isGuest) GuestModePlaceholder(onLogoutClick) else UploadScreen(
@@ -766,33 +793,6 @@ fun NearbyCardItem(card: KpopCard, onStartChat: (String, KpopCard?) -> Unit, onV
     }
 }
 
-@Suppress("UNCHECKED_CAST")
-fun DocumentSnapshot.toKpopCard(): KpopCard? {
-    return try {
-        KpopCard(
-            id = id,
-            memberName = getString("memberName") ?: "",
-            groupName = getString("groupName") ?: "",
-            ownerName = getString("ownerNickname") ?: "未知用戶",
-            imageUrl = getString("imageUrl") ?: "",
-            ownerProfileImageUrl = getString("ownerProfileImageUrl") ?: "",
-            wishlist = getString("wishlist") ?: "",
-            remarks = getString("remarks") ?: "",
-            wishlistImageUrls = (get("wishlistImageUrls") as? List<String>) ?: emptyList(),
-            userId = getString("userId") ?: "",
-            status = getString("status") ?: "available",
-            createdAt = getTimestamp("createdAt"),
-            location = getString("location") ?: "",
-            wishGroupList = (get("wishGroupList") as? List<String>) ?: emptyList(),
-            wishMemberList = (get("wishMemberList") as? List<String>) ?: emptyList(),
-            memberList = (get("memberList") as? List<String>) ?: emptyList(),
-            cardType = getString("cardType") ?: ""
-        )
-    } catch (_: Exception) {
-        null
-    }
-}
-
 @Composable
 fun ExploreBentoCard(title: String, subtitle: String, icon: ImageVector, backgroundColor: Color, iconColor: Color, isLarge: Boolean, onClick: () -> Unit) {
     Card(
@@ -960,7 +960,9 @@ fun MainDashboard(
     onViewProfile: (String) -> Unit,
     selectedTab: Int,
     onTabChange: (Int) -> Unit,
-    onEditCard: (KpopCard) -> Unit
+    onEditCard: (KpopCard) -> Unit,
+    unreadNotificationCount: Int = 0,
+    onNotificationClick: () -> Unit = {}
 ) {
     val db = FirebaseFirestore.getInstance(); val context = LocalContext.current; val scope = rememberCoroutineScope()
     var cardList by remember { mutableStateOf<List<KpopCard>>(emptyList()) }; var favoriteIds by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -1015,8 +1017,34 @@ fun MainDashboard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Search, null, modifier = Modifier.size(18.dp), tint = Color.Gray)
                         Spacer(Modifier.width(8.dp))
-                        BasicTextField(value = searchQuery, onValueChange = { searchQuery = it }, modifier = Modifier.weight(1f), singleLine = true, textStyle = TextStyle(fontSize = 14.sp, color = Color.Black), cursorBrush = SolidColor(MaterialTheme.colorScheme.primary), decorationBox = { if (searchQuery.isEmpty()) Text("搜尋小卡或團體...", fontSize = 14.sp, color = Color.Gray); it() })
+                        BasicTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            textStyle = TextStyle(fontSize = 14.sp, color = Color.Black),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            decorationBox = { innerTextField ->
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    if (searchQuery.isEmpty()) {
+                                        Text(
+                                            text = "搜尋小卡或團體...",
+                                            fontSize = 14.sp,
+                                            color = Color.Gray,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            }
+                        )
                         if (searchQuery.isNotEmpty()) Icon(Icons.Default.Close, null, modifier = Modifier.size(18.dp).clickable { searchQuery = "" }, tint = Color.Gray)
+                    }
+                }
+                IconButton(onClick = { if (isGuest) Toast.makeText(context, "請先登入後再查看通知", Toast.LENGTH_SHORT).show() else onNotificationClick() }) {
+                    BadgedBox(badge = { if (unreadNotificationCount > 0) { Badge { Text(if (unreadNotificationCount > 99) "99+" else unreadNotificationCount.toString()) } } }) {
+                        Icon(Icons.Default.Notifications, "通知", tint = Color.White)
                     }
                 }
                 IconButton(onClick = { showChineseName = !showChineseName }) {
@@ -1138,7 +1166,7 @@ fun MainDashboard(
                                 }
                             }, modifier = Modifier.height(44.dp), shape = RoundedCornerShape(22.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF586795))) {
                                 Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
+                                Spacer(Modifier.width(6.6.dp))
                                 Text("與他聊聊", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
                             }
                         }
@@ -1279,38 +1307,3 @@ fun CardItem(card: KpopCard, isFavorite: Boolean, showFavorite: Boolean = true, 
         }
     }
 }
-
-data class KpopCard(
-    val id: String = "",
-    val memberName: String = "",
-    val groupName: String = "",
-    val ownerName: String = "",
-    val imageUrl: String = "",
-    val ownerProfileImageUrl: String = "",
-    val wishlist: String = "",
-    val remarks: String = "",
-    val wishlistImageUrls: List<String> = emptyList(),
-    val userId: String = "",
-    val status: String = "available",
-    val createdAt: Timestamp? = null,
-    val location: String = "",
-    val wishGroupList: List<String> = emptyList(),
-    val wishMemberList: List<String> = emptyList(),
-    val memberList: List<String> = emptyList(),
-    val cardType: String = ""
-)
-
-@Immutable
-data class KpopEvent(
-    val id: String = "",
-    val title: String = "",
-    val type: String = "生日咖啡廳",
-    val groupName: String = "",
-    val location: String = "",
-    val startDate: String = "",
-    val endDate: String = "",
-    val imageUrl: String = "",
-    val description: String = "",
-    val userId: String = "",
-    val createdAt: Timestamp? = null
-)

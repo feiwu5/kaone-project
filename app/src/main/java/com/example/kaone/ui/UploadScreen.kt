@@ -445,6 +445,9 @@ fun UploadScreen(
                     
                     task.addOnSuccessListener {
                         Toast.makeText(context, if (existingCard == null) "小卡上傳成功！" else "修改成功！", Toast.LENGTH_SHORT).show()
+                        if (existingCard == null) {
+                            checkForSmartMatches(userId, cardData)
+                        }
                         onUploadSuccess()
                     }
                 }
@@ -457,4 +460,46 @@ fun UploadScreen(
         }
         Spacer(modifier = Modifier.height(40.dp))
     }
+}
+
+/**
+ * 智慧配對核心邏輯：
+ * 當我上傳一張新卡片後，檢查別人的卡片是否符合我的許願標籤。
+ * 如果符合，就發送通知給我（目前上傳者）。
+ */
+private fun checkForSmartMatches(currentUserId: String, myCardData: Map<String, Any>) {
+    val db = FirebaseFirestore.getInstance()
+    @Suppress("UNCHECKED_CAST")
+    val myWishGroups = myCardData["wishGroupList"] as? List<String> ?: emptyList()
+    @Suppress("UNCHECKED_CAST")
+    val myWishMembers = myCardData["wishMemberList"] as? List<String> ?: emptyList()
+
+    if (myWishGroups.isEmpty() && myWishMembers.isEmpty()) return
+
+    // 搜尋別人的卡片 (非自己上傳且狀態為可交換)
+    db.collection("cards")
+        .whereNotEqualTo("userId", currentUserId)
+        .whereEqualTo("status", "available")
+        .get()
+        .addOnSuccessListener { snapshot ->
+            snapshot.documents.forEach { doc ->
+                val otherCard = doc.toKpopCard() ?: return@forEach
+                
+                // 檢查別人的持有卡片是否符合「我」剛剛上傳的許願標籤
+                val matchByGroup = otherCard.groupName in myWishGroups
+                val matchByMember = otherCard.memberList.any { it in myWishMembers }
+
+                if (matchByGroup || matchByMember) {
+                    // 發送匹配通知給「我」
+                    sendNotification(
+                        userId = currentUserId,
+                        type = "match",
+                        title = "找到潛在匹配！",
+                        content = "有人持有你許願的《${otherCard.memberName}》，點擊去看看吧！",
+                        relatedId = otherCard.id,
+                        relatedImage = otherCard.imageUrl
+                    )
+                }
+            }
+        }
 }
