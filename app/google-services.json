@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1052872213468",
+    "project_id": "kaone-ed63a",
+    "storage_bucket": "kaone-ed63a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1052872213468:android:240850fb6a9be977394519",
+        "android_client_info": {
+          "package_name": "com.example.kaone"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLgvOJyyndWGMzgSGEdJmVxMmSoPLrwqI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
