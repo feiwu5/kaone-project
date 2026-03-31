@@ -48,7 +48,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.kaone.ui.theme.ImgbbUploader
-import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -178,7 +177,11 @@ fun HomeScreen(
                 .whereEqualTo("userId", userId)
                 .whereEqualTo("isRead", false)
                 .addSnapshotListener { snapshot, _ ->
-                    unreadNotificationCount = snapshot?.size() ?: 0
+                    // 過濾掉 chat_silent，確保紅點計數與通知中心顯示的一致
+                    val count = snapshot?.documents?.count { doc ->
+                        doc.getString("type") != "chat_silent"
+                    } ?: 0
+                    unreadNotificationCount = count
                 }
         }
     }
@@ -194,8 +197,7 @@ fun HomeScreen(
                 selectedBottomTab = 3
                 viewingNotifications = false
             },
-            onNavigateToCard = { cardId, _ ->
-                // 這裡可以實作導向特定卡片，目前先回首頁
+            onNavigateToCard = { _, _ ->
                 viewingNotifications = false
                 selectedBottomTab = 0
             }
@@ -267,7 +269,7 @@ fun HomeScreen(
                             },
                             onBack = {
                                 editingCard = null
-                                selectedBottomTab = 0 // 或者回到之前的頁面
+                                selectedBottomTab = 0
                             }
                         )
                         3 -> if (isGuest) GuestModePlaceholder(onLogoutClick) else ChatScreen(userId = userId, targetRoomId = targetChatRoomId, inquiryCard = targetInquiryCard, onViewProfile = { viewingOtherUserId = it })
@@ -311,7 +313,7 @@ fun ExploreScreen(userId: String, onViewProfile: (String) -> Unit, activeView: S
             }
         })
         "events" -> ExploreEventsView(currentUserId = userId, onBack = { onActiveViewChange("menu") }, onAddClick = { editingEvent = null; onActiveViewChange("upload") }, onEditClick = { editingEvent = it; onActiveViewChange("upload") }, onViewProfile = onViewProfile)
-        "upload" -> if (userId.isEmpty()) GuestModePlaceholder { /* 由 HomeScreen 統一導回 */ } else ExploreEventUploadView(userId = userId, existingEvent = editingEvent, onBack = { onActiveViewChange("events") }, onSuccess = { onActiveViewChange("events") })
+        "upload" -> if (userId.isEmpty()) GuestModePlaceholder { } else ExploreEventUploadView(userId = userId, existingEvent = editingEvent, onBack = { onActiveViewChange("events") }, onSuccess = { onActiveViewChange("events") })
         "smartMatch" -> SmartMatchView(currentUserId = userId, onBack = { onActiveViewChange("menu") }, onStartChat = onStartChat, onViewProfile = onViewProfile)
         "nearby" -> NearbyExchangeView(currentUserId = userId, initialLocation = userLocation, onBack = { onActiveViewChange("menu") }, onStartChat = onStartChat, onViewProfile = onViewProfile)
     }
@@ -400,15 +402,12 @@ fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (Stri
 
     LaunchedEffect(currentUserId) {
         isLoading = true
-        // 1. 抓取我的卡片
         val mySnapshot = db.collection("cards").whereEqualTo("userId", currentUserId).get().await()
         myCards = mySnapshot.documents.mapNotNull { it.toKpopCard() }
 
-        // 2. 抓取別人的卡片
         val otherSnapshot = db.collection("cards").whereNotEqualTo("userId", currentUserId).get().await()
         allOtherCards = otherSnapshot.documents.mapNotNull { it.toKpopCard() }
 
-        // 3. 進行比對
         val results = mutableListOf<MatchResult>()
         allOtherCards.forEach { otherCard ->
             var score = 0f
@@ -826,7 +825,6 @@ fun ExploreBentoCard(title: String, subtitle: String, icon: ImageVector, backgro
 @Composable
 fun ExploreEventsView(currentUserId: String, onBack: () -> Unit, onAddClick: () -> Unit, onEditClick: (KpopEvent) -> Unit, onViewProfile: (String) -> Unit) {
     val db = FirebaseFirestore.getInstance()
-    val context = LocalContext.current
     var events by remember { mutableStateOf<List<KpopEvent>>(emptyList()) }
     val isGuest = currentUserId.isEmpty()
 
@@ -845,7 +843,6 @@ fun ExploreEventsView(currentUserId: String, onBack: () -> Unit, onAddClick: () 
                 actions = {
                     IconButton(onClick = {
                         if (isGuest) {
-                            Toast.makeText(context, "請先登入後再發佈活動", Toast.LENGTH_SHORT).show()
                         } else {
                             onAddClick()
                         }
@@ -901,7 +898,7 @@ fun ExploreEventUploadView(userId: String, existingEvent: KpopEvent? = null, onB
             Spacer(Modifier.height(20.dp)); OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("活動名稱") }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp)); OutlinedTextField(value = groupName, onValueChange = { groupName = it }, label = { Text("所屬團體") }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp)); Text("活動類型", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("生日咖啡廳", "領取應援", "打卡燈箱").forEach { t -> FilterChip(selected = type == t, onClick = { type = t }, label = { Text(t) }) } }
+            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("生日咖啡廳", "領取應援", "打卡燈箱","演唱會資訊").forEach { t -> FilterChip(selected = type == t, onClick = { type = t }, label = { Text(t) }) } }
             OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("地點") }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp)); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) { OutlinedTextField(value = startDate, onValueChange = { startDate = it }, label = { Text("開始日期") }, modifier = Modifier.weight(1f), placeholder = { Text("YYYY/MM/DD") }); OutlinedTextField(value = endDate, onValueChange = { endDate = it }, label = { Text("結束日期") }, modifier = Modifier.weight(1f), placeholder = { Text("YYYY/MM/DD") }) }
             Spacer(Modifier.height(12.dp)); OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("活動詳情描述") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
@@ -916,7 +913,6 @@ fun EventPostItem(event: KpopEvent, currentUserId: String, onEdit: () -> Unit, o
     var showMenu by remember { mutableStateOf(false) }
     var publisherName by remember { mutableStateOf("載入中...") }
     val db = FirebaseFirestore.getInstance()
-    val context = LocalContext.current
 
     LaunchedEffect(event.userId) {
         db.collection("users").document(event.userId).get().addOnSuccessListener { publisherName = it.getString("nickname") ?: "用戶" }
@@ -933,7 +929,7 @@ fun EventPostItem(event: KpopEvent, currentUserId: String, onEdit: () -> Unit, o
                     IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreHoriz, null, tint = Color.Gray) }
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                         DropdownMenuItem(text = { Text("編輯活動") }, onClick = { showMenu = false; onEdit() }, leadingIcon = { Icon(Icons.Default.Edit, null) })
-                        DropdownMenuItem(text = { Text("刪除活動", color = Color.Red) }, onClick = { showMenu = false; onDelete(); Toast.makeText(context, "活動已刪除", Toast.LENGTH_SHORT).show() }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red) })
+                        DropdownMenuItem(text = { Text("刪除活動", color = Color.Red) }, onClick = { showMenu = false; onDelete() }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red) })
                     }
                 }
             }
@@ -1094,19 +1090,19 @@ fun MainDashboard(
                             }
                             IconButton(onClick = { selectedCard = null }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Close, null, tint = Color.Gray.copy(0.5f), modifier = Modifier.size(18.dp)) }
                         }
-                        
+
                         Spacer(Modifier.height(12.dp))
                         Box(Modifier.fillMaxWidth().height(210.dp).clip(RoundedCornerShape(16.dp)).background(Color.White), contentAlignment = Alignment.Center) {
                             AsyncImage(model = card.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize().clickable { previewImageUrl = card.imageUrl }, contentScale = ContentScale.Fit)
                         }
-                        
+
                         Spacer(Modifier.height(14.dp))
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                             Surface(color = Color(0xFF586795), shape = RoundedCornerShape(8.dp)) { Text(card.groupName.split("|").first(), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) }
                             Spacer(Modifier.width(8.dp))
                             Text(formatMemberName(card.memberName), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF1A202C))
                         }
-                        
+
                         if (card.cardType.isNotEmpty()) {
                             Spacer(Modifier.height(4.dp))
                             Text(card.cardType, fontSize = 14.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
@@ -1140,8 +1136,8 @@ fun MainDashboard(
                             } else {
                                 Spacer(Modifier.width(1.dp))
                             }
-                            
-                            if (card.createdAt != null) { 
+
+                            if (card.createdAt != null) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Default.Event, null, tint = Color.LightGray, modifier = Modifier.size(14.dp))
                                     Text(" ${SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()).format(card.createdAt.toDate())}", fontSize = 13.sp, color = Color.Gray)
@@ -1158,11 +1154,11 @@ fun MainDashboard(
                                 IconButton(onClick = { cardToDelete = card }, modifier = Modifier.size(42.dp).background(Color(0xFFFFEBEE), CircleShape)) { Icon(Icons.Default.Delete, "管理員刪除", tint = Color.Red, modifier = Modifier.size(20.dp)) }
                                 Spacer(Modifier.width(8.dp))
                             }
-                            Button(onClick = { 
+                            Button(onClick = {
                                 if (isGuest) {
                                     Toast.makeText(context, "請先登入後再聊天", Toast.LENGTH_SHORT).show()
                                 } else {
-                                    scope.launch { findOrCreateChatRoom(userId, card.userId, card.id) { roomId -> onStartChat(roomId, card); selectedCard = null } } 
+                                    scope.launch { findOrCreateChatRoom(userId, card.userId, card.id) { roomId -> onStartChat(roomId, card); selectedCard = null } }
                                 }
                             }, modifier = Modifier.height(44.dp), shape = RoundedCornerShape(22.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF586795))) {
                                 Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(16.dp))
@@ -1238,7 +1234,7 @@ fun CardItem(card: KpopCard, isFavorite: Boolean, showFavorite: Boolean = true, 
                     )
                 }
             }
-            
+
             Column(Modifier.padding(horizontal = 13.dp, vertical = 8.dp)) {
                 Text(
                     text = memberNameDisplay,
@@ -1253,9 +1249,9 @@ fun CardItem(card: KpopCard, isFavorite: Boolean, showFavorite: Boolean = true, 
                     color = Color.Gray,
                     maxLines = 1
                 )
-                
+
                 Spacer(Modifier.height(8.dp))
-                
+
                 if (card.cardType.isNotEmpty()) {
                     Surface(
                         color = Color(0xFFF0F4FF),
@@ -1270,9 +1266,9 @@ fun CardItem(card: KpopCard, isFavorite: Boolean, showFavorite: Boolean = true, 
                         )
                     }
                 }
-                
+
                 Spacer(Modifier.height(10.dp))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1288,7 +1284,7 @@ fun CardItem(card: KpopCard, isFavorite: Boolean, showFavorite: Boolean = true, 
                             maxLines = 1
                         )
                     }
-                    
+
                     if (showFavorite) {
                         IconButton(
                             onClick = onFavoriteClick,

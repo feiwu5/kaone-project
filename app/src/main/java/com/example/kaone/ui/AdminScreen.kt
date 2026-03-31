@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Report
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -50,7 +52,7 @@ fun AdminScreen(onBack: () -> Unit) {
     var userCount by remember { mutableIntStateOf(0) }
     var cardCount by remember { mutableIntStateOf(0) }
     var reportCount by remember { mutableIntStateOf(0) }
-    var currentView by remember { mutableStateOf("menu") } // "menu", "users", "reports"
+    var currentView by remember { mutableStateOf("menu") } // "menu", "users", "reports", "announcements"
 
     LaunchedEffect(Unit) {
         db.collection("users").get().addOnSuccessListener { userCount = it.size() }
@@ -68,6 +70,7 @@ fun AdminScreen(onBack: () -> Unit) {
                         when (currentView) {
                             "users" -> "用戶權限管理"
                             "reports" -> "檢舉內容處理"
+                            "announcements" -> "公告發布系統"
                             else -> "管理員後台"
                         },
                         fontWeight = FontWeight.Bold)
@@ -84,17 +87,19 @@ fun AdminScreen(onBack: () -> Unit) {
             when (currentView) {
                 "menu" -> AdminMenuView(userCount, cardCount, reportCount,
                     onNavigateToUsers = { currentView = "users" },
-                    onNavigateToReports = { currentView = "reports" }
+                    onNavigateToReports = { currentView = "reports" },
+                    onNavigateToAnnouncements = { currentView = "announcements" }
                 )
                 "users" -> AdminUserListView()
                 "reports" -> AdminReportListView()
+                "announcements" -> AdminAnnouncementView()
             }
         }
     }
 }
 
 @Composable
-fun AdminMenuView(userCount: Int, cardCount: Int, reportCount: Int, onNavigateToUsers: () -> Unit, onNavigateToReports: () -> Unit) {
+fun AdminMenuView(userCount: Int, cardCount: Int, reportCount: Int, onNavigateToUsers: () -> Unit, onNavigateToReports: () -> Unit, onNavigateToAnnouncements: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -122,11 +127,106 @@ fun AdminMenuView(userCount: Int, cardCount: Int, reportCount: Int, onNavigateTo
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
             Column {
-                AdminMenuItem("用戶權限管理", "封鎖違規用戶或調整權限") { onNavigateToUsers() }
+                AdminMenuItem("用戶權限管理", "封鎖違規用戶或調整權限", Icons.Default.People) { onNavigateToUsers() }
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
-                AdminMenuItem("檢舉內容處理", if (reportCount > 0) "有 $reportCount 則待處理檢舉" else "查看用戶檢舉的小卡或用戶") { onNavigateToReports() }
+                AdminMenuItem("檢舉內容處理", if (reportCount > 0) "有 $reportCount 則待處理檢舉" else "查看用戶檢舉的小卡或用戶", Icons.Default.Report) { onNavigateToReports() }
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
-                AdminMenuItem("公告發布系統", "發布全系統廣播通知") { /* 實作邏輯 */ }
+                AdminMenuItem("公告發布系統", "發布全系統廣播通知", Icons.Default.Campaign) { onNavigateToAnnouncements() }
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminAnnouncementView() {
+    val db = FirebaseFirestore.getInstance()
+    val context = LocalContext.current
+    var title by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf("") }
+    var isSending by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Text("發布新公告", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("此公告將會推送到所有用戶的通知中心", fontSize = 14.sp, color = Color.Gray)
+        
+        Spacer(Modifier.height(24.dp))
+        
+        OutlinedTextField(
+            value = title,
+            onValueChange = { title = it },
+            label = { Text("公告標題") },
+            placeholder = { Text("例如：系統維護通知") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(Modifier.height(16.dp))
+        
+        OutlinedTextField(
+            value = content,
+            onValueChange = { content = it },
+            label = { Text("公告內容") },
+            placeholder = { Text("請輸入詳細的公告內容...") },
+            modifier = Modifier.fillMaxWidth().height(200.dp),
+            maxLines = 10
+        )
+        
+        Spacer(Modifier.height(32.dp))
+        
+        Button(
+            onClick = {
+                if (title.isBlank() || content.isBlank()) {
+                    Toast.makeText(context, "標題與內容不能為空", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+                
+                isSending = true
+                // 1. 獲取所有用戶 UID
+                db.collection("users").get().addOnSuccessListener { querySnapshot ->
+                    val userIds = querySnapshot.documents.map { it.id }
+                    val batch = db.batch()
+                    
+                    // 2. 批量寫入通知 (限制為 500 筆，若用戶過多需拆分)
+                    userIds.forEach { uid ->
+                        val docRef = db.collection("notifications").document()
+                        val notification = hashMapOf(
+                            "userId" to uid,
+                            "type" to "system",
+                            "title" to title,
+                            "content" to content,
+                            "timestamp" to Timestamp.now(),
+                            "isRead" to false,
+                            "relatedId" to "system",
+                            "relatedImage" to ""
+                        )
+                        batch.set(docRef, notification)
+                    }
+                    
+                    batch.commit().addOnSuccessListener {
+                        Toast.makeText(context, "公告已發布，所有用戶皆會收到通知", Toast.LENGTH_LONG).show()
+                        title = ""
+                        content = ""
+                        isSending = false
+                    }.addOnFailureListener {
+                        Toast.makeText(context, "發布失敗: ${it.message}", Toast.LENGTH_SHORT).show()
+                        isSending = false
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            enabled = !isSending,
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            if (isSending) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            } else {
+                Icon(Icons.Default.Send, null)
+                Spacer(Modifier.width(8.dp))
+                Text("立即發布全體廣播", fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -378,7 +478,7 @@ fun AdminDetailSection(label: String, icon: androidx.compose.ui.graphics.vector.
             Spacer(Modifier.width(6.6.dp))
             Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF586795))
         }
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(6.6.dp))
         content()
     }
 }
@@ -399,9 +499,10 @@ fun AdminStatCard(title: String, value: String, modifier: Modifier, icon: androi
 }
 
 @Composable
-fun AdminMenuItem(title: String, subtitle: String, onClick: () -> Unit) {
+fun AdminMenuItem(title: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
     ListItem(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        leadingContent = { Icon(icon, null, tint = MaterialTheme.colorScheme.primary) },
         headlineContent = { Text(title, fontWeight = FontWeight.Bold) },
         supportingContent = { Text(subtitle, fontSize = 12.sp) },
         trailingContent = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.rotate(180f)) }

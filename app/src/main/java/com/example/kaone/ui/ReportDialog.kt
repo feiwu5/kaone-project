@@ -63,20 +63,29 @@ fun ReportDialog(
                     OutlinedTextField(
                         value = otherReason,
                         onValueChange = { otherReason = it },
-                        label = { Text("詳細原因") },
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                        label = { Text("詳細原因 (必填)") },
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        isError = otherReason.isBlank(),
+                        supportingText = {
+                            if (otherReason.isBlank()) {
+                                Text("請輸入檢舉的詳細原因")
+                            }
+                        }
                     )
                 }
             }
         },
         confirmButton = {
+            val isConfirmEnabled = !isSubmitting && (selectedReason != "其他" || otherReason.isNotBlank())
+            
             Button(
-                enabled = !isSubmitting,
+                enabled = isConfirmEnabled,
                 onClick = {
                     if (reporterId.isEmpty()) {
                         Toast.makeText(context, "請先登入後再進行檢舉", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
+
                     isSubmitting = true
                     val finalReason = if (selectedReason == "其他") otherReason else selectedReason
                     val reportData = hashMapOf(

@@ -39,14 +39,17 @@ fun NotificationScreen(
     var isLoading by remember { mutableStateOf(true) }
     var selectedNotification by remember { mutableStateOf<KaNotification?>(null) }
     var reportedCard by remember { mutableStateOf<KpopCard?>(null) }
+    
+    // 追蹤包含隱藏通知在內的真正未讀總數
+    var totalUnreadCount by remember { mutableIntStateOf(0) }
 
     fun cleanText(text: String): String {
-        // 移除成員中文名字，支援半形 | 與全形 ｜ (例如: 《Liz|金智媛》 -> 《Liz》)
         return text.replace(Regex("[|｜][^》\\s,，。]+"), "")
     }
 
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
+            // 監聽顯示用的通知清單 (過濾 chat_silent)
             db.collection("notifications")
                 .whereEqualTo("userId", userId)
                 .addSnapshotListener { snapshot, error ->
@@ -57,16 +60,24 @@ fun NotificationScreen(
                     }
                     
                     val list = snapshot?.documents?.mapNotNull { doc ->
-                        doc.toObject(KaNotification::class.java)?.copy(id = doc.id)
+                        val n = doc.toObject(KaNotification::class.java)
+                        if (n?.type == "chat_silent") null else n?.copy(id = doc.id)
                     } ?: emptyList()
                     
                     notifications = list.sortedByDescending { it.timestamp }
                     isLoading = false
                 }
+
+            // 監聽真實的所有未讀數量 (包含 chat_silent)
+            db.collection("notifications")
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("isRead", false)
+                .addSnapshotListener { snapshot, _ ->
+                    totalUnreadCount = snapshot?.size() ?: 0
+                }
         }
     }
 
-    // 當選中檢舉通知時，嘗試獲取相關的小卡資訊
     LaunchedEffect(selectedNotification) {
         reportedCard = null
         if (selectedNotification?.type == "report" && selectedNotification?.relatedId?.isNotEmpty() == true) {
@@ -89,17 +100,24 @@ fun NotificationScreen(
                     }
                 },
                 actions = {
-                    val unreadNotifications = notifications.filter { !it.isRead }
-                    if (unreadNotifications.isNotEmpty()) {
+                    // 只要資料庫裡還有任何未讀通知，就顯示「全部標為已讀」按鈕
+                    if (totalUnreadCount > 0) {
                         TextButton(onClick = {
-                            val unreadIds = unreadNotifications.map { it.id }
-                            notifications = notifications.map { if (it.id in unreadIds) it.copy(isRead = true) else it }
+                            // 先在本地更新 UI
+                            notifications = notifications.map { it.copy(isRead = true) }
                             
-                            val batch = db.batch()
-                            unreadIds.forEach { id ->
-                                batch.update(db.collection("notifications").document(id), "isRead", true)
-                            }
-                            batch.commit()
+                            // 到資料庫把該用戶所有未讀通知全部設為已讀
+                            db.collection("notifications")
+                                .whereEqualTo("userId", userId)
+                                .whereEqualTo("isRead", false)
+                                .get()
+                                .addOnSuccessListener { snapshot ->
+                                    val batch = db.batch()
+                                    snapshot.documents.forEach { doc ->
+                                        batch.update(doc.reference, "isRead", true)
+                                    }
+                                    batch.commit()
+                                }
                         }) {
                             Text("全部標為已讀")
                         }
@@ -116,6 +134,11 @@ fun NotificationScreen(
                     Icon(Icons.Default.NotificationsNone, null, Modifier.size(64.dp), tint = Color.LightGray)
                     Spacer(Modifier.height(16.dp))
                     Text("目前沒有通知", color = Color.Gray)
+                    
+                    // 如果列表是空的但其實有隱藏的未讀，在這裡提示用戶
+                    if (totalUnreadCount > 0) {
+                        Text("(尚有聊天通知未讀)", fontSize = 12.sp, color = Color.LightGray, modifier = Modifier.padding(top = 4.dp))
+                    }
                 }
             } else {
                 LazyColumn(Modifier.fillMaxSize()) {

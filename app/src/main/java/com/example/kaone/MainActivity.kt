@@ -1,33 +1,60 @@
 package com.example.kaone
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import com.cloudinary.android.MediaManager
 import com.example.kaone.ui.HomeScreen
 import com.example.kaone.ui.LoginScreen
 import com.example.kaone.ui.SignUpScreen
+import com.example.kaone.ui.createNotificationChannel
+import com.example.kaone.ui.showLocalNotification
 import com.example.kaone.ui.theme.KaOneTheme
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
+import com.google.firebase.messaging.FirebaseMessaging
 
 class MainActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
     private var banListener: ListenerRegistration? = null
+    private var notificationListener: ListenerRegistration? = null
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            fetchAndStoreFcmToken()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // 必須先初始化 Firebase 實例，否則後續權限檢查調用 fetchAndStoreFcmToken 會崩潰
+        auth = FirebaseAuth.getInstance()
+        db = FirebaseFirestore.getInstance()
+
+        createNotificationChannel(this)
+        askNotificationPermission()
+
         try {
             val config = mapOf(
                 "cloud_name" to "ddlaenz5b",
@@ -36,9 +63,6 @@ class MainActivity : ComponentActivity() {
             )
             MediaManager.init(this, config)
         } catch (e: Exception) { }
-
-        auth = FirebaseAuth.getInstance()
-        db = FirebaseFirestore.getInstance()
         
         enableEdgeToEdge()
         setContent {
@@ -47,27 +71,18 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf(if (auth.currentUser != null) "home" else "login") 
                 }
                 
-                // 追蹤是否為訪客模式
                 var isGuestMode by remember { mutableStateOf(false) }
 
-                // 監聽用戶是否被停權 (訪客模式跳過)
                 LaunchedEffect(currentScreen) {
                     val userId = auth.currentUser?.uid
                     if (currentScreen == "home" && userId != null && !isGuestMode) {
-                        banListener?.remove()
-                        banListener = db.collection("users").document(userId)
-                            .addSnapshotListener { snapshot, _ ->
-                                if (snapshot != null && snapshot.exists()) {
-                                    val isBanned = snapshot.getBoolean("isBanned") ?: false
-                                    if (isBanned) {
-                                        Toast.makeText(this@MainActivity, "您的帳號已被停權，請聯繫管理員", Toast.LENGTH_LONG).show()
-                                        auth.signOut()
-                                        currentScreen = "login"
-                                    }
-                                }
-                            }
+                        fetchAndStoreFcmToken()
+                        setupBanListener(userId) {
+                            currentScreen = "login"
+                        }
+                        setupNotificationListener(userId)
                     } else {
-                        banListener?.remove()
+                        removeListeners()
                     }
                 }
                 
@@ -183,8 +198,72 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun askNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                fetchAndStoreFcmToken()
+            }
+        } else {
+            fetchAndStoreFcmToken()
+        }
+    }
+
+    private fun fetchAndStoreFcmToken() {
+        val userId = auth.currentUser?.uid ?: return
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val token = task.result
+                db.collection("users").document(userId).update("fcmToken", token)
+                    .addOnSuccessListener { Log.d("FCM", "Token updated: $token") }
+            }
+        }
+    }
+
+    private fun setupBanListener(userId: String, onBanned: () -> Unit) {
+        banListener?.remove()
+        banListener = db.collection("users").document(userId)
+            .addSnapshotListener { snapshot, _ ->
+                if (snapshot != null && snapshot.exists()) {
+                    if (snapshot.getBoolean("isBanned") == true) {
+                        Toast.makeText(this, "您的帳號已被停權", Toast.LENGTH_LONG).show()
+                        auth.signOut()
+                        onBanned()
+                    }
+                }
+            }
+    }
+
+    private fun setupNotificationListener(userId: String) {
+        notificationListener?.remove()
+        notificationListener = db.collection("notifications")
+            .whereEqualTo("userId", userId)
+            .whereEqualTo("isRead", false)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(1)
+            .addSnapshotListener { snapshots, e ->
+                if (e != null) return@addSnapshotListener
+                
+                for (dc in snapshots?.documentChanges ?: emptyList()) {
+                    if (dc.type == DocumentChange.Type.ADDED) {
+                        val title = dc.document.getString("title") ?: "新通知"
+                        val content = dc.document.getString("content") ?: ""
+                        showLocalNotification(this, title, content)
+                    }
+                }
+            }
+    }
+
+    private fun removeListeners() {
+        banListener?.remove()
+        notificationListener?.remove()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        banListener?.remove()
+        removeListeners()
     }
 }

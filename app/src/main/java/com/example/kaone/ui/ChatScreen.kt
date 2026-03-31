@@ -242,12 +242,29 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
             "unreadCount.${otherId.value}" to FieldValue.increment(1)
         ))
         
-        // 僅針對「交換提案」發送通知，一般聊天訊息不再發送系統通知
-        if (type == "trade_proposal") {
-            val notifTitle = "收到新的交換提案"
-            val notifContent = "有人向您發起了交換提案，快去查看吧！"
-            sendNotification(otherId.value, type, notifTitle, notifContent, roomId)
+        // 發送通知 (FCM / 本地橫幅)
+        val notifTitle: String
+        val notifContent: String
+        when (type) {
+            "trade_proposal" -> {
+                notifTitle = "收到新的交換提案"
+                notifContent = "有人向您發起了交換提案，快去查看吧！"
+            }
+            "image" -> {
+                notifTitle = otherUserName
+                notifContent = "傳送了一張圖片"
+            }
+            "card" -> {
+                notifTitle = otherUserName
+                notifContent = "分享了一張小卡"
+            }
+            else -> {
+                notifTitle = otherUserName
+                notifContent = t
+            }
         }
+        // 傳送通知，類別標註為 chat_silent 以便在 NotificationScreen 排除
+        sendNotification(otherId.value, "chat_silent", notifTitle, notifContent, roomId)
     }
 
     val mediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { u -> u?.let { isUploading = true; CloudinaryUploader.uploadMedia(context, it, scope, onSuccess = { url -> sendMsg("", "image", url); isUploading = false }, onFailure = { isUploading = false }) } }
@@ -268,7 +285,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                 "cancelled" -> "交換提案已取消"
                 else -> "交換狀態更新"
             }
-            sendNotification(otherId.value, "trade_proposal", statusTitle, "您的交換提案狀態已變更為：${lastMsgText}", roomId)
+            sendNotification(otherId.value, "chat_silent", statusTitle, "您的交換提案狀態已變更為：${lastMsgText}", roomId)
         }
     }
 
@@ -482,7 +499,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                             db.collection("chatRooms").document(roomId).collection("messages").document(reviewMsgId!!).update("reviewedBy", FieldValue.arrayUnion(userId))
                             
                             // 發送通知
-                            sendNotification(otherId.value, "review", "收到新的評價", "有人對您的交換進行了評價！", roomId)
+                            sendNotification(otherId.value, "chat_silent", "收到新的評價", "有人對您的交換進行了評價！", roomId)
 
                             Toast.makeText(context, "評價已送出", Toast.LENGTH_SHORT).show()
                             isSubmitting = false

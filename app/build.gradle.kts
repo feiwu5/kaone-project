@@ -56,6 +56,7 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-storage")
+    implementation("com.google.firebase:firebase-messaging") // 新增 FCM 依賴
 
     // 圖片載入
     implementation("io.coil-kt:coil-compose:2.5.0")
