@@ -32,6 +32,7 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.messaging.FirebaseMessaging
 
 class MainActivity : ComponentActivity() {
+
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
     private var banListener: ListenerRegistration? = null
@@ -48,7 +49,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 必須先初始化 Firebase 實例，否則後續權限檢查調用 fetchAndStoreFcmToken 會崩潰
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 

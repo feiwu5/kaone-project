@@ -135,7 +135,7 @@ object KpopData {
         "The Wind" to listOf("Heesoo|金希洙","Thanatorn","Hanbin|崔翰彬","Hayuchan|朴遐柳燦","Chanwon|安燦元","Hyounjoon|張玹準"),
         "tripleS" to listOf("Yooyeon|金琉然", "Mayu|髙麗 真友", "Xinyu|周心語", "Nakyoung|金拏炅", "Sohyun|朴昭玹", "Dahyun|徐多賢", "Nien|許念慈", "Seoyeon|尹舒姸", "JiYeon|池諝娫", "Kotone|嘉味元 琴音", "ChaeYeon|金采嬿", "YuBin|孔裕彬", "Jiwoo|李知禹", "Kaede|山田楓", "Shion|朴示溫", "Lynn|川上凜", "Sullin", "HyeRin|鄭慧潾", "ChaeWon|金采湲", "HaYeon|丁夏妍", "SooMmn|金秀珉", "Yeonji|郭姸知", "Joobin|周彬", "Seoah|鄭楷潾"),
         "TWICE" to listOf("Nayeon|林娜璉", "Jeongyeon|俞定延", "Momo|平井桃", "Sana|湊崎紗夏", "Jihyo|朴志效", "Mina|名井南", "Dahyun|金多賢", "Chaeyoung|孫彩瑛", "Tzuyu|周子瑜"),
-        "TWS" to listOf("Shinyu|申惟", "Dohoon|崔道勳", "Youngjae|崔英宰", "Hanjin|韓振", "Jihoon|韓志訓", "Kyungmin|李炅"),
+        "TWS" to listOf("Shinyu|申惟", "Dohoon|崔道勳", "Youngjae|崔英宰", "Hanjin|韓振", "Jihoon|韓志訓", "Kyungmin|李炅潣"),
         "UNIS" to listOf("Hyeonju|陳賢珠","Nana|江角奈奈","Gehlee","Kotoko|河田琴子","Yunha|方鈗河","Elisia","Yoona|吳潤妸","Seowon|林恕願"),
         "VERIVERY" to listOf("Dongheon|李東憲", "Hoyoung|裴浩榮", "Minchan|洪慜撰", "Gyehyeon|趙啓賢", "Yeonho|朱延浩", "Yongseung|金勇勝", "Kangmin|柳岡旻"),
         "VIVIZ" to listOf("Eunha|銀河", "SinB|信飛", "Umji|嚴智"),

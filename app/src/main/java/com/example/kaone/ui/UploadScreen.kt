@@ -1,6 +1,9 @@
 package com.example.kaone.ui
 
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,9 +31,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.kaone.ml.IdolClassifier
 import com.example.kaone.ui.theme.ImgbbUploader
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -45,6 +52,12 @@ fun UploadScreen(
     val db = FirebaseFirestore.getInstance()
     val scope = rememberCoroutineScope()
     
+    // 初始化 TFLite 辨識器
+    val classifier = remember { IdolClassifier(context) }
+    DisposableEffect(Unit) {
+        onDispose { classifier.close() }
+    }
+
     var userNickname by remember { mutableStateOf("") }
     var userProfileImageUrl by remember { mutableStateOf("") }
     var userLocation by remember { mutableStateOf("") }
@@ -61,6 +74,14 @@ fun UploadScreen(
     var imageUrl by remember { mutableStateOf(existingCard?.imageUrl ?: "") }
     var isUploadingMain by remember { mutableStateOf(false) }
 
+    // --- 持有小卡資訊 狀態變數 ---
+    var groupInput by remember { mutableStateOf(existingCard?.groupName ?: "") }
+    val selectedMembers = remember { 
+        mutableStateListOf<String>().apply { 
+            existingCard?.memberList?.let { addAll(it) } 
+        } 
+    }
+
     val wishlistImageUrls = remember { 
         mutableStateListOf<String>().apply { 
             existingCard?.wishlistImageUrls?.let { addAll(it) } 
@@ -71,6 +92,43 @@ fun UploadScreen(
     val mainLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             isUploadingMain = true
+            
+            // --- 執行本地 AI 辨識 ---
+            scope.launch(Dispatchers.Default) {
+                try {
+                    val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, it)) { decoder, _, _ ->
+                            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                        }
+                    } else {
+                        context.contentResolver.openInputStream(it)?.use { stream ->
+                            BitmapFactory.decodeStream(stream)
+                        }
+                    }
+
+                    // ... 在 UploadScreen.kt 的 mainLauncher內 ...
+                    bitmap?.let { b ->
+                        val result = classifier.classify(b)
+                        withContext(Dispatchers.Main) {
+                            if (result != null) {
+                                // 自動填入
+                                groupInput = result.group
+                                selectedMembers.clear()
+                                selectedMembers.add(result.member)
+
+                                // 💡 關鍵：直接彈出所有人的分數，讓你看到 AI 的思考過程
+                                Toast.makeText(context, result.allScores, Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(context, "AI 無法辨識，請確保光線充足", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            // 同時執行上傳
             ImgbbUploader.uploadImage(context, it, scope,
                 onSuccess = { url -> imageUrl = url; isUploadingMain = false },
                 onFailure = { isUploadingMain = false }
@@ -105,22 +163,13 @@ fun UploadScreen(
     val groupMembersData = KpopData.groupMembersData
     val allGroups = groupMembersData.keys.sorted()
 
-    // --- 持有小卡資訊 ---
-    var groupInput by remember { mutableStateOf(existingCard?.groupName ?: "") }
     var isGroupMenuExpanded by remember { mutableStateOf(false) }
-    val selectedMembers = remember { 
-        mutableStateListOf<String>().apply { 
-            existingCard?.memberList?.let { addAll(it) } 
-        } 
-    }
     var memberInput by remember { mutableStateOf("") }
     var isMemberMenuExpanded by remember { mutableStateOf(false) }
     
-    // --- 持有類型 (專輯/演唱會) ---
     var typeInput by remember { mutableStateOf(existingCard?.cardType ?: "") }
     var isTypeMenuExpanded by remember { mutableStateOf(false) }
 
-    // --- 許願清單資訊 (智慧配對核心) ---
     val selectedWishGroups = remember { 
         mutableStateListOf<String>().apply { 
             existingCard?.wishGroupList?.let { addAll(it) } 
@@ -188,7 +237,7 @@ fun UploadScreen(
         ) {
             OutlinedTextField(
                 value = groupInput, 
-                onValueChange = { groupInput = it; isGroupMenuExpanded = true; typeInput = "" }, // 換團體時清空類型
+                onValueChange = { groupInput = it; isGroupMenuExpanded = true; typeInput = "" },
                 label = { Text("持有團體") }, 
                 modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable).fillMaxWidth(), 
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupMenuExpanded) },
@@ -248,7 +297,7 @@ fun UploadScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
         
-        // 持有類型 (專輯/演唱會)
+        // 持有類型
         val availableTypes = KpopData.groupAlbumData[groupInput] ?: emptyList()
         val filteredTypes = availableTypes.filter { it.contains(typeInput, ignoreCase = true) }
         
@@ -320,7 +369,6 @@ fun UploadScreen(
         Spacer(modifier = Modifier.height(16.dp))
         OutlinedTextField(value = wishlist, onValueChange = { wishlist = it }, label = { Text("想換的小卡描述 (必填)") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
 
-        // --- 結構化許願區 ---
         Spacer(modifier = Modifier.height(24.dp))
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -336,7 +384,6 @@ fun UploadScreen(
                 
                 Spacer(Modifier.height(12.dp))
                 
-                // 許願團體
                 Text("許願團體", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 FlowRow(modifier = Modifier.padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     selectedWishGroups.forEach { group -> InputChip(selected = true, onClick = { selectedWishGroups.remove(group) }, label = { Text(formatDisplayName(group), fontSize = 11.sp) }, trailingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(12.dp)) } ) }
@@ -357,7 +404,7 @@ fun UploadScreen(
                     )
                     ExposedDropdownMenu(
                         expanded = isWishGroupMenuExpanded, 
-                        onDismissRequest = { isWishGroupMenuExpanded = false }
+                        onDismissRequest = { isGroupMenuExpanded = false }
                     ) { 
                         val displayWishGroups = filteredWishGroups.take(10)
                         displayWishGroups.forEach { group -> 
@@ -371,7 +418,6 @@ fun UploadScreen(
 
                 Spacer(Modifier.height(12.dp))
 
-                // 許願成員
                 Text("許願成員", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 FlowRow(modifier = Modifier.padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     selectedWishMembers.forEach { member -> InputChip(selected = true, onClick = { selectedWishMembers.remove(member) }, label = { Text(formatDisplayName(member), fontSize = 11.sp) }, trailingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(12.dp)) } ) }
@@ -427,7 +473,7 @@ fun UploadScreen(
                         "groupName" to groupInput,
                         "memberName" to selectedMembers.joinToString(", "), 
                         "memberList" to selectedMembers.toList(),
-                        "cardType" to typeInput, // 儲存小卡類型
+                        "cardType" to typeInput,
                         "wishlist" to wishlist,
                         "wishlistImageUrls" to wishlistImageUrls.toList(),
                         "wishGroupList" to selectedWishGroups.toList(),
@@ -444,7 +490,7 @@ fun UploadScreen(
                     }
                     
                     task.addOnSuccessListener {
-                        Toast.makeText(context, if (existingCard == null) "小卡上傳成功！" else "修改成功！", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "小卡上傳成功！", Toast.LENGTH_SHORT).show()
                         if (existingCard == null) {
                             checkForSmartMatches(userId, cardData)
                         }
@@ -462,11 +508,6 @@ fun UploadScreen(
     }
 }
 
-/**
- * 智慧配對核心邏輯：
- * 當我上傳一張新卡片後，檢查別人的卡片是否符合我的許願標籤。
- * 如果符合，就發送通知給我（目前上傳者）。
- */
 private fun checkForSmartMatches(currentUserId: String, myCardData: Map<String, Any>) {
     val db = FirebaseFirestore.getInstance()
     @Suppress("UNCHECKED_CAST")
@@ -476,7 +517,6 @@ private fun checkForSmartMatches(currentUserId: String, myCardData: Map<String, 
 
     if (myWishGroups.isEmpty() && myWishMembers.isEmpty()) return
 
-    // 搜尋別人的卡片 (非自己上傳且狀態為可交換)
     db.collection("cards")
         .whereNotEqualTo("userId", currentUserId)
         .whereEqualTo("status", "available")
@@ -485,12 +525,10 @@ private fun checkForSmartMatches(currentUserId: String, myCardData: Map<String, 
             snapshot.documents.forEach { doc ->
                 val otherCard = doc.toKpopCard() ?: return@forEach
                 
-                // 檢查別人的持有卡片是否符合「我」剛剛上傳的許願標籤
                 val matchByGroup = otherCard.groupName in myWishGroups
                 val matchByMember = otherCard.memberList.any { it in myWishMembers }
 
                 if (matchByGroup || matchByMember) {
-                    // 發送匹配通知給「我」
                     sendNotification(
                         userId = currentUserId,
                         type = "match",

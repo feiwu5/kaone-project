@@ -12,7 +12,7 @@ android {
     defaultConfig {
         applicationId = "com.example.kaone"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 35 // 升級至 35 並搭配支援 16KB 的庫
         versionCode = 1
         versionName = "1.0"
 
@@ -37,6 +37,18 @@ android {
     }
     buildFeatures {
         compose = true
+        mlModelBinding = true
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/AL2.0"
+            excludes += "/META-INF/LGPL2.1"
+        }
+        jniLibs {
+            // 讓系統在安裝時處理庫的對齊
+            useLegacyPackaging = false 
+        }
     }
 }
 
@@ -56,16 +68,20 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-storage")
-    implementation("com.google.firebase:firebase-messaging") // 新增 FCM 依賴
+    implementation("com.google.firebase:firebase-messaging")
 
-    // 圖片載入
-    implementation("io.coil-kt:coil-compose:2.5.0")
-
-    // Cloudinary SDK (比 OkHttp 上傳更穩定)
-    implementation("com.cloudinary:cloudinary-android:3.0.2")
-
-    // Material 擴充圖示庫
+    // 圖片載入與處理
+    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("com.cloudinary:cloudinary-android:3.1.2")
     implementation("androidx.compose.material:material-icons-extended:1.6.7")
+    
+    // 強制更新 graphics-path 以修正 16KB 警告
+    implementation("androidx.graphics:graphics-path:1.0.1")
+
+    // TensorFlow Lite
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
+    implementation("org.tensorflow:tensorflow-lite-metadata:0.4.4")
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.14.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
