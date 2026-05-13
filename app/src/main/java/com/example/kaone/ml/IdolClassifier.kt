@@ -3,23 +3,51 @@ package com.example.kaone.ml
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
-import com.example.kaone.ml.Model
+import org.json.JSONObject
 import org.tensorflow.lite.DataType
-import org.tensorflow.lite.support.common.FileUtil
 import org.tensorflow.lite.support.common.ops.NormalizeOp
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.image.ops.ResizeOp
+import org.tensorflow.lite.support.model.Model as TFLiteModel
+import kotlin.math.sqrt
 
 class IdolClassifier(context: Context) {
-    private val model = Model.newInstance(context)
 
-    private val labels: List<String> by lazy {
+    // 1. 載入模型
+    private var model: FacenetEmbeddingModel? = try {
+        val options = TFLiteModel.Options.Builder()
+            .setDevice(TFLiteModel.Device.CPU)
+            .setNumThreads(4)
+            .build()
+        FacenetEmbeddingModel.newInstance(context, options)
+    } catch (e: Exception) {
+        Log.e("IDOL_AI", "❌ 模型載入失敗: ${e.message}")
+        null
+    }
+
+    // 2. 載入特徵資料庫
+    private val featureDatabase: Map<String, FloatArray> by lazy {
         try {
-            FileUtil.loadLabels(context, "labels.txt")
+            val jsonString = context.assets.open("idol_features.json").bufferedReader().use { it.readText() }
+            val jsonObject = JSONObject(jsonString)
+            val map = mutableMapOf<String, FloatArray>()
+
+            val keys = jsonObject.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val jsonArray = jsonObject.getJSONArray(key)
+                val vector = FloatArray(jsonArray.length())
+                for (i in 0 until jsonArray.length()) {
+                    vector[i] = jsonArray.getDouble(i).toFloat()
+                }
+                map[key] = vector
+            }
+            Log.i("IDOL_AI", "✅ 成功載入 ${map.size} 個成員特徵")
+            map
         } catch (e: Exception) {
-            Log.e("IDOL_AI", "無法讀取標籤檔", e)
-            emptyList()
+            Log.e("IDOL_AI", "❌ 載入 JSON 失敗: ${e.message}")
+            emptyMap()
         }
     }
 
@@ -31,65 +59,79 @@ class IdolClassifier(context: Context) {
     )
 
     fun classify(bitmap: Bitmap): RecognitionResult? {
+        if (model == null) {
+            Log.e("IDOL_AI", "辨識失敗：模型未初始化")
+            return null
+        }
+        if (featureDatabase.isEmpty()) {
+            Log.e("IDOL_AI", "辨識失敗：特徵庫是空的")
+            return null
+        }
+
         try {
-            // 1. 中央裁切以維持臉部比例 (與 Colab 同步：center_crop_and_resize)
             val size = minOf(bitmap.width, bitmap.height)
-            val x = (bitmap.width - size) / 2
-            val y = (bitmap.height - size) / 2
-            val croppedBitmap = Bitmap.createBitmap(bitmap, x, y, size, size)
+            val cropped = Bitmap.createBitmap(bitmap, (bitmap.width - size) / 2, (bitmap.height - size) / 2, size, size)
 
             val imageProcessor = ImageProcessor.Builder()
-                // 💡 使用 BILINEAR，因為 0.4.4 版本不支援 BICUBIC
-                .add(ResizeOp(224, 224, ResizeOp.ResizeMethod.BILINEAR))
-                // 維持 0~255，因為模型內部已有 Rescaling 層 (1./255)
-                .add(NormalizeOp(0f, 1f))
+                .add(ResizeOp(160, 160, ResizeOp.ResizeMethod.BILINEAR))
+                .add(NormalizeOp(127.5f, 128f))
                 .build()
 
             val tensorImage = TensorImage(DataType.FLOAT32)
-            tensorImage.load(croppedBitmap)
+            tensorImage.load(cropped)
             val processedImage = imageProcessor.process(tensorImage)
 
-            val outputs = model.process(processedImage.tensorBuffer)
-            val floatArray = outputs.outputFeature0AsTensorBuffer.floatArray
+            val outputs = model?.process(processedImage.tensorBuffer)
+            // 💡 如果這裡報紅，請檢查你的模型輸出名稱是否為 output_0
+            val currentVector = outputs?.outputFeature0AsTensorBuffer?.floatArray ?: return null
 
-            var maxIdx = -1
-            var maxScore = -1f
-            val scoreDetails = StringBuilder("AI 預測分布：\n")
+            var bestLabel = ""
+            var maxSim = -1f
+            val details = StringBuilder("相似度分析：\n")
 
-            Log.i("IDOL_AI", "========= AI 辨識 Debug =========")
-            for (i in floatArray.indices) {
-                val fullName = if (i < labels.size) labels[i] else "索引$i"
-                val score = floatArray[i]
+            for ((label, refVector) in featureDatabase) {
+                val sim = cosineSimilarity(currentVector, refVector)
+                val displayName = label.split(":").last().trim().split("|").first()
+                details.append("${displayName}: ${"%.2f".format(sim * 100)}%\n")
 
-                // 解析顯示名稱
-                val displayName = if (fullName.contains(":")) fullName.split(":")[1] else fullName
-                scoreDetails.append("${displayName.split("|").first()}: ${"%.2f".format(score)}\n")
-
-                Log.i("IDOL_AI", "索引 $i ($fullName): $score")
-
-                if (score > maxScore) {
-                    maxScore = score
-                    maxIdx = i
+                if (sim > maxSim) {
+                    maxSim = sim
+                    bestLabel = label
                 }
             }
 
-            // 💡 門檻值調低至 0.15f，提供更靈敏的偵測反饋
-            if (maxIdx == -1 || maxScore < 0.15f) return null
+            Log.d("IDOL_AI", "最佳匹配: $bestLabel, 分數: $maxSim")
 
-            val rawLabel = if (maxIdx < labels.size) labels[maxIdx] else "Index:$maxIdx"
-            val parts = rawLabel.split(":")
+            // 💡 除錯用：降低門檻到 0.3，看看有沒有反應
+            if (maxSim < 0.3f) {
+                Log.w("IDOL_AI", "相似度太低 ($maxSim)，無法確認身份")
+                return null
+            }
 
+            val parts = bestLabel.split(":")
             return RecognitionResult(
                 group = if (parts.size >= 2) parts[0].trim() else "BTS",
-                member = if (parts.size >= 2) parts[1].trim() else rawLabel,
-                confidence = maxScore,
-                allScores = scoreDetails.toString()
+                member = if (parts.size >= 2) parts[1].split("|")[0].trim() else bestLabel,
+                confidence = maxSim,
+                allScores = details.toString()
             )
+
         } catch (e: Exception) {
-            Log.e("IDOL_AI", "辨識異常", e)
+            Log.e("IDOL_AI", "辨識異常: ${e.message}")
             return null
         }
     }
 
-    fun close() = model.close()
+    private fun cosineSimilarity(v1: FloatArray, v2: FloatArray): Float {
+        var dot = 0.0; var n1 = 0.0; var n2 = 0.0
+        for (i in v1.indices) {
+            dot += v1[i] * v2[i]
+            n1 += v1[i] * v1[i]
+            n2 += v2[i] * v2[i]
+        }
+        val score = (dot / (sqrt(n1) * sqrt(n2))).toFloat()
+        return if (score.isNaN()) 0f else score
+    }
+
+    fun close() = model?.close()
 }

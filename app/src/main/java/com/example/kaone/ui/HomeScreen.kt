@@ -1,6 +1,10 @@
 package com.example.kaone.ui
 
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
 import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -33,6 +37,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -47,10 +53,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import com.example.kaone.ml.IdolClassifier
 import com.example.kaone.ui.theme.ImgbbUploader
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -63,7 +71,7 @@ fun UserAvatar(userId: String, size: Int = 16, defaultUrl: String = "") {
     var latestImageUrl by remember { mutableStateOf(defaultUrl) }
 
     DisposableEffect(userId) {
-        var listenerRegistration: com.google.firebase.firestore.ListenerRegistration? = null
+        var listenerRegistration: ListenerRegistration? = null
         if (userId.isNotEmpty()) {
             listenerRegistration = db.collection("users").document(userId).addSnapshotListener { snapshot, _ ->
                 val url = snapshot?.getString("profileImageUrl")
@@ -177,7 +185,6 @@ fun HomeScreen(
                 .whereEqualTo("userId", userId)
                 .whereEqualTo("isRead", false)
                 .addSnapshotListener { snapshot, _ ->
-                    // 過濾掉 chat_silent，確保紅點計數與通知中心顯示的一致
                     val count = snapshot?.documents?.count { doc ->
                         doc.getString("type") != "chat_silent"
                     } ?: 0
@@ -316,6 +323,7 @@ fun ExploreScreen(userId: String, onViewProfile: (String) -> Unit, activeView: S
         "upload" -> if (userId.isEmpty()) GuestModePlaceholder { } else ExploreEventUploadView(userId = userId, existingEvent = editingEvent, onBack = { onActiveViewChange("events") }, onSuccess = { onActiveViewChange("events") })
         "smartMatch" -> SmartMatchView(currentUserId = userId, onBack = { onActiveViewChange("menu") }, onStartChat = onStartChat, onViewProfile = onViewProfile)
         "nearby" -> NearbyExchangeView(currentUserId = userId, initialLocation = userLocation, onBack = { onActiveViewChange("menu") }, onStartChat = onStartChat, onViewProfile = onViewProfile)
+        "encyclopedia" -> EncyclopediaScreen(onBack = { onActiveViewChange("menu") })
     }
 }
 
@@ -384,7 +392,7 @@ fun ExploreMenuView(onNavigate: (String) -> Unit) {
                     backgroundColor = Color(0xFFE1F5FE),
                     iconColor = Color(0xFF29B6F6),
                     isLarge = false,
-                    onClick = { /* 開發中 */ }
+                    onClick = { onNavigate("encyclopedia") }
                 )
             }
         }
@@ -842,10 +850,7 @@ fun ExploreEventsView(currentUserId: String, onBack: () -> Unit, onAddClick: () 
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
                 actions = {
                     IconButton(onClick = {
-                        if (isGuest) {
-                        } else {
-                            onAddClick()
-                        }
+                        if (!isGuest) onAddClick()
                     }) { Icon(Icons.Default.AddBox, null) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White, titleContentColor = Color.Black, navigationIconContentColor = Color.Black)
@@ -965,6 +970,8 @@ fun MainDashboard(
     var tabs by remember { mutableStateOf(listOf("全部")) }; var selectedCard by remember { mutableStateOf<KpopCard?>(null) }; var cardToDelete by remember { mutableStateOf<KpopCard?>(null) }
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
     var showTabSettingsDialog by remember { mutableStateOf(false) }; var searchQuery by remember { mutableStateOf("") }
+    var isSearchActive by rememberSaveable { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
     val isGuest = userId.isEmpty()
     val allGroups = listOf("&TEAM", "aespa", "AHOF", "ALLDAY PROJECT", "ALPHA DRIVE ONE", "Apink", "ARrC", "ASTRO", "ATEEZ", "BSS", "BABYMONSTER", "Billlie", "BOYNEXTDOOR", "BTS", "BIGBANG", "CLASS:y", "CLOSE YOUR EYES", "CNBLUE", "CORTIS", "CRAVITY", "Dreamcatcher", "ENHYPEN", "EXO", "fromis_9", "G-Dragon", "Girls' Generation", "GFRIEND", "GOT the beat", "GOT7", "Heart2Hearts", "I-DLE", "IDID", "ITZY", "IVE", "izna", "IZ*ONE", "KiiiKiii", "KISS OF LIFE", "LE SSERAFIM", "LIGHTSUM", "MAMAMOO", "MAMAMOO+", "MEOVV", "MONSTA X", "NCT 127", "NCT DOJAEJUNG", "NCT DREAM", "NCT WISH", "NewJeans", "NEXZ", "NiziU", "NMIXX", "P1Harmony", "PURPLE K!SS", "QWER", "Red Velvet", "Red Velvet - IRENE & SEULGI", "SAY MY NAME", "SEVENTEEN", "SF9", "STAYC", "Stray Kids", "SuperM", "TEMPEST", "THE BOYZ", "TOMORROW X TOGETHER", "tripleS", "TWICE", "TWS", "VERIVERY", "VIVIZ", "WANNA ONE", "WayV", "WEi", "WJSN", "ZEROBASEONE").sorted()
 
@@ -974,6 +981,30 @@ fun MainDashboard(
     var showChineseName by rememberSaveable { mutableStateOf(false) }
 
     var reportingCardId by remember { mutableStateOf<String?>(null) }
+
+    // --- AI 辨識搜尋實作 ---
+    val classifier = remember { IdolClassifier(context) }
+    val photoPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            val bitmap = if (Build.VERSION.SDK_INT < 28) {
+                MediaStore.Images.Media.getBitmap(context.contentResolver, it)
+            } else {
+                val source = ImageDecoder.createSource(context.contentResolver, it)
+                ImageDecoder.decodeBitmap(source) { decoder, _, _ -> decoder.isMutableRequired = true }
+            }
+            val result = classifier.classify(bitmap)
+            if (result != null) {
+                // 將 AI 辨識的名字去頭去尾，並自動切換到「全部」分頁
+                searchQuery = result.member.trim()
+                isSearchActive = true
+                onTabChange(0)
+
+                Toast.makeText(context, "辨識成功：${result.group} ${result.member}", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "無法辨識照片中的偶像", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     LaunchedEffect(userId) { if (!isGuest) db.collection("users").document(userId).addSnapshotListener { snapshot, _ -> val customTabs = snapshot?.get("customDashboardTabs") as? List<*>; if (customTabs != null) tabs = listOf("全部") + customTabs.mapNotNull { it?.toString() }; val favs = snapshot?.get("favoriteCardIds") as? List<*>; favoriteIds = favs?.mapNotNull { it?.toString() }?.toSet() ?: emptySet() } }
     LaunchedEffect(Unit) {
@@ -996,74 +1027,156 @@ fun MainDashboard(
         }
     }
 
-    val filteredCards = cardList.filter { card -> (if (selectedTab == 0 || selectedTab >= tabs.size) true else card.groupName.contains(tabs[selectedTab], ignoreCase = true)) && (if (searchQuery.isEmpty()) true else card.memberName.lowercase().contains(searchQuery.trim().lowercase()) || card.groupName.lowercase().contains(searchQuery.trim().lowercase())) }
+    val filteredCards = cardList.filter { card ->
+        val matchesTab = if (selectedTab == 0 || selectedTab >= tabs.size) true
+        else card.groupName.contains(tabs[selectedTab], ignoreCase = true)
+
+        val query = searchQuery.replace(" ", "").lowercase().trim()
+        val matchesSearch = if (query.isEmpty()) true
+        else {
+            val cleanMemberName = card.memberName.replace(Regex("[\\s|/()]+"), "").lowercase()
+            val cleanGroupName = card.groupName.replace(Regex("[\\s|/()]+"), "").lowercase()
+            val cleanCardType = card.cardType.replace(Regex("[\\s|/()]+"), "").lowercase()
+
+            cleanMemberName.contains(query) || query.contains(cleanMemberName) ||
+                    cleanGroupName.contains(query) || query.contains(cleanGroupName) ||
+                    cleanCardType.contains(query) || query.contains(cleanCardType) ||
+                    card.memberList.any {
+                        val m = it.replace(Regex("[\\s|/()]+"), "").lowercase()
+                        m.contains(query) || query.contains(m)
+                    }
+        }
+
+        matchesTab && matchesSearch
+    }
 
     fun formatMemberName(raw: String): String {
         return raw.split(", ").joinToString(", ") { m ->
-            val parts = m.split("|")
-            if (showChineseName && parts.size > 1) parts[1] else parts[0]
+            // 先嘗試用 | 分割 (官方資料格式)
+            val pipeParts = m.split("|").map { it.trim() }.filter { it.isNotBlank() && !it.startsWith("http") }
+            
+            if (pipeParts.size >= 2) {
+                // 如果有英文和中文名
+                if (showChineseName) pipeParts[1] else pipeParts[0]
+            } else if (pipeParts.isNotEmpty()) {
+                // 如果沒有 | 分隔，檢查是否有空格 (針對手動輸入或 AI 直接存入格式)
+                val spaceParts = pipeParts[0].split(" ").filter { it.isNotBlank() }
+                if (spaceParts.size >= 2) {
+                    if (showChineseName) spaceParts.last() else spaceParts.first()
+                } else {
+                    pipeParts[0]
+                }
+            } else {
+                m
+            }
         }
     }
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF7F8FA))) {
         Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary, tonalElevation = 4.dp) {
-            Row(modifier = Modifier.statusBarsPadding().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("KaOne!", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White, modifier = Modifier.padding(end = 12.dp))
-                Box(modifier = Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(19.dp)).background(Color.White).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Search, null, modifier = Modifier.size(18.dp), tint = Color.Gray)
-                        Spacer(Modifier.width(8.dp))
+            if (isSearchActive) {
+                Row(
+                    modifier = Modifier.statusBarsPadding().padding(horizontal = 8.dp, vertical = 8.dp).fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { isSearchActive = false; searchQuery = "" }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
+                    }
+                    Box(modifier = Modifier.weight(1f).height(40.dp), contentAlignment = Alignment.CenterStart) {
                         BasicTextField(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
                             singleLine = true,
-                            textStyle = TextStyle(fontSize = 14.sp, color = Color.Black),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            textStyle = TextStyle(fontSize = 16.sp, color = Color.White),
+                            cursorBrush = SolidColor(Color.White),
                             decorationBox = { innerTextField ->
-                                Box(modifier = Modifier.fillMaxWidth()) {
-                                    if (searchQuery.isEmpty()) {
-                                        Text(
-                                            text = "搜尋小卡或團體...",
-                                            fontSize = 14.sp,
-                                            color = Color.Gray,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                    innerTextField()
+                                if (searchQuery.isEmpty()) {
+                                    Text("搜尋團體、成員、專輯...", color = Color.White.copy(alpha = 0.6f), fontSize = 16.sp)
                                 }
+                                innerTextField()
                             }
                         )
-                        if (searchQuery.isNotEmpty()) Icon(Icons.Default.Close, null, modifier = Modifier.size(18.dp).clickable { searchQuery = "" }, tint = Color.Gray)
                     }
-                }
-                IconButton(onClick = { if (isGuest) Toast.makeText(context, "請先登入後再查看通知", Toast.LENGTH_SHORT).show() else onNotificationClick() }) {
-                    BadgedBox(badge = { if (unreadNotificationCount > 0) { Badge { Text(if (unreadNotificationCount > 99) "99+" else unreadNotificationCount.toString()) } } }) {
-                        Icon(Icons.Default.Notifications, "通知", tint = Color.White)
+                    IconButton(onClick = { photoPickerLauncher.launch("image/*") }) {
+                        Icon(Icons.Default.PhotoCamera, null, tint = Color.White)
                     }
-                }
-                IconButton(onClick = { showChineseName = !showChineseName }) {
-                    Surface(color = Color.White.copy(alpha = 0.2f), shape = CircleShape, modifier = Modifier.size(32.dp)) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(if (showChineseName) "中" else "En", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Default.Close, null, tint = Color.White)
                         }
                     }
                 }
-                IconButton(onClick = { if (isGuest) Toast.makeText(context, "請先登入後再設定標籤", Toast.LENGTH_SHORT).show() else showTabSettingsDialog = true }) { Icon(Icons.Default.Tune, "設定", tint = Color.White) }
+                LaunchedEffect(Unit) { focusRequester.requestFocus() }
+            } else {
+                Row(modifier = Modifier.statusBarsPadding().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("KaOne!", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White, modifier = Modifier.padding(end = 12.dp))
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(38.dp)
+                            .clip(RoundedCornerShape(19.dp))
+                            .background(Color.White.copy(alpha = 0.2f))
+                            .clickable { isSearchActive = true }
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Search, null, modifier = Modifier.size(18.dp), tint = Color.White)
+                            Spacer(Modifier.width(8.dp))
+                            Text("搜尋...", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+                        }
+                    }
+                    IconButton(onClick = { if (isGuest) Toast.makeText(context, "請先登入後再查看通知", Toast.LENGTH_SHORT).show() else onNotificationClick() }) {
+                        BadgedBox(badge = { if (unreadNotificationCount > 0) { Badge { Text(if (unreadNotificationCount > 99) "99+" else unreadNotificationCount.toString()) } } }) {
+                            Icon(Icons.Default.Notifications, "通知", tint = Color.White)
+                        }
+                    }
+                    IconButton(onClick = { showChineseName = !showChineseName }) {
+                        Surface(color = Color.White.copy(alpha = 0.2f), shape = CircleShape, modifier = Modifier.size(32.dp)) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(if (showChineseName) "中" else "En", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                    IconButton(onClick = { if (isGuest) Toast.makeText(context, "請先登入後再設定標籤", Toast.LENGTH_SHORT).show() else showTabSettingsDialog = true }) { Icon(Icons.Default.Tune, "設定", tint = Color.White) }
+                }
             }
         }
-        ScrollableTabRow(selectedTabIndex = selectedTab, edgePadding = 16.dp, divider = {}, containerColor = Color.Transparent, contentColor = MaterialTheme.colorScheme.primary) { tabs.forEachIndexed { index, title -> Tab(selected = selectedTab == index, onClick = { onTabChange(index) }, text = { Text(title, fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal) }) } }
-        LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            items(filteredCards) { card ->
-                CardItem(card = card, isFavorite = card.id in favoriteIds, showFavorite = card.userId != userId, onClick = { selectedCard = card }, onFavoriteClick = {
-                    if (isGuest) {
-                        Toast.makeText(context, "請先登入後再收藏", Toast.LENGTH_SHORT).show()
-                    } else {
-                        val update = if (card.id in favoriteIds) FieldValue.arrayRemove(card.id) else FieldValue.arrayUnion(card.id)
-                        db.collection("users").document(userId).update("favoriteCardIds", update)
-                    }
-                }, memberNameDisplay = formatMemberName(card.memberName))
+
+        if (isSearchActive && searchQuery.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize().padding(bottom = 100.dp), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        modifier = Modifier.size(100.dp),
+                        tint = Color.LightGray.copy(alpha = 0.4f)
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = "想要探索哪個偶像 or 專輯？",
+                        color = Color.Gray,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        } else {
+            if (!isSearchActive) {
+                ScrollableTabRow(selectedTabIndex = selectedTab, edgePadding = 16.dp, divider = {}, containerColor = Color.Transparent, contentColor = MaterialTheme.colorScheme.primary) { tabs.forEachIndexed { index, title -> Tab(selected = selectedTab == index, onClick = { onTabChange(index) }, text = { Text(title, fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal) }) } }
+            }
+            LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                items(filteredCards) { card ->
+                    CardItem(card = card, isFavorite = card.id in favoriteIds, showFavorite = card.userId != userId, onClick = { selectedCard = card }, onFavoriteClick = {
+                        if (isGuest) {
+                            Toast.makeText(context, "請先登入後再收藏", Toast.LENGTH_SHORT).show()
+                        } else {
+                            val update = if (card.id in favoriteIds) FieldValue.arrayRemove(card.id) else FieldValue.arrayUnion(card.id)
+                            db.collection("users").document(userId).update("favoriteCardIds", update)
+                        }
+                    }, memberNameDisplay = formatMemberName(card.memberName))
+                }
             }
         }
     }
@@ -1276,7 +1389,7 @@ fun CardItem(card: KpopCard, isFavorite: Boolean, showFavorite: Boolean = true, 
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         UserAvatar(userId = card.userId, size = 18, defaultUrl = card.ownerProfileImageUrl)
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(6.6.dp))
                         Text(
                             text = card.ownerName,
                             fontSize = 11.sp,

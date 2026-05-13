@@ -1,5 +1,7 @@
 package com.example.kaone.ui
 
+import android.Manifest
+import android.content.Context
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -30,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.example.kaone.ml.IdolClassifier
 import com.example.kaone.ui.theme.ImgbbUploader
@@ -38,6 +41,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -52,10 +57,23 @@ fun UploadScreen(
     val db = FirebaseFirestore.getInstance()
     val scope = rememberCoroutineScope()
     
-    // 初始化 TFLite 辨識器
     val classifier = remember { IdolClassifier(context) }
     DisposableEffect(Unit) {
         onDispose { classifier.close() }
+    }
+
+    // 輔助函式：提取乾淨名稱 (剔除網址)
+    fun String.getCleanName(): String {
+        return this.split("|")
+            .map { it.trim() }
+            .firstOrNull { it.isNotBlank() && !it.startsWith("http") } 
+            ?: this.trim()
+    }
+
+    // 格式化顯示：名稱 縮寫 (剔除網址)
+    fun formatDisplayName(rawName: String): String {
+        val parts = rawName.split("|").map { it.trim() }.filter { it.isNotBlank() && !it.startsWith("http") }
+        return parts.joinToString(" ")
     }
 
     var userNickname by remember { mutableStateOf("") }
@@ -73,13 +91,112 @@ fun UploadScreen(
 
     var imageUrl by remember { mutableStateOf(existingCard?.imageUrl ?: "") }
     var isUploadingMain by remember { mutableStateOf(false) }
+    var showImageSourceDialog by remember { mutableStateOf(false) }
 
     // --- 持有小卡資訊 狀態變數 ---
-    var groupInput by remember { mutableStateOf(existingCard?.groupName ?: "") }
+    var groupInput by remember { 
+        mutableStateOf(
+            existingCard?.groupName?.let { formatDisplayName(it) } ?: ""
+        ) 
+    }
     val selectedMembers = remember { 
         mutableStateListOf<String>().apply { 
             existingCard?.memberList?.let { addAll(it) } 
         } 
+    }
+
+    val groupMembersData = KpopData.groupMembersData
+    val allGroups = groupMembersData.keys.sorted()
+
+    // 智慧匹配原始 Key (優化匹配邏輯，支援格式化後的名稱)
+    val currentMatchedGroupKey = remember(groupInput) {
+        allGroups.find { 
+            it.getCleanName().equals(groupInput.trim(), ignoreCase = true) ||
+            formatDisplayName(it).equals(groupInput.trim(), ignoreCase = true) ||
+            it.equals(groupInput.trim(), ignoreCase = true)
+        }
+    }
+
+    var isGroupMenuExpanded by remember { mutableStateOf(false) }
+    var memberInput by remember { mutableStateOf("") }
+    var isMemberMenuExpanded by remember { mutableStateOf(false) }
+
+    // --- 相機相關處理 ---
+    var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
+    
+    fun createTempPictureUri(context: Context): Uri {
+        val tempFile = File(context.cacheDir, "camera_capture_${UUID.randomUUID()}.jpg")
+        return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
+    }
+
+    fun handleSelectedImage(uri: Uri) {
+        isUploadingMain = true
+        scope.launch(Dispatchers.Default) {
+            try {
+                val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri)) { decoder, _, _ ->
+                        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                    }
+                } else {
+                    context.contentResolver.openInputStream(uri)?.use { stream ->
+                        BitmapFactory.decodeStream(stream)
+                    }
+                }
+
+                bitmap?.let { b ->
+                    val result = classifier.classify(b)
+                    withContext(Dispatchers.Main) {
+                        if (result != null) {
+                            val matchedFullGroupName = allGroups.find { group ->
+                                group.getCleanName().equals(result.group.trim(), ignoreCase = true) 
+                            } ?: result.group
+                            
+                            groupInput = formatDisplayName(matchedFullGroupName)
+                            isGroupMenuExpanded = false
+                            
+                            val allMembersInGroup = groupMembersData[matchedFullGroupName] ?: emptyList()
+                            val matchedFullMemberName = allMembersInGroup.find { member ->
+                                val parts = member.split("|")
+                                parts[0].trim().equals(result.member.trim(), ignoreCase = true) ||
+                                (parts.size > 1 && parts[1].trim().equals(result.member.trim(), ignoreCase = true))
+                            } ?: result.member
+
+                            if (selectedMembers.none { it.getCleanName().equals(matchedFullMemberName.getCleanName(), ignoreCase = true) }) {
+                                selectedMembers.add(matchedFullMemberName)
+                            }
+                            Toast.makeText(context, "AI 辨識成功！", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+
+        ImgbbUploader.uploadImage(context, uri, scope,
+            onSuccess = { url -> imageUrl = url; isUploadingMain = false },
+            onFailure = { isUploadingMain = false }
+        )
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let { handleSelectedImage(it) }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) {
+            tempCameraUri?.let { handleSelectedImage(it) }
+        } else {
+            isUploadingMain = false
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            val uri = createTempPictureUri(context)
+            tempCameraUri = uri
+            cameraLauncher.launch(uri)
+        } else {
+            Toast.makeText(context, "需要相機權限才能拍照", Toast.LENGTH_SHORT).show()
+        }
     }
 
     val wishlistImageUrls = remember { 
@@ -89,56 +206,76 @@ fun UploadScreen(
     }
     var isUploadingWishlist by remember { mutableStateOf(false) }
 
-    val mainLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let {
-            isUploadingMain = true
-            
-            // --- 執行本地 AI 辨識 ---
-            scope.launch(Dispatchers.Default) {
-                try {
-                    val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, it)) { decoder, _, _ ->
-                            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-                        }
-                    } else {
-                        context.contentResolver.openInputStream(it)?.use { stream ->
-                            BitmapFactory.decodeStream(stream)
-                        }
-                    }
+    
+    var typeInput by remember { mutableStateOf(existingCard?.cardType ?: "") }
+    var isTypeMenuExpanded by remember { mutableStateOf(false) }
 
-                    // ... 在 UploadScreen.kt 的 mainLauncher內 ...
-                    bitmap?.let { b ->
-                        val result = classifier.classify(b)
-                        withContext(Dispatchers.Main) {
-                            if (result != null) {
-                                // 自動填入
-                                groupInput = result.group
-                                selectedMembers.clear()
-                                selectedMembers.add(result.member)
-
-                                // 💡 關鍵：直接彈出所有人的分數，讓你看到 AI 的思考過程
-                                Toast.makeText(context, result.allScores, Toast.LENGTH_LONG).show()
-                            } else {
-                                Toast.makeText(context, "AI 無法辨識，請確保光線充足", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-
-            // 同時執行上傳
-            ImgbbUploader.uploadImage(context, it, scope,
-                onSuccess = { url -> imageUrl = url; isUploadingMain = false },
-                onFailure = { isUploadingMain = false }
-            )
-        }
+    // --- 許願池相關狀態 ---
+    val selectedWishGroups = remember { 
+        mutableStateListOf<String>().apply { 
+            existingCard?.wishGroupList?.let { addAll(it) } 
+        } 
     }
+    var wishGroupInput by remember { mutableStateOf("") }
+    var isWishGroupMenuExpanded by remember { mutableStateOf(false) }
+    
+    val selectedWishMembers = remember { 
+        mutableStateListOf<String>().apply { 
+            existingCard?.wishMemberList?.let { addAll(it) } 
+        } 
+    }
+    var wishMemberInput by remember { mutableStateOf("") }
+    var isWishMemberMenuExpanded by remember { mutableStateOf(false) }
 
     val wishlistLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris: List<Uri> ->
         if (uris.isNotEmpty()) {
             isUploadingWishlist = true
+            scope.launch(Dispatchers.Default) {
+                var recognizedCount = 0
+                uris.forEach { uri ->
+                    try {
+                        val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri)) { decoder, _, _ ->
+                                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                            }
+                        } else {
+                            context.contentResolver.openInputStream(uri)?.use { stream ->
+                                BitmapFactory.decodeStream(stream)
+                            }
+                        }
+
+                        bitmap?.let { b ->
+                            val result = classifier.classify(b)
+                            if (result != null) {
+                                val matchedFullGroupName = allGroups.find { group ->
+                                    group.getCleanName().equals(result.group.trim(), ignoreCase = true) 
+                                } ?: result.group
+                                
+                                val allMembersInGroup = groupMembersData[matchedFullGroupName] ?: emptyList()
+                                val matchedFullMemberName = allMembersInGroup.find { member ->
+                                    val parts = member.split("|")
+                                    parts[0].trim().equals(result.member.trim(), ignoreCase = true) ||
+                                    (parts.size > 1 && parts[1].trim().equals(result.member.trim(), ignoreCase = true))
+                                } ?: result.member
+
+                                withContext(Dispatchers.Main) {
+                                    if (matchedFullGroupName !in selectedWishGroups) selectedWishGroups.add(matchedFullGroupName)
+                                    if (selectedWishMembers.none { it.getCleanName().equals(matchedFullMemberName.getCleanName(), ignoreCase = true) }) {
+                                        selectedWishMembers.add(matchedFullMemberName)
+                                    }
+                                    recognizedCount++
+                                }
+                            }
+                        }
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
+                withContext(Dispatchers.Main) {
+                    if (recognizedCount > 0) {
+                        Toast.makeText(context, "AI 已辨識出 $recognizedCount 位成員！", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
             var uploadedCount = 0
             uris.forEach { uri ->
                 ImgbbUploader.uploadImage(context, uri, scope,
@@ -156,48 +293,49 @@ fun UploadScreen(
         }
     }
 
-    fun formatDisplayName(rawName: String): String {
-        return if (rawName.contains("|")) { rawName.replace("|", " (") + ")" } else { rawName }
-    }
-
-    val groupMembersData = KpopData.groupMembersData
-    val allGroups = groupMembersData.keys.sorted()
-
-    var isGroupMenuExpanded by remember { mutableStateOf(false) }
-    var memberInput by remember { mutableStateOf("") }
-    var isMemberMenuExpanded by remember { mutableStateOf(false) }
-    
-    var typeInput by remember { mutableStateOf(existingCard?.cardType ?: "") }
-    var isTypeMenuExpanded by remember { mutableStateOf(false) }
-
-    val selectedWishGroups = remember { 
-        mutableStateListOf<String>().apply { 
-            existingCard?.wishGroupList?.let { addAll(it) } 
-        } 
-    }
-    var wishGroupInput by remember { mutableStateOf("") }
-    var isWishGroupMenuExpanded by remember { mutableStateOf(false) }
-    
-    val selectedWishMembers = remember { 
-        mutableStateListOf<String>().apply { 
-            existingCard?.wishMemberList?.let { addAll(it) } 
-        } 
-    }
-    var wishMemberInput by remember { mutableStateOf("") }
-    var isWishMemberMenuExpanded by remember { mutableStateOf(false) }
-
     var wishlist by remember { mutableStateOf(existingCard?.wishlist ?: "") }
     var remarks by remember { mutableStateOf(existingCard?.remarks ?: "") }
     val scrollState = rememberScrollState()
+
+    // 圖片來源選擇視窗
+    if (showImageSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showImageSourceDialog = false },
+            title = { Text("選取照片來源") },
+            text = { Text("請選擇要從相簿選取，或是直接開啟相機拍照。") },
+            confirmButton = {
+                TextButton(onClick = { 
+                    showImageSourceDialog = false
+                    permissionLauncher.launch(Manifest.permission.CAMERA)
+                }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.PhotoCamera, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("相機拍照")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showImageSourceDialog = false
+                    galleryLauncher.launch("image/*")
+                }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.PhotoLibrary, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("相簿選取")
+                    }
+                }
+            }
+        )
+    }
 
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp).verticalScroll(scrollState),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            if (onBack != null) {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
-            }
+            if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
             Text(
                 text = if (existingCard == null) "上傳你的小卡" else "編輯小卡資訊", 
                 fontSize = 28.sp, 
@@ -211,7 +349,7 @@ fun UploadScreen(
 
         Box(
             modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
-                .clickable { if (!isUploadingMain) mainLauncher.launch("image/*") },
+                .clickable { if (!isUploadingMain) showImageSourceDialog = true },
             contentAlignment = Alignment.Center
         ) {
             if (imageUrl.isNotEmpty()) {
@@ -221,7 +359,7 @@ fun UploadScreen(
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.AddAPhoto, contentDescription = null, modifier = Modifier.size(40.dp), tint = Color.Gray)
-                    Text("點擊選取小卡照片 (必填)", color = Color.Gray)
+                    Text("點擊選取或拍攝小卡照片 (必填)", color = Color.Gray)
                 }
             }
         }
@@ -229,7 +367,10 @@ fun UploadScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // 持有團體
-        val filteredGroups = allGroups.filter { it.contains(groupInput, ignoreCase = true) }
+        val filteredGroups = allGroups.filter { group ->
+            group.getCleanName().contains(groupInput, ignoreCase = true) ||
+            formatDisplayName(group).contains(groupInput, ignoreCase = true)
+        }
         ExposedDropdownMenuBox(
             expanded = isGroupMenuExpanded, 
             onExpandedChange = { isGroupMenuExpanded = it }, 
@@ -240,6 +381,7 @@ fun UploadScreen(
                 onValueChange = { groupInput = it; isGroupMenuExpanded = true; typeInput = "" },
                 label = { Text("持有團體") }, 
                 modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable).fillMaxWidth(), 
+                singleLine = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupMenuExpanded) },
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
             )
@@ -251,7 +393,11 @@ fun UploadScreen(
                 displayGroups.forEach { group -> 
                     DropdownMenuItem(
                         text = { Text(formatDisplayName(group)) }, 
-                        onClick = { groupInput = group; isGroupMenuExpanded = false; typeInput = "" }
+                        onClick = { 
+                            groupInput = formatDisplayName(group) 
+                            isGroupMenuExpanded = false 
+                            typeInput = "" 
+                        }
                     ) 
                 } 
             }
@@ -263,10 +409,23 @@ fun UploadScreen(
         Column(modifier = Modifier.fillMaxWidth()) {
             Text("持有成員", fontSize = 14.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             FlowRow(modifier = Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                selectedMembers.forEach { member -> InputChip(selected = true, onClick = { selectedMembers.remove(member) }, label = { Text(formatDisplayName(member)) }, trailingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp)) } ) }
+                selectedMembers.forEach { member -> 
+                    InputChip(
+                        selected = true, 
+                        onClick = { selectedMembers.remove(member) }, 
+                        label = { Text(formatDisplayName(member)) }, 
+                        trailingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp)) } 
+                    ) 
+                }
             }
-            val availableMembers = groupMembersData[groupInput] ?: emptyList()
-            val filteredMembers = availableMembers.filter { it.contains(memberInput, ignoreCase = true) && it !in selectedMembers }
+            
+            val availableMembers = groupMembersData[currentMatchedGroupKey] ?: emptyList()
+            val filteredMembers = availableMembers.filter { member ->
+                val mClean = member.getCleanName()
+                mClean.contains(memberInput, ignoreCase = true) && 
+                selectedMembers.none { it.getCleanName().equals(mClean, ignoreCase = true) }
+            }
+            
             ExposedDropdownMenuBox(
                 expanded = isMemberMenuExpanded, 
                 onExpandedChange = { isMemberMenuExpanded = it }, 
@@ -276,8 +435,9 @@ fun UploadScreen(
                     value = memberInput, 
                     onValueChange = { memberInput = it; isMemberMenuExpanded = true }, 
                     label = { Text("選擇或搜尋成員") }, 
+                    singleLine = true,
                     modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable).fillMaxWidth(), 
-                    trailingIcon = { IconButton(onClick = { if (memberInput.isNotBlank()) { if (memberInput.trim() !in selectedMembers) selectedMembers.add(memberInput.trim()); memberInput = ""; isMemberMenuExpanded = false } }) { Icon(Icons.Default.Add, null) } },
+                    trailingIcon = { IconButton(onClick = { if (memberInput.isNotBlank()) { if (selectedMembers.none { it.getCleanName().equals(memberInput.trim(), ignoreCase = true) }) selectedMembers.add(memberInput.trim()); memberInput = ""; isMemberMenuExpanded = false } }) { Icon(Icons.Default.Add, null) } },
                     colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                 )
                 ExposedDropdownMenu(
@@ -288,7 +448,7 @@ fun UploadScreen(
                     displayMembers.forEach { member -> 
                         DropdownMenuItem(
                             text = { Text(formatDisplayName(member)) }, 
-                            onClick = { if (member !in selectedMembers) selectedMembers.add(member); memberInput = ""; isMemberMenuExpanded = false }
+                            onClick = { if (selectedMembers.none { it.getCleanName().equals(member.getCleanName(), ignoreCase = true) }) selectedMembers.add(member); memberInput = ""; isMemberMenuExpanded = false }
                         ) 
                     } 
                 }
@@ -298,7 +458,17 @@ fun UploadScreen(
         Spacer(modifier = Modifier.height(16.dp))
         
         // 持有類型
-        val availableTypes = KpopData.groupAlbumData[groupInput] ?: emptyList()
+        val availableTypes = remember(currentMatchedGroupKey) {
+            val groupKey = currentMatchedGroupKey ?: return@remember emptyList<String>()
+            val pureName = groupKey.getCleanName()
+            
+            KpopData.groupAlbumData[groupKey] ?: 
+            KpopData.groupAlbumData[pureName] ?: 
+            KpopData.groupAlbumData.entries.find { entry ->
+                entry.key.split("|").any { part -> part.trim().equals(pureName, ignoreCase = true) }
+            }?.value ?: 
+            emptyList()
+        }
         val filteredTypes = availableTypes.filter { it.contains(typeInput, ignoreCase = true) }
         
         ExposedDropdownMenuBox(
@@ -310,8 +480,9 @@ fun UploadScreen(
                 value = typeInput,
                 onValueChange = { typeInput = it; isTypeMenuExpanded = true },
                 label = { Text("小卡類型 (專輯/演唱會/週邊)") },
+                singleLine = true,
                 modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable).fillMaxWidth(),
-                placeholder = { Text("請先選擇團體，或直接輸入") },
+                placeholder = { Text(if (currentMatchedGroupKey != null) "請選擇或輸入" else "請先選擇團體") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isTypeMenuExpanded) },
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
             )
@@ -359,9 +530,7 @@ fun UploadScreen(
                     IconButton(
                         onClick = { wishlistImageUrls.remove(url) },
                         modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(24.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                    ) {
-                        Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                    }
+                    ) { Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(16.dp)) }
                 }
             }
         }
@@ -377,9 +546,9 @@ fun UploadScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("智慧配對標籤 (選填，大幅增加成功率)", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("智慧配對標籤 (選填)", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
                 
                 Spacer(Modifier.height(12.dp))
@@ -388,7 +557,7 @@ fun UploadScreen(
                 FlowRow(modifier = Modifier.padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     selectedWishGroups.forEach { group -> InputChip(selected = true, onClick = { selectedWishGroups.remove(group) }, label = { Text(formatDisplayName(group), fontSize = 11.sp) }, trailingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(12.dp)) } ) }
                 }
-                val filteredWishGroups = allGroups.filter { it.contains(wishGroupInput, ignoreCase = true) && it !in selectedWishGroups }
+                val filteredWishGroups = allGroups.filter { group -> group.getCleanName().contains(wishGroupInput, ignoreCase = true) && group !in selectedWishGroups }
                 ExposedDropdownMenuBox(
                     expanded = isWishGroupMenuExpanded, 
                     onExpandedChange = { isWishGroupMenuExpanded = it }, 
@@ -398,13 +567,14 @@ fun UploadScreen(
                         value = wishGroupInput, 
                         onValueChange = { wishGroupInput = it; isWishGroupMenuExpanded = true }, 
                         placeholder = { Text("搜尋團體...", fontSize = 13.sp) }, 
+                        singleLine = true,
                         modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable).fillMaxWidth(), 
                         colors = ExposedDropdownMenuDefaults.textFieldColors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent), 
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isWishGroupMenuExpanded) }
                     )
                     ExposedDropdownMenu(
                         expanded = isWishGroupMenuExpanded, 
-                        onDismissRequest = { isGroupMenuExpanded = false }
+                        onDismissRequest = { isWishGroupMenuExpanded = false }
                     ) { 
                         val displayWishGroups = filteredWishGroups.take(10)
                         displayWishGroups.forEach { group -> 
@@ -423,7 +593,7 @@ fun UploadScreen(
                     selectedWishMembers.forEach { member -> InputChip(selected = true, onClick = { selectedWishMembers.remove(member) }, label = { Text(formatDisplayName(member), fontSize = 11.sp) }, trailingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(12.dp)) } ) }
                 }
                 val wishMemberPool = if (selectedWishGroups.isNotEmpty()) { selectedWishGroups.flatMap { groupMembersData[it] ?: emptyList() } } else { groupMembersData.values.flatten() }.distinct()
-                val filteredWishMembers = wishMemberPool.filter { it.contains(wishMemberInput, ignoreCase = true) && it !in selectedWishMembers }
+                val filteredWishMembers = wishMemberPool.filter { member -> member.getCleanName().contains(wishMemberInput, ignoreCase = true) && member !in selectedWishMembers }
                 
                 ExposedDropdownMenuBox(
                     expanded = isWishMemberMenuExpanded, 
@@ -434,6 +604,7 @@ fun UploadScreen(
                         value = wishMemberInput, 
                         onValueChange = { wishMemberInput = it; isWishMemberMenuExpanded = true }, 
                         placeholder = { Text("搜尋成員...", fontSize = 13.sp) }, 
+                        singleLine = true,
                         modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable).fillMaxWidth(), 
                         colors = ExposedDropdownMenuDefaults.textFieldColors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent), 
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isWishMemberMenuExpanded) }
@@ -446,7 +617,7 @@ fun UploadScreen(
                         displayWishMembers.forEach { member -> 
                             DropdownMenuItem(
                                 text = { Text(formatDisplayName(member)) }, 
-                                onClick = { selectedWishMembers.add(member); wishMemberInput = ""; isWishMemberMenuExpanded = false }
+                                onClick = { if (selectedWishMembers.none { it.getCleanName().equals(member.getCleanName(), ignoreCase = true) }) selectedWishMembers.add(member); wishMemberInput = ""; isWishMemberMenuExpanded = false }
                             ) 
                         } 
                     }
@@ -470,7 +641,7 @@ fun UploadScreen(
                         "ownerProfileImageUrl" to userProfileImageUrl,
                         "location" to userLocation,
                         "imageUrl" to imageUrl,
-                        "groupName" to groupInput,
+                        "groupName" to (currentMatchedGroupKey ?: groupInput), 
                         "memberName" to selectedMembers.joinToString(", "), 
                         "memberList" to selectedMembers.toList(),
                         "cardType" to typeInput,
@@ -482,18 +653,10 @@ fun UploadScreen(
                         "status" to (existingCard?.status ?: "available"),
                         "createdAt" to (existingCard?.createdAt ?: FieldValue.serverTimestamp())
                     )
-                    
-                    val task = if (existingCard == null) {
-                        db.collection("cards").add(cardData)
-                    } else {
-                        db.collection("cards").document(existingCard.id).set(cardData)
-                    }
-                    
+                    val task = if (existingCard == null) db.collection("cards").add(cardData) else db.collection("cards").document(existingCard.id).set(cardData)
                     task.addOnSuccessListener {
                         Toast.makeText(context, "小卡上傳成功！", Toast.LENGTH_SHORT).show()
-                        if (existingCard == null) {
-                            checkForSmartMatches(userId, cardData)
-                        }
+                        if (existingCard == null) checkForSmartMatches(userId, cardData)
                         onUploadSuccess()
                     }
                 }
@@ -524,10 +687,8 @@ private fun checkForSmartMatches(currentUserId: String, myCardData: Map<String, 
         .addOnSuccessListener { snapshot ->
             snapshot.documents.forEach { doc ->
                 val otherCard = doc.toKpopCard() ?: return@forEach
-                
                 val matchByGroup = otherCard.groupName in myWishGroups
-                val matchByMember = otherCard.memberList.any { it in myWishMembers }
-
+                val matchByMember = otherCard.memberList.any { member -> member in myWishMembers }
                 if (matchByGroup || matchByMember) {
                     sendNotification(
                         userId = currentUserId,

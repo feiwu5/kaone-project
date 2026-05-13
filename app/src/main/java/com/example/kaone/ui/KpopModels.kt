@@ -5,6 +5,20 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.PropertyName
 
+sealed class EncyclopediaSearchResult {
+    data class Group(val groupKey: String) : EncyclopediaSearchResult()
+    data class Member(val groupKey: String, val memberKey: String) : EncyclopediaSearchResult()
+    data class Album(val groupKey: String, val albumName: String) : EncyclopediaSearchResult()
+}
+
+// 輔助函式：從原始資料中安全提取名稱，精準過濾掉縮寫與網址
+fun String.getCleanName(): String {
+    return this.split("|")
+        .map { it.trim() }
+        .firstOrNull { it.isNotBlank() && !it.startsWith("http") } 
+        ?: this
+}
+
 @Immutable
 data class KpopCard(
     val id: String = "",
