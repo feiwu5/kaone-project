@@ -16,6 +16,8 @@ import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -79,7 +81,7 @@ fun ProfileScreen(
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
     var selectedStatusTab by remember { mutableIntStateOf(0) }
     val statusTabs = listOf("全部", "在架上", "交換中", "已成交")
-    
+
     var showDeleteAccountConfirm by remember { mutableStateOf(false) }
     var isUploadingProfileImage by remember { mutableStateOf(false) }
 
@@ -132,27 +134,7 @@ fun ProfileScreen(
             }
         }
         db.collection("cards").whereEqualTo("userId", userId).addSnapshotListener { s, _ ->
-            uploadedCards = s?.documents?.mapNotNull { d ->
-                val multiUrls = (d.get("wishlistImageUrls") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList()
-                val singleUrl = d.getString("wishlistImageUrl")
-                val finalUrls = if (multiUrls.isEmpty() && singleUrl != null) listOf(singleUrl) else multiUrls
-                KpopCard(
-                    id = d.id,
-                    memberName = d.getString("memberName") ?: "",
-                    groupName = d.getString("groupName") ?: "",
-                    ownerName = d.getString("ownerNickname") ?: "未知",
-                    imageUrl = d.getString("imageUrl") ?: "",
-                    ownerProfileImageUrl = d.getString("ownerProfileImageUrl") ?: "",
-                    wishlist = d.getString("wishlist") ?: "",
-                    remarks = d.getString("remarks") ?: "",
-                    wishlistImageUrls = finalUrls,
-                    userId = d.getString("userId") ?: "",
-                    status = d.getString("status") ?: "available",
-                    createdAt = d.getTimestamp("createdAt"),
-                    location = d.getString("location") ?: "",
-                    cardType = d.getString("cardType") ?: ""
-                )
-            } ?: emptyList()
+            uploadedCards = s?.documents?.mapNotNull { d -> d.toKpopCard() } ?: emptyList()
         }
     }
 
@@ -192,8 +174,11 @@ fun ProfileScreen(
                                 Spacer(Modifier.width(8.dp))
                                 Text("私訊他")
                             }
-                            IconButton(onClick = { reportingTargetId = userId; reportingType = "user" }, modifier = Modifier.background(Color.LightGray.copy(0.3f), CircleShape)) {
-                                Icon(Icons.Default.Report, "檢舉用戶", tint = Color.Gray)
+                            // --- 訪客隱藏檢舉按鈕 ---
+                            if (currentUserId != null) {
+                                IconButton(onClick = { reportingTargetId = userId; reportingType = "user" }, modifier = Modifier.background(Color.LightGray.copy(0.3f), CircleShape)) {
+                                    Icon(Icons.Default.Report, "檢舉用戶", tint = Color.Gray)
+                                }
                             }
                         }
                     }
@@ -241,7 +226,7 @@ fun ProfileScreen(
     }
 
     if (cardToDelete != null) { AlertDialog(onDismissRequest = { cardToDelete = null }, title = { Text("刪除作品") }, text = { Text("確定要刪除這張小卡嗎？此動作無法復原。") }, confirmButton = { TextButton(onClick = { db.collection("cards").document(cardToDelete!!.id).delete().addOnSuccessListener { Toast.makeText(context, "已刪除", Toast.LENGTH_SHORT).show(); cardToDelete = null; selectedCard = null } }) { Text("確定刪除", color = Color.Red) } }, dismissButton = { TextButton(onClick = { cardToDelete = null }) { Text("取消") } }) }
-    
+
     if (selectedCard != null) {
         val card = selectedCard!!
         Dialog(onDismissRequest = { selectedCard = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -262,20 +247,20 @@ fun ProfileScreen(
                             }
                             IconButton(onClick = { selectedCard = null }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Close, null, tint = Color.Gray.copy(0.5f), modifier = Modifier.size(18.dp)) }
                         }
-                        
+
                         Spacer(Modifier.height(12.dp))
                         Box(Modifier.fillMaxWidth().height(210.dp).clip(RoundedCornerShape(16.dp)).background(Color.White), contentAlignment = Alignment.Center) {
                             AsyncImage(model = card.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize().clickable { previewImageUrl = card.imageUrl }, contentScale = ContentScale.Fit)
                             if (card.status != "available") { Surface(color = if(card.status == "trading") Color(0xFF1976D2) else Color(0xFF2E7D32), shape = RoundedCornerShape(bottomEnd = 12.dp), modifier = Modifier.align(Alignment.TopStart)) { Text(if(card.status == "trading") "🤝 交換中" else "✅ 已成交", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)) } }
                         }
-                        
+
                         Spacer(Modifier.height(14.dp))
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                             Surface(color = Color(0xFF586795), shape = RoundedCornerShape(8.dp)) { Text(card.groupName.split("|").first(), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) }
                             Spacer(Modifier.width(8.dp))
                             Text(card.memberName.split(", ").joinToString(", ") { it.split("|").first() }, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF1A202C))
                         }
-                        
+
                         if (card.cardType.isNotEmpty()) {
                             Spacer(Modifier.height(4.dp))
                             CardTypeBadge(card.cardType)
@@ -300,7 +285,7 @@ fun ProfileScreen(
                         }
 
                         Spacer(Modifier.height(20.dp))
-                        if (card.createdAt != null) { 
+                        if (card.createdAt != null) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                                 Icon(Icons.Default.Event, null, tint = Color.LightGray, modifier = Modifier.size(14.dp))
                                 Text(" ${SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()).format(card.createdAt.toDate())}", fontSize = 15.sp, color = Color.Gray)
@@ -310,8 +295,11 @@ fun ProfileScreen(
                     }
                     if (card.userId != currentUserId) {
                         Row(modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { reportingTargetId = card.id; reportingType = "card" }, modifier = Modifier.size(42.dp).background(Color(0xFFF5F5F5), CircleShape)) { Icon(Icons.Default.Report, "檢舉", tint = Color.Gray, modifier = Modifier.size(20.dp)) }
-                            Spacer(Modifier.width(8.dp))
+                            // --- 訪客隱藏檢舉按鈕 ---
+                            if (currentUserId != null) {
+                                IconButton(onClick = { reportingTargetId = card.id; reportingType = "card" }, modifier = Modifier.size(42.dp).background(Color(0xFFF5F5F5), CircleShape)) { Icon(Icons.Default.Report, "檢舉", tint = Color.Gray, modifier = Modifier.size(20.dp)) }
+                                Spacer(Modifier.width(8.dp))
+                            }
                             Button(onClick = { scope.launch { findOrCreateChatRoomInProfile(currentUserId ?: "", card.userId, card.id) { roomId, _ -> onStartChat(roomId, card); selectedCard = null } } }, modifier = Modifier.height(44.dp), shape = RoundedCornerShape(22.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF586795))) {
                                 Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
@@ -365,19 +353,19 @@ fun ProfileScreen(
                     }
                 }
                 Text("點擊更換頭像", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
-                
+
                 Spacer(Modifier.height(16.dp))
                 Column(Modifier.fillMaxWidth()) {
                     Text("個人資訊", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
                     EditField(tNickname, { tNickname = it }, "暱稱", Icons.Default.Badge)
                     ExposedDropdownMenuBox(expanded = cityExpanded, onExpandedChange = { cityExpanded = !cityExpanded }) { EditField(tCity, {}, "所在縣市", Icons.Default.Place, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable), readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cityExpanded) }); ExposedDropdownMenu(expanded = cityExpanded, onDismissRequest = { cityExpanded = false }) { cityDistricts.keys.forEach { city -> DropdownMenuItem(text = { Text(city) }, onClick = { tCity = city; tDistrict = ""; cityExpanded = false }) } } }
                     if (tCity.isNotEmpty()) { ExposedDropdownMenuBox(expanded = districtExpanded, onExpandedChange = { districtExpanded = !districtExpanded }) { EditField(tDistrict, {}, "行政區", Icons.Default.Map, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable), readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = districtExpanded) }); ExposedDropdownMenu(expanded = districtExpanded, onDismissRequest = { districtExpanded = false }) { cityDistricts[tCity]?.forEach { d -> DropdownMenuItem(text = { Text(d) }, onClick = { tDistrict = d; districtExpanded = false }) } } } }
-                    
+
                     Spacer(Modifier.height(16.dp)); Text("安全與通知", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
                     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Notifications, null, tint = Color.Gray, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(12.dp)); Text("推播通知", Modifier.weight(1f)); Switch(checked = pushEnabled, onCheckedChange = { pushEnabled = it }) }
                     OutlinedButton(onClick = { FirebaseAuth.getInstance().sendPasswordResetEmail(FirebaseAuth.getInstance().currentUser?.email ?: "").addOnSuccessListener { Toast.makeText(context, "重設郵件已寄出", Toast.LENGTH_LONG).show() } }, Modifier.fillMaxWidth().padding(vertical = 8.dp), shape = RoundedCornerShape(12.dp)) { Icon(Icons.Default.LockReset, null); Spacer(Modifier.width(8.dp)); Text("重設登入密碼") }
                     Text("電子信箱：${FirebaseAuth.getInstance().currentUser?.email ?: "未知"}", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
-                    
+
                     Spacer(Modifier.height(24.dp))
                     TextButton(
                         onClick = { showDeleteAccountConfirm = true },
@@ -390,18 +378,18 @@ fun ProfileScreen(
                     }
                 }
             }
-        }, confirmButton = { 
+        }, confirmButton = {
             Button(
-                onClick = { 
+                onClick = {
                     val finalLocation = if (tDistrict.isNotEmpty()) "$tCity $tDistrict" else tCity
                     scope.launch {
                         // 1. 更新使用者資料
                         db.collection("users").document(userId).update(mapOf(
-                            "nickname" to tNickname, 
+                            "nickname" to tNickname,
                             "location" to finalLocation,
                             "profileImageUrl" to profileImageUrl
                         )).await()
-                        
+
                         // 2. 同步更新該用戶上傳的所有小卡資訊
                         val cardUpdates = db.collection("cards").whereEqualTo("userId", userId).get().await()
                         val batch = db.batch()
@@ -413,17 +401,17 @@ fun ProfileScreen(
                             ))
                         }
                         batch.commit().await()
-                        
+
                         Toast.makeText(context, "設定已儲存 ✅", Toast.LENGTH_SHORT).show()
-                        showSettings = false 
+                        showSettings = false
                     }
-                }, 
-                Modifier.fillMaxWidth().height(52.dp), 
+                },
+                Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(16.dp),
                 enabled = !isUploadingProfileImage
-            ) { 
-                Text("儲存設定", fontWeight = FontWeight.Bold) 
-            } 
+            ) {
+                Text("儲存設定", fontWeight = FontWeight.Bold)
+            }
         }, dismissButton = { TextButton(onClick = { showSettings = false }, Modifier.fillMaxWidth()) { Text("關閉", color = Color.Gray) } })
     }
 
@@ -441,14 +429,14 @@ fun ProfileScreen(
                                 try {
                                     // 1. 刪除 Firestore 中的用戶資料
                                     db.collection("users").document(userId).delete().await()
-                                    
+
                                     // 2. 刪除該用戶上傳的所有小卡
                                     val cards = db.collection("cards").whereEqualTo("userId", userId).get().await()
                                     cards.documents.forEach { doc -> doc.reference.delete() }
-                                    
+
                                     // 3. 刪除 Auth 中的帳號
                                     user.delete().await()
-                                    
+
                                     Toast.makeText(context, "帳號已成功刪除", Toast.LENGTH_LONG).show()
                                     onLogoutClick()
                                 } catch (e: Exception) {
@@ -468,10 +456,7 @@ fun ProfileScreen(
 
     if (showFavs) {
         var favCards by remember { mutableStateOf<List<KpopCard>>(emptyList()) }
-        LaunchedEffect(favoriteCardIds) { if (favoriteCardIds.isNotEmpty()) { db.collection("cards").whereIn(FieldPath.documentId(), favoriteCardIds).get().addOnSuccessListener { s -> favCards = s.documents.mapNotNull { d ->
-            val multiUrls = (d.get("wishlistImageUrls") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList()
-            KpopCard(id = d.id, memberName = d.getString("memberName") ?: "", groupName = d.getString("groupName") ?: "", ownerName = d.getString("ownerNickname") ?: "未知", imageUrl = d.getString("imageUrl") ?: "", ownerProfileImageUrl = d.getString("ownerProfileImageUrl") ?: "", wishlist = d.getString("wishlist") ?: "", remarks = d.getString("remarks") ?: "", wishlistImageUrls = multiUrls, userId = d.getString("userId") ?: "", status = d.getString("status") ?: "available", createdAt = d.getTimestamp("createdAt"), location = d.getString("location") ?: "", cardType = d.getString("cardType") ?: "")
-        } } } }
+        LaunchedEffect(favoriteCardIds) { if (favoriteCardIds.isNotEmpty()) { db.collection("cards").whereIn(FieldPath.documentId(), favoriteCardIds).get().addOnSuccessListener { s -> favCards = s.documents.mapNotNull { d -> d.toKpopCard() } } } }
         AlertDialog(onDismissRequest = { showFavs = false }, title = { Text("我的收藏", fontWeight = FontWeight.Bold) }, text = { Box(Modifier.heightIn(max = 450.dp)) { if (favCards.isEmpty()) Text("尚無收藏", color = Color.Gray, modifier = Modifier.padding(20.dp)) else LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { items(favCards) { card -> ProfileCardItem(card = card, onClick = { selectedCard = card; showFavs = false }) } } } }, confirmButton = { TextButton(onClick = { showFavs = false }) { Text("關閉") } })
     }
 
@@ -486,7 +471,7 @@ fun ProfileScreen(
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { allGroups.filter { it !in tempTabs }.forEach { g -> FilterChip(selected = false, onClick = { tempTabs = tempTabs + g }, label = { Text(g) }) } }
         } }, confirmButton = { Button(onClick = { db.collection("users").document(userId).update("customDashboardTabs", tempTabs).addOnSuccessListener { Toast.makeText(context, "已儲存", Toast.LENGTH_SHORT).show(); showTabSet = false } }) { Text("儲存") } }, dismissButton = { TextButton(onClick = { showTabSet = false }) { Text("取消") } })
     }
-    
+
     if (showReviews) { ReviewDetailsDialog(userId, currentUserId ?: "", onDismiss = { showReviews = false }) }
 }
 
@@ -495,10 +480,10 @@ fun DetailSection(label: String, icon: androidx.compose.ui.graphics.vector.Image
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White.copy(0.5f)).padding(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = Color(0xFF586795), modifier = Modifier.size(14.dp))
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(6.6.dp))
             Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF586795), letterSpacing = 1.sp)
         }
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(6.6.dp))
         content()
     }
 }
@@ -559,12 +544,12 @@ fun ProfileStatItem(label: String, value: String, onClick: (() -> Unit)? = null)
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = if (onClick != null) Modifier.clickable { onClick() } else Modifier) {
         Text(value, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2D3436))
         Text(label, fontSize = 12.sp, color = Color.Gray)
-    } 
+    }
 }
 
 @Composable
 fun StanningSection(label: String, icon: String, isLast: Boolean = false, content: @Composable () -> Unit) {
-    Column(Modifier.fillMaxWidth()) { 
+    Column(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(icon, fontSize = 14.sp)
             Spacer(Modifier.width(8.dp))
@@ -572,12 +557,12 @@ fun StanningSection(label: String, icon: String, isLast: Boolean = false, conten
         }
         Spacer(Modifier.height(8.dp))
         content()
-        if (!isLast) { 
+        if (!isLast) {
             Spacer(Modifier.height(16.dp))
             HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFF1F3F5))
-            Spacer(Modifier.height(16.dp)) 
-        } 
-    } 
+            Spacer(Modifier.height(16.dp))
+        }
+    }
 }
 
 @Composable
@@ -587,19 +572,19 @@ fun ProfileMenuItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title
             Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
         }
         Spacer(Modifier.width(16.dp))
-        Column(Modifier.weight(1f)) { 
+        Column(Modifier.weight(1f)) {
             Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             Text(subtitle, fontSize = 12.sp, color = Color.Gray)
         }
         Icon(Icons.Default.ChevronRight, null, tint = Color.LightGray)
-    } 
+    }
 }
 
 @Composable
 fun ProfileCardItem(card: KpopCard, onClick: () -> Unit) {
     Card(shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().clickable { onClick() }) {
-        Column { 
-            Box { 
+        Column {
+            Box {
                 AsyncImage(model = card.imageUrl, contentDescription = null, modifier = Modifier.fillMaxWidth().aspectRatio(0.95f).clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)), contentScale = ContentScale.Crop)
                 if (card.status != "available") Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.4f)), Alignment.Center) {
                     Surface(color = if(card.status == "trading") Color(0xFF1976D2) else Color(0xFF2E7D32), shape = RoundedCornerShape(4.dp)) {
@@ -622,10 +607,10 @@ fun ProfileCardItem(card: KpopCard, onClick: () -> Unit) {
                         if (card.ownerProfileImageUrl.isNotEmpty()) AsyncImage(model = card.ownerProfileImageUrl, contentDescription = null, contentScale = ContentScale.Crop)
                     }
                     Text(" " + card.ownerName, fontSize = 11.sp, color = Color.Gray, maxLines = 1)
-                } 
-            } 
-        } 
-    } 
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -645,17 +630,17 @@ fun CardTypeBadge(type: String) {
 }
 
 suspend fun findOrCreateChatRoomInProfile(u1: String, u2: String, cid: String?, onComplete: (String, KpopCard?) -> Unit) {
-    if (u1 == u2) return
+    if (u1 == u2 || u1.isEmpty()) return
     val participants = listOf(u1, u2).sorted()
     val db = FirebaseFirestore.getInstance()
     val res = db.collection("chatRooms").whereEqualTo("participantIds", participants).get().await()
     if (res.documents.isNotEmpty()) {
         val roomId = res.documents.first().id
         onComplete(roomId, null)
-    } 
-    else { 
+    }
+    else {
         val nr = hashMapOf("participantIds" to participants, "createdAt" to FieldValue.serverTimestamp(), "lastMessage" to "", "lastMessageTime" to FieldValue.serverTimestamp(), "activeInquiryCardId" to (cid ?: ""), "unreadCount" to mapOf(u1 to 0, u2 to 0))
         val ar = db.collection("chatRooms").add(nr).await()
         onComplete(ar.id, null)
-    } 
+    }
 }

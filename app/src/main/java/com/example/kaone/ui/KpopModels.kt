@@ -56,6 +56,16 @@ data class KpopEvent(
 )
 
 @Immutable
+data class KpopComment(
+    val id: String = "",
+    val userId: String = "",
+    val userName: String = "",
+    val userProfileImage: String = "",
+    val text: String = "",
+    val timestamp: Timestamp? = null
+)
+
+@Immutable
 data class ChatMessage(
     val id: String = "", 
     val senderId: String = "", 
@@ -103,9 +113,12 @@ data class KaNotification(
     val relatedImage: String = ""
 )
 
-@Suppress("UNCHECKED_CAST")
 fun DocumentSnapshot.toKpopCard(): KpopCard? {
     return try {
+        val multiUrls = (get("wishlistImageUrls") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList()
+        val singleUrl = getString("wishlistImageUrl")
+        val finalUrls = if (multiUrls.isEmpty() && singleUrl != null) listOf(singleUrl) else multiUrls
+
         KpopCard(
             id = id,
             memberName = getString("memberName") ?: "",
@@ -115,14 +128,14 @@ fun DocumentSnapshot.toKpopCard(): KpopCard? {
             ownerProfileImageUrl = getString("ownerProfileImageUrl") ?: "",
             wishlist = getString("wishlist") ?: "",
             remarks = getString("remarks") ?: "",
-            wishlistImageUrls = (get("wishlistImageUrls") as? List<String>) ?: emptyList(),
+            wishlistImageUrls = finalUrls,
             userId = getString("userId") ?: "",
             status = getString("status") ?: "available",
             createdAt = getTimestamp("createdAt"),
             location = getString("location") ?: "",
-            wishGroupList = (get("wishGroupList") as? List<String>) ?: emptyList(),
-            wishMemberList = (get("wishMemberList") as? List<String>) ?: emptyList(),
-            memberList = (get("memberList") as? List<String>) ?: emptyList(),
+            wishGroupList = (get("wishGroupList") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList(),
+            wishMemberList = (get("wishMemberList") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList(),
+            memberList = (get("memberList") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList(),
             cardType = getString("cardType") ?: ""
         )
     } catch (_: Exception) {

@@ -1,5 +1,7 @@
 package com.example.kaone.ui
 
+import android.Manifest
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,10 +30,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
+import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.example.kaone.ui.theme.CloudinaryUploader
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.*
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -203,11 +207,16 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     var otherUserName by remember { mutableStateOf(initialOtherUserName) }
     var showMyCardsDialog by remember { mutableStateOf(false) }; var showTradeFormDialog by remember { mutableStateOf(false) }
     var selectedOfferCard by remember { mutableStateOf<KpopCard?>(null) }; var myAvailableCards by remember { mutableStateOf<List<KpopCard>>(emptyList()) }
-    var tradeMethod by remember { mutableStateOf("面交") }; var mAddr by remember { mutableStateOf("") }; var mDate by remember { mutableStateOf("") }; var sInfo by remember { mutableStateOf("") }
+    var tradeMethod by remember { mutableStateOf("面交") }; var mAddr by remember { mutableStateOf("") }; var mDate by remember { mutableStateOf("") }; var mTime by remember { mutableStateOf("") }; var sInfo by remember { mutableStateOf("") }
     var rName by remember { mutableStateOf("") }; var rPhone by remember { mutableStateOf("") }; var oMethod by remember { mutableStateOf("") }; var tNotes by remember { mutableStateOf("") }; var cMember by remember { mutableStateOf("") }
     var isUploading by remember { mutableStateOf(false) }; var isUploadingTrade by remember { mutableStateOf(false) }
     var reviewMsgId by remember { mutableStateOf<String?>(null) }
     
+    val datePickerState = rememberDatePickerState()
+    var showDatePicker by remember { mutableStateOf(false) }
+    val timePickerState = rememberTimePickerState()
+    var showTimePicker by remember { mutableStateOf(false) }
+
     var chatBgColor by rememberSaveable { mutableLongStateOf(0xFF8BA2B5L) }
     var showMenu by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -269,6 +278,33 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
 
     val mediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { u -> u?.let { isUploading = true; CloudinaryUploader.uploadMedia(context, it, scope, onSuccess = { url -> sendMsg("", "image", url); isUploading = false }, onFailure = { isUploading = false }) } }
     val tradeLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { u -> u?.let { isUploadingTrade = true; CloudinaryUploader.uploadMedia(context, it, scope, onSuccess = { url -> selectedOfferCard = KpopCard(id = "custom", imageUrl = url); showMyCardsDialog = false; showTradeFormDialog = true; isUploadingTrade = false }, onFailure = { isUploadingTrade = false }) } }
+
+    var tempTradeCameraUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraTradeLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) {
+            tempTradeCameraUri?.let { uri ->
+                isUploadingTrade = true
+                CloudinaryUploader.uploadMedia(context, uri, scope, onSuccess = { url ->
+                    selectedOfferCard = KpopCard(id = "custom", imageUrl = url)
+                    showMyCardsDialog = false
+                    showTradeFormDialog = true
+                    isUploadingTrade = false
+                }, onFailure = { isUploadingTrade = false })
+            }
+        }
+    }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            val tempFile = File(context.cacheDir, "trade_capture_${UUID.randomUUID()}.jpg")
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
+            tempTradeCameraUri = uri
+            cameraTradeLauncher.launch(uri)
+        } else {
+            Toast.makeText(context, "需要相機權限才能拍照", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    var showTradeImageSourceDialog by remember { mutableStateOf(false) }
 
     fun handleTradeAction(msg: ChatMessage, newStatus: String) {
         db.collection("chatRooms").document(roomId).collection("messages").document(msg.id).update("tradeStatus", newStatus).addOnSuccessListener {
@@ -419,12 +455,44 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
             title = { Text("選擇提案小卡", fontWeight = FontWeight.Bold) }, 
             text = { 
                 LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.height(350.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { 
-                    item { Card(modifier = Modifier.height(130.dp).clickable { tradeLauncher.launch("image/*") }, border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))) { Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { Icon(Icons.Default.AddAPhoto, null, tint = MaterialTheme.colorScheme.primary); Text(text = "上傳新圖片", fontSize = 12.sp) } } }
+                    item { Card(modifier = Modifier.height(130.dp).clickable { showTradeImageSourceDialog = true }, border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))) { Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { Icon(Icons.Default.AddAPhoto, null, tint = MaterialTheme.colorScheme.primary); Text(text = "上傳新圖片", fontSize = 12.sp) } } }
                     items(myAvailableCards) { c -> Card(modifier = Modifier.clickable { selectedOfferCard = c; showMyCardsDialog = false; showTradeFormDialog = true }) { Column { AsyncImage(model = c.imageUrl, contentDescription = null, modifier = Modifier.fillMaxWidth().height(100.dp), contentScale = ContentScale.Crop); Text(text = c.memberName.split(", ").joinToString(", ") { it.split("|").first() }, fontSize = 12.sp, modifier = Modifier.padding(4.dp), maxLines = 1) } } } 
                 } 
             }, 
             confirmButton = { TextButton(onClick = { showMyCardsDialog = false }) { Text("取消") } }
         ) 
+    }
+
+    if (showTradeImageSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showTradeImageSourceDialog = false },
+            title = { Text("選取照片來源") },
+            text = { Text("請選擇要從相簿選取，或是直接開啟相機拍照。") },
+            confirmButton = {
+                TextButton(onClick = { 
+                    showTradeImageSourceDialog = false
+                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.PhotoCamera, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("相機拍照")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showTradeImageSourceDialog = false
+                    tradeLauncher.launch("image/*")
+                }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.PhotoLibrary, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("相簿選取")
+                    }
+                }
+            }
+        )
     }
     
     if (showTradeFormDialog && selectedOfferCard != null) { 
@@ -437,9 +505,34 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                     else Text(text = "卡片：${selectedOfferCard!!.memberName.split(", ").joinToString(", ") { it.split("|").first() }}", fontWeight = FontWeight.Bold)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("面交", "郵寄", "其他").forEach { m -> FilterChip(selected = tradeMethod == m, onClick = { tradeMethod = m }, label = { Text(m) }) } }
                     when (tradeMethod) { 
-                        "面交" -> { OutlinedTextField(mAddr, { mAddr = it }, label = { Text("地點") }); OutlinedTextField(mDate, { mDate = it }, label = { Text("時間") }) }
-                        "郵寄" -> { OutlinedTextField(sInfo, { sInfo = it }, label = { Text("地址/門市") }); OutlinedTextField(rName, { rName = it }, label = { Text("姓名") }); OutlinedTextField(rPhone, { rPhone = it }, label = { Text("電話") }) }
-                        "其他" -> { OutlinedTextField(oMethod, { oMethod = it }, label = { Text("方式") }); OutlinedTextField(mAddr, { mAddr = it }, label = { Text("詳情") }); OutlinedTextField(rName, { rName = it }, label = { Text("姓名") }); OutlinedTextField(rPhone, { rPhone = it }, label = { Text("電話") }) } 
+                        "面交" -> { 
+                            OutlinedTextField(mAddr, { mAddr = it }, label = { Text("地點") }, modifier = Modifier.fillMaxWidth())
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    OutlinedTextField(value = mDate, onValueChange = {}, label = { Text("日期") }, modifier = Modifier.fillMaxWidth(), readOnly = true, trailingIcon = { Icon(Icons.Default.CalendarMonth, null) })
+                                    Box(modifier = Modifier.matchParentSize().clickable { showDatePicker = true })
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    OutlinedTextField(value = mTime, onValueChange = {}, label = { Text("時間") }, modifier = Modifier.fillMaxWidth(), readOnly = true, trailingIcon = { Icon(Icons.Default.AccessTime, null) })
+                                    Box(modifier = Modifier.matchParentSize().clickable { showTimePicker = true })
+                                }
+                            }
+                        }
+                        "郵寄" -> { OutlinedTextField(sInfo, { sInfo = it }, label = { Text("地址/門市") }, modifier = Modifier.fillMaxWidth()); OutlinedTextField(rName, { rName = it }, label = { Text("姓名") }, modifier = Modifier.fillMaxWidth()); OutlinedTextField(rPhone, { rPhone = it }, label = { Text("電話") }, modifier = Modifier.fillMaxWidth()) }
+                        "其他" -> { 
+                            OutlinedTextField(oMethod, { oMethod = it }, label = { Text("方式") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(mAddr, { mAddr = it }, label = { Text("詳情") }, modifier = Modifier.fillMaxWidth())
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    OutlinedTextField(value = mDate, onValueChange = {}, label = { Text("日期") }, modifier = Modifier.fillMaxWidth(), readOnly = true, trailingIcon = { Icon(Icons.Default.CalendarMonth, null) })
+                                    Box(modifier = Modifier.matchParentSize().clickable { showDatePicker = true })
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    OutlinedTextField(value = mTime, onValueChange = {}, label = { Text("時間") }, modifier = Modifier.fillMaxWidth(), readOnly = true, trailingIcon = { Icon(Icons.Default.AccessTime, null) })
+                                    Box(modifier = Modifier.matchParentSize().clickable { showTimePicker = true })
+                                }
+                            }
+                        } 
                     }
                     OutlinedTextField(tNotes, { tNotes = it }, label = { Text("備註") }, modifier = Modifier.fillMaxWidth()) 
                 } 
@@ -448,14 +541,54 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                 Button(onClick = { 
                     val fn = if (selectedOfferCard!!.id == "custom") cMember else selectedOfferCard!!.memberName
                     val loc = when(tradeMethod) { "面交" -> "面交: $mAddr"; "郵寄" -> "郵寄: $sInfo"; else -> "$oMethod: $mAddr" }
+                    val finalDateTime = if (mTime.isNotEmpty()) "$mDate $mTime" else mDate
                     if (fn.isBlank() || (tradeMethod == "面交" && mAddr.isBlank()) || (tradeMethod == "郵寄" && sInfo.isBlank())) { Toast.makeText(context, "請填寫完整資訊", Toast.LENGTH_SHORT).show(); return@Button }
-                    sendMsg("", "trade_proposal", "", mapOf("tradeTargetCardId" to (inquiryCard?.id ?: ""), "tradeTargetImage" to (inquiryCard?.imageUrl ?: ""), "tradeOfferCardId" to selectedOfferCard!!.id, "tradeOfferImage" to selectedOfferCard!!.imageUrl, "tradeOfferMember" to fn, "meetingLocation" to loc, "meetingDate" to mDate, "tradeNotes" to tNotes, "recipientName" to rName, "recipientPhone" to rPhone, "tradeStatus" to "pending"))
+                    sendMsg("", "trade_proposal", "", mapOf("tradeTargetCardId" to (inquiryCard?.id ?: ""), "tradeTargetImage" to (inquiryCard?.imageUrl ?: ""), "tradeOfferCardId" to selectedOfferCard!!.id, "tradeOfferImage" to selectedOfferCard!!.imageUrl, "tradeOfferMember" to fn, "meetingLocation" to loc, "meetingDate" to finalDateTime, "tradeNotes" to tNotes, "recipientName" to rName, "recipientPhone" to rPhone, "tradeStatus" to "pending"))
                     showTradeFormDialog = false 
                 }) { Text("發起提案") } 
             }
         ) 
     }
     
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val date = Date(millis)
+                        val formatter = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+                        mDate = formatter.format(date)
+                    }
+                    showDatePicker = false
+                }) { Text("確定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        Dialog(onDismissRequest = { showTimePicker = false }) {
+            Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp) {
+                Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = "選擇時間", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 20.dp))
+                    TimePicker(state = timePickerState)
+                    Row(modifier = Modifier.fillMaxWidth().padding(top = 24.dp), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+                        TextButton(onClick = {
+                            mTime = String.format(Locale.getDefault(), "%02d:%02d", timePickerState.hour, timePickerState.minute)
+                            showTimePicker = false
+                        }) { Text("確定") }
+                    }
+                }
+            }
+        }
+    }
+
     if (previewImageUrl != null) {
         Dialog(onDismissRequest = { previewImageUrl = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) { 
             Box(Modifier.fillMaxSize().background(Color.Black)) { 

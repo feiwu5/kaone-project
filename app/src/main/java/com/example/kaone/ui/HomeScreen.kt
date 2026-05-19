@@ -33,7 +33,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,7 +49,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -64,6 +65,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
+import android.content.Intent
 
 @Composable
 fun UserAvatar(userId: String, size: Int = 16, defaultUrl: String = "") {
@@ -83,7 +85,10 @@ fun UserAvatar(userId: String, size: Int = 16, defaultUrl: String = "") {
         }
     }
 
-    Box(Modifier.size(size.dp).clip(CircleShape).background(Color.LightGray)) {
+    Box(Modifier
+        .size(size.dp)
+        .clip(CircleShape)
+        .background(Color.LightGray)) {
         if (latestImageUrl.isNotEmpty()) {
             AsyncImage(model = latestImageUrl, contentDescription = null, contentScale = ContentScale.Crop)
         }
@@ -93,7 +98,9 @@ fun UserAvatar(userId: String, size: Int = 16, defaultUrl: String = "") {
 @Composable
 fun GuestModePlaceholder(onLoginClick: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -110,7 +117,9 @@ fun GuestModePlaceholder(onLoginClick: () -> Unit) {
         Spacer(Modifier.height(32.dp))
         Button(
             onClick = onLoginClick,
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
             Text("前往登入 / 註冊", fontWeight = FontWeight.Bold)
@@ -319,19 +328,24 @@ fun ExploreScreen(userId: String, onViewProfile: (String) -> Unit, activeView: S
                 onActiveViewChange(it)
             }
         })
-        "events" -> ExploreEventsView(currentUserId = userId, onBack = { onActiveViewChange("menu") }, onAddClick = { editingEvent = null; onActiveViewChange("upload") }, onEditClick = { editingEvent = it; onActiveViewChange("upload") }, onViewProfile = onViewProfile)
+        "events" -> ExploreEventsView(currentUserId = userId, onBack = { onActiveViewChange("menu") }, onAddClick = { editingEvent = null; onActiveViewChange("upload") }, onEditClick = { editingEvent = it; onActiveViewChange("upload") }, onViewProfile = onViewProfile, onStartChat = onStartChat)
         "upload" -> if (userId.isEmpty()) GuestModePlaceholder { } else ExploreEventUploadView(userId = userId, existingEvent = editingEvent, onBack = { onActiveViewChange("events") }, onSuccess = { onActiveViewChange("events") })
         "smartMatch" -> SmartMatchView(currentUserId = userId, onBack = { onActiveViewChange("menu") }, onStartChat = onStartChat, onViewProfile = onViewProfile)
         "nearby" -> NearbyExchangeView(currentUserId = userId, initialLocation = userLocation, onBack = { onActiveViewChange("menu") }, onStartChat = onStartChat, onViewProfile = onViewProfile)
+        "trends" -> TrendingView(onBack = { onActiveViewChange("menu") })
         "encyclopedia" -> EncyclopediaScreen(onBack = { onActiveViewChange("menu") })
     }
 }
 
 @Composable
 fun ExploreMenuView(onNavigate: (String) -> Unit) {
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FA))) {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .background(Color(0xFFF8F9FA))) {
         Surface(modifier = Modifier.fillMaxWidth(), color = Color.White, shadowElevation = 1.dp) {
-            Text("探索專區", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color(0xFF333333), modifier = Modifier.statusBarsPadding().padding(20.dp))
+            Text("探索專區", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color(0xFF333333), modifier = Modifier
+                .statusBarsPadding()
+                .padding(20.dp))
         }
 
         LazyVerticalGrid(
@@ -381,7 +395,7 @@ fun ExploreMenuView(onNavigate: (String) -> Unit) {
                     backgroundColor = Color(0xFFFFF3E0),
                     iconColor = Color(0xFFFFA726),
                     isLarge = false,
-                    onClick = { /* 開發中 */ }
+                    onClick = { onNavigate("trends") }
                 )
             }
             item {
@@ -405,8 +419,36 @@ fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (Stri
     val db = FirebaseFirestore.getInstance()
     var myCards by remember { mutableStateOf<List<KpopCard>>(emptyList()) }
     var allOtherCards by remember { mutableStateOf<List<KpopCard>>(emptyList()) }
-    var matches by remember { mutableStateOf<List<MatchResult>>(emptyList()) }
+    var matches by remember { mutableStateOf<List<KpopMatchResult>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+
+    // 預覽相關狀態
+    var selectedCard by remember { mutableStateOf<KpopCard?>(null) }
+    var previewImageUrl by remember { mutableStateOf<String?>(null) }
+    var ownerAvgRating by remember { mutableDoubleStateOf(0.0) }
+    var ownerReviewCount by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    // --- 新增名稱格式化助手：合併英文與中文，移除網址 ---
+    fun formatMatchMemberName(raw: String): String {
+        return raw.split(", ").joinToString(", ") { m ->
+            val parts = m.split("|").map { it.trim() }.filter { it.isNotBlank() && !it.startsWith("http") }
+            if (parts.size >= 2) {
+                "${parts[0]} ${parts[1]}" // 顯示 "英文名 中文名"
+            } else {
+                parts.firstOrNull() ?: m
+            }
+        }
+    }
+
+    fun normalize(s: String): String {
+        return s.replace(Regex("[\\s|/()]+"), "").lowercase().trim()
+    }
+
+    // /Users/linyijie/AndroidStudioProjects/KaOne/app/src/main/java/com/example/kaone/ui/HomeScreen.kt
+
+// 尋找 SmartMatchView 中的 LaunchedEffect(currentUserId) 區塊並進行以下修改：
 
     LaunchedEffect(currentUserId) {
         isLoading = true
@@ -414,35 +456,60 @@ fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (Stri
         myCards = mySnapshot.documents.mapNotNull { it.toKpopCard() }
 
         val otherSnapshot = db.collection("cards").whereNotEqualTo("userId", currentUserId).get().await()
-        allOtherCards = otherSnapshot.documents.mapNotNull { it.toKpopCard() }
+        allOtherCards = otherSnapshot.documents.mapNotNull { it.toKpopCard() }.filter { it.status == "available" }
 
-        val results = mutableListOf<MatchResult>()
+        val results = mutableListOf<KpopMatchResult>()
         allOtherCards.forEach { otherCard ->
-            var score = 0f
+            var maxScore = 0f
             val reasons = mutableListOf<String>()
+            // 取得對方的持有成員清單 (已正規化)
+            val otherMembersClean = otherCard.memberList.map { normalize(it) }
 
             myCards.forEach { myCard ->
-                val heHasWhatIWant = otherCard.memberList.any { it in myCard.wishMemberList } || otherCard.groupName in myCard.wishGroupList
-                val iHaveWhatHeWants = myCard.memberList.any { it in otherCard.wishMemberList } || myCard.groupName in otherCard.wishGroupList
+                // 取得我的許願成員與持有成員 (已正規化)
+                val myWishMembers = myCard.wishMemberList.map { normalize(it) }
+                val myMembersClean = myCard.memberList.map { normalize(it) }
 
+                // 核心邏輯：僅比對成員
+                // 他有我想要的成員
+                val heHasWhatIWant = myWishMembers.any { wish ->
+                    otherMembersClean.any { it.contains(wish) || wish.contains(it) }
+                }
+
+                // 我有他想要的成員
+                val iHaveWhatHeWants = otherCard.wishMemberList.map { normalize(it) }.any { wish ->
+                    myMembersClean.any { it.contains(wish) || wish.contains(it) }
+                }
+
+                // 根據比對結果設定分數與原因
                 if (heHasWhatIWant && iHaveWhatHeWants) {
-                    score = 1.0f
-                    reasons.add("完美配對：雙向奔赴！")
+                    maxScore = maxOf(maxScore, 1.0f)
+                    reasons.add("雙向成員匹配：你們互有對方想要的成員！")
                 } else if (heHasWhatIWant) {
-                    score = maxOf(score, 0.6f)
-                    reasons.add("他剛好有你想要的！")
+                    maxScore = maxOf(maxScore, 0.6f)
+                    reasons.add("心願成員：他有你想要的成員！")
                 } else if (iHaveWhatHeWants) {
-                    score = maxOf(score, 0.4f)
-                    reasons.add("你剛好有他想要的！")
+                    maxScore = maxOf(maxScore, 0.4f)
+                    reasons.add("符合對方的成員心願：你有他想要的成員！")
                 }
             }
-
-            if (score > 0) {
-                results.add(MatchResult(otherCard, score, reasons.distinct()))
-            }
+            if (maxScore > 0) results.add(KpopMatchResult(otherCard, maxScore, reasons.distinct().sortedByDescending { it.length }))
         }
         matches = results.sortedByDescending { it.score }
         isLoading = false
+    }
+
+
+    LaunchedEffect(selectedCard) {
+        selectedCard?.let { card ->
+            db.collection("reviews").whereEqualTo("revieweeId", card.userId).addSnapshotListener { s, _ ->
+                s?.let {
+                    val count = it.size()
+                    ownerReviewCount = count
+                    ownerAvgRating = if (count > 0) it.documents.sumOf { doc -> doc.getLong("rating")?.toDouble() ?: 0.0 } / count else 0.0
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -460,14 +527,80 @@ fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (Stri
             } else if (matches.isEmpty()) {
                 Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.AutoMirrored.Filled.ManageSearch, null, Modifier.size(64.dp), tint = Color.LightGray)
-                    Spacer(Modifier.height(16.dp))
-                    Text("目前尚無匹配對象", fontWeight = FontWeight.Bold, color = Color.Gray)
-                    Text("試著多上傳幾張小卡並填寫許願標籤吧！", fontSize = 13.sp, color = Color.Gray)
+                    Spacer(Modifier.height(16.dp)); Text("目前尚無匹配對象", fontWeight = FontWeight.Bold, color = Color.Gray)
                 }
             } else {
                 LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     items(matches) { match ->
-                        MatchCardItem(match, onStartChat, onViewProfile, currentUserId)
+                        // 這裡傳入格式化後的名稱
+                        MatchCardItem(
+                            match,
+                            onStartChat,
+                            onViewProfile,
+                            currentUserId,
+                            onCardClick = { selectedCard = it },
+                            displayName = formatMatchMemberName(match.card.memberName)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (selectedCard != null) {
+        val card = selectedCard!!
+        Dialog(onDismissRequest = { selectedCard = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            Card(modifier = Modifier.fillMaxWidth(0.82f).wrapContentHeight().padding(vertical = 20.dp), shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F3F9))) {
+                Box(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp).verticalScroll(rememberScrollState())) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(38.dp).clip(CircleShape).background(Color.White)) { UserAvatar(userId = card.userId, size = 38, defaultUrl = card.ownerProfileImageUrl) }
+                            Spacer(Modifier.width(8.dp))
+                            Column(Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(card.ownerName, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color.Black)
+                                    Spacer(Modifier.width(4.dp))
+                                    Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700), modifier = Modifier.size(12.dp))
+                                    Text(if (ownerReviewCount > 0) String.format(Locale.getDefault(), " %.1f(%d)", ownerAvgRating, ownerReviewCount) else " 尚無評價", fontSize = 11.sp, color = Color(0xFF4A5568))
+                                }
+                                Text("查看個人主頁 >", fontSize = 10.sp, color = Color(0xFF5C6BC0), fontWeight = FontWeight.ExtraBold, modifier = Modifier.clickable { onViewProfile(card.userId); selectedCard = null })
+                            }
+                            IconButton(onClick = { selectedCard = null }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Close, null, tint = Color.Gray.copy(0.5f), modifier = Modifier.size(18.dp)) }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Box(Modifier.fillMaxWidth().height(210.dp).clip(RoundedCornerShape(16.dp)).background(Color.White), contentAlignment = Alignment.Center) {
+                            AsyncImage(model = card.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize().clickable { previewImageUrl = card.imageUrl }, contentScale = ContentScale.Fit)
+                        }
+                        Spacer(Modifier.height(14.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            Surface(color = Color(0xFF586795), shape = RoundedCornerShape(8.dp)) { Text(card.groupName.split("|").first(), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) }
+                            Spacer(Modifier.width(8.dp));
+                            // 預覽標題也使用格式化名稱
+                            Text(formatMatchMemberName(card.memberName), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF1A202C))
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        DetailSection(label = "WISH LIST", icon = Icons.Default.Favorite) {
+                            Text(card.wishlist, fontSize = 14.sp, color = Color(0xFF2D3748), lineHeight = 20.sp)
+                        }
+                        DetailSection(label = "REMARKS", icon = Icons.AutoMirrored.Filled.Notes) {
+                            Text(card.remarks.ifBlank { "無備註" }, fontSize = 14.sp, color = Color(0xFF4A5568))
+                        }
+                        Spacer(Modifier.height(20.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            if (card.location.isNotEmpty()) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.LocationOn, null, tint = Color(0xFF5C6BC0), modifier = Modifier.size(14.dp))
+                                    Text(" ${card.location}", fontSize = 13.sp, color = Color(0xFF5C6BC0), fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(60.dp))
+                    }
+                    Button(onClick = {
+                        scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card); selectedCard = null } }
+                    }, modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp).height(44.dp), shape = RoundedCornerShape(22.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF586795))) {
+                        Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.6.dp)); Text("與他聊聊", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
                     }
                 }
             }
@@ -476,12 +609,19 @@ fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (Stri
 }
 
 @Composable
-fun MatchCardItem(match: MatchResult, onStartChat: (String, KpopCard?) -> Unit, onViewProfile: (String) -> Unit, currentUserId: String) {
+fun MatchCardItem(
+    match: KpopMatchResult,
+    onStartChat: (String, KpopCard?) -> Unit,
+    onViewProfile: (String) -> Unit,
+    currentUserId: String,
+    onCardClick: (KpopCard) -> Unit,
+    displayName: String // 新增參數
+) {
     val card = match.card
     val scope = rememberCoroutineScope()
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable { onCardClick(card) },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -524,7 +664,8 @@ fun MatchCardItem(match: MatchResult, onStartChat: (String, KpopCard?) -> Unit, 
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) {
                     Text(card.groupName.split("|").first(), fontSize = 11.sp, color = Color.Gray)
-                    Text(card.memberName, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
+                    // 這裡使用 displayName
+                    Text(displayName, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
                     if (card.cardType.isNotEmpty()) {
                         Text(card.cardType, fontSize = 12.sp, color = Color.DarkGray)
                     }
@@ -536,31 +677,17 @@ fun MatchCardItem(match: MatchResult, onStartChat: (String, KpopCard?) -> Unit, 
 
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = { onViewProfile(card.userId) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text("查看個人", fontSize = 13.sp)
-                }
-                Button(
-                    onClick = {
-                        scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card) } }
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5C6BC0))
-                ) {
+                OutlinedButton(onClick = { onViewProfile(card.userId) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp)) { Text("查看個人", fontSize = 13.sp) }
+                Button(onClick = { scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card) } } }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5C6BC0))) {
                     Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("立即聊聊", fontSize = 13.sp)
+                    Spacer(Modifier.width(4.dp)); Text("立即聊聊", fontSize = 13.sp)
                 }
             }
         }
     }
 }
 
-data class MatchResult(val card: KpopCard, val score: Float, val reasons: List<String>)
+data class KpopMatchResult(val card: KpopCard, val score: Float, val reasons: List<String>)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -618,19 +745,24 @@ fun NearbyExchangeView(currentUserId: String, initialLocation: String, onBack: (
             )
         }
     ) { p ->
-        Column(Modifier.padding(p).fillMaxSize().background(Color(0xFFF7F8FA))) {
+        Column(Modifier
+            .padding(p)
+            .fillMaxSize()
+            .background(Color(0xFFF7F8FA))) {
             Surface(color = Color.White, shadowElevation = 1.dp) {
-                Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     var cityExpanded by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(expanded = cityExpanded, onExpandedChange = { cityExpanded = it }, modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(value = selectedCity, onValueChange = {}, readOnly = true, label = { Text("縣市") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cityExpanded) }, modifier = Modifier.menuAnchor(), textStyle = TextStyle(fontSize = 14.sp), shape = RoundedCornerShape(12.dp))
+                        OutlinedTextField(value = selectedCity, onValueChange = {}, readOnly = true, label = { Text("縣市") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cityExpanded) }, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable), textStyle = TextStyle(fontSize = 14.sp), shape = RoundedCornerShape(12.dp))
                         ExposedDropdownMenu(expanded = cityExpanded, onDismissRequest = { cityExpanded = false }) {
                             cities.forEach { city -> DropdownMenuItem(text = { Text(city) }, onClick = { selectedCity = city; selectedDistrict = "全部"; cityExpanded = false }) }
                         }
                     }
                     var distExpanded by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(expanded = distExpanded, onExpandedChange = { distExpanded = it }, modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(value = selectedDistrict, onValueChange = {}, readOnly = true, label = { Text("區域") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = distExpanded) }, modifier = Modifier.menuAnchor(), textStyle = TextStyle(fontSize = 14.sp), shape = RoundedCornerShape(12.dp))
+                        OutlinedTextField(value = selectedDistrict, onValueChange = {}, readOnly = true, label = { Text("區域") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = distExpanded) }, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable), textStyle = TextStyle(fontSize = 14.sp), shape = RoundedCornerShape(12.dp))
                         ExposedDropdownMenu(expanded = distExpanded, onDismissRequest = { distExpanded = false }) {
                             districts.forEach { dist -> DropdownMenuItem(text = { Text(dist) }, onClick = { selectedDistrict = dist; distExpanded = false }) }
                         }
@@ -660,11 +792,19 @@ fun NearbyExchangeView(currentUserId: String, initialLocation: String, onBack: (
     if (selectedCard != null) {
         val card = selectedCard!!
         Dialog(onDismissRequest = { selectedCard = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-            Card(modifier = Modifier.fillMaxWidth(0.82f).wrapContentHeight().padding(vertical = 20.dp), shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F3F9))) {
+            Card(modifier = Modifier
+                .fillMaxWidth(0.82f)
+                .wrapContentHeight()
+                .padding(vertical = 20.dp), shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F3F9))) {
                 Box(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(14.dp).verticalScroll(rememberScrollState())) {
+                    Column(Modifier
+                        .padding(14.dp)
+                        .verticalScroll(rememberScrollState())) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(38.dp).clip(CircleShape).background(Color.White)) {
+                            Box(Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)) {
                                 UserAvatar(userId = card.userId, size = 38, defaultUrl = card.ownerProfileImageUrl)
                             }
                             Spacer(Modifier.width(8.dp))
@@ -681,8 +821,14 @@ fun NearbyExchangeView(currentUserId: String, initialLocation: String, onBack: (
                         }
 
                         Spacer(Modifier.height(12.dp))
-                        Box(Modifier.fillMaxWidth().height(210.dp).clip(RoundedCornerShape(16.dp)).background(Color.White), contentAlignment = Alignment.Center) {
-                            AsyncImage(model = card.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize().clickable { previewImageUrl = card.imageUrl }, contentScale = ContentScale.Fit)
+                        Box(Modifier
+                            .fillMaxWidth()
+                            .height(210.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White), contentAlignment = Alignment.Center) {
+                            AsyncImage(model = card.imageUrl, contentDescription = null, modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { previewImageUrl = card.imageUrl }, contentScale = ContentScale.Fit)
                         }
 
                         Spacer(Modifier.height(14.dp))
@@ -704,7 +850,11 @@ fun NearbyExchangeView(currentUserId: String, initialLocation: String, onBack: (
                                 Spacer(Modifier.height(8.dp))
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     items(card.wishlistImageUrls) { url ->
-                                        AsyncImage(model = url, contentDescription = null, modifier = Modifier.size(90.dp, 120.dp).clip(RoundedCornerShape(8.dp)).background(Color.White).clickable { previewImageUrl = url }, contentScale = ContentScale.Crop)
+                                        AsyncImage(model = url, contentDescription = null, modifier = Modifier
+                                            .size(90.dp, 120.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color.White)
+                                            .clickable { previewImageUrl = url }, contentScale = ContentScale.Crop)
                                     }
                                 }
                             }
@@ -738,7 +888,10 @@ fun NearbyExchangeView(currentUserId: String, initialLocation: String, onBack: (
                     if (card.userId != currentUserId) {
                         Button(onClick = {
                             scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card); selectedCard = null } }
-                        }, modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp).height(44.dp), shape = RoundedCornerShape(22.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF586795))) {
+                        }, modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(12.dp)
+                            .height(44.dp), shape = RoundedCornerShape(22.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF586795))) {
                             Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(6.6.dp))
                             Text("與他聊聊", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
@@ -751,7 +904,10 @@ fun NearbyExchangeView(currentUserId: String, initialLocation: String, onBack: (
 
     if (previewImageUrl != null) {
         Dialog(onDismissRequest = { previewImageUrl = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-            Box(modifier = Modifier.fillMaxSize().background(Color.Black).clickable { previewImageUrl = null }, contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .clickable { previewImageUrl = null }, contentAlignment = Alignment.Center) {
                 AsyncImage(model = previewImageUrl, contentDescription = "預覽圖片", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
             }
         }
@@ -761,9 +917,13 @@ fun NearbyExchangeView(currentUserId: String, initialLocation: String, onBack: (
 @Composable
 fun NearbyCardItem(card: KpopCard, onStartChat: (String, KpopCard?) -> Unit, onViewProfile: (String) -> Unit, onCardClick: () -> Unit, currentUserId: String) {
     val scope = rememberCoroutineScope()
-    Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), modifier = Modifier.fillMaxWidth().clickable { onCardClick() }, colors = CardDefaults.cardColors(containerColor = Color.White)) {
+    Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), modifier = Modifier
+        .fillMaxWidth()
+        .clickable { onCardClick() }, colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Column {
-            Box(Modifier.height(160.dp).fillMaxWidth()) {
+            Box(Modifier
+                .height(160.dp)
+                .fillMaxWidth()) {
                 AsyncImage(model = card.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                 Surface(color = Color.Black.copy(alpha = 0.6f), shape = RoundedCornerShape(bottomEnd = 12.dp), modifier = Modifier.align(Alignment.TopStart)) {
                     Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -779,7 +939,9 @@ fun NearbyCardItem(card: KpopCard, onStartChat: (String, KpopCard?) -> Unit, onV
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
                         onClick = { onViewProfile(card.userId) },
-                        modifier = Modifier.weight(1f).height(32.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(32.dp),
                         contentPadding = PaddingValues(0.dp),
                         shape = RoundedCornerShape(8.dp)
                     ) {
@@ -787,7 +949,9 @@ fun NearbyCardItem(card: KpopCard, onStartChat: (String, KpopCard?) -> Unit, onV
                     }
                     Button(
                         onClick = { scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card) } } },
-                        modifier = Modifier.weight(1f).height(32.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(32.dp),
                         contentPadding = PaddingValues(0.dp),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5C6BC0))
@@ -810,12 +974,17 @@ fun ExploreBentoCard(title: String, subtitle: String, icon: ImageVector, backgro
             .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = backgroundColor)
     ) {
-        Box(modifier = Modifier.fillMaxSize().padding(20.dp)) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp)) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconColor.copy(alpha = 0.1f),
-                modifier = Modifier.align(Alignment.BottomEnd).size(if(isLarge) 110.dp else 80.dp).offset(x = 15.dp, y = 15.dp)
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(if (isLarge) 110.dp else 80.dp)
+                    .offset(x = 15.dp, y = 15.dp)
             )
             Column(modifier = Modifier.align(Alignment.TopStart)) {
                 Surface(color = Color.White.copy(alpha = 0.6f), shape = CircleShape, modifier = Modifier.size(if(isLarge) 44.dp else 36.dp)) {
@@ -831,7 +1000,7 @@ fun ExploreBentoCard(title: String, subtitle: String, icon: ImageVector, backgro
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExploreEventsView(currentUserId: String, onBack: () -> Unit, onAddClick: () -> Unit, onEditClick: (KpopEvent) -> Unit, onViewProfile: (String) -> Unit) {
+fun ExploreEventsView(currentUserId: String, onBack: () -> Unit, onAddClick: () -> Unit, onEditClick: (KpopEvent) -> Unit, onViewProfile: (String) -> Unit, onStartChat: (String, KpopCard?) -> Unit) {
     val db = FirebaseFirestore.getInstance()
     var events by remember { mutableStateOf<List<KpopEvent>>(emptyList()) }
     val isGuest = currentUserId.isEmpty()
@@ -857,11 +1026,16 @@ fun ExploreEventsView(currentUserId: String, onBack: () -> Unit, onAddClick: () 
             )
         }
     ) { p ->
-        if (events.isEmpty()) { Box(Modifier.fillMaxSize().padding(p), Alignment.Center) { Text("尚無相關活動資訊", color = Color.Gray) } }
+        if (events.isEmpty()) { Box(Modifier
+            .fillMaxSize()
+            .padding(p), Alignment.Center) { Text("尚無相關活動資訊", color = Color.Gray) } }
         else {
-            LazyColumn(modifier = Modifier.fillMaxSize().padding(p).background(Color(0xFFFAFAFA)), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(modifier = Modifier
+                .fillMaxSize()
+                .padding(p)
+                .background(Color(0xFFFAFAFA)), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(events) { event ->
-                    EventPostItem(event = event, currentUserId = currentUserId, onEdit = { onEditClick(event) }, onDelete = { db.collection("events").document(event.id).delete() }, onViewProfile = onViewProfile)
+                    EventPostItem(event = event, currentUserId = currentUserId, onEdit = { onEditClick(event) }, onDelete = { db.collection("events").document(event.id).delete() }, onViewProfile = onViewProfile, onStartChat = onStartChat)
                 }
                 item { Spacer(Modifier.height(24.dp)) }
             }
@@ -886,6 +1060,10 @@ fun ExploreEventUploadView(userId: String, existingEvent: KpopEvent? = null, onB
     var imageUrl by remember { mutableStateOf(existingEvent?.imageUrl ?: "") }
     var isUploading by remember { mutableStateOf(false) }
 
+    val datePickerState = rememberDatePickerState()
+    var showDatePicker by remember { mutableStateOf(false) }
+    var datePickerTarget by remember { mutableStateOf("start") } // "start" or "end"
+
     val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             isUploading = true
@@ -893,9 +1071,39 @@ fun ExploreEventUploadView(userId: String, existingEvent: KpopEvent? = null, onB
         }
     }
 
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val date = Date(millis)
+                        val formatter = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+                        val formattedDate = formatter.format(date)
+                        if (datePickerTarget == "start") startDate = formattedDate
+                        else endDate = formattedDate
+                    }
+                    showDatePicker = false
+                }) { Text("確定") }
+            },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("取消") } }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
     Scaffold(topBar = { TopAppBar(title = { Text(if(existingEvent == null) "上傳應援活動" else "編輯活動", fontWeight = FontWeight.Bold) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } }) }) { p ->
-        Column(modifier = Modifier.fillMaxSize().padding(p).padding(20.dp).verticalScroll(rememberScrollState())) {
-            Box(modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF0F0F0)).clickable { imageLauncher.launch("image/*") }, contentAlignment = Alignment.Center) {
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(p)
+            .padding(20.dp)
+            .verticalScroll(rememberScrollState())) {
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFFF0F0F0))
+                .clickable { imageLauncher.launch("image/*") }, contentAlignment = Alignment.Center) {
                 if (imageUrl.isNotEmpty()) AsyncImage(model = imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                 else if (isUploading) CircularProgressIndicator()
                 else Column(horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Default.AddPhotoAlternate, null, Modifier.size(40.dp), tint = Color.Gray); Text("上傳活動海報", color = Color.Gray) }
@@ -903,54 +1111,279 @@ fun ExploreEventUploadView(userId: String, existingEvent: KpopEvent? = null, onB
             Spacer(Modifier.height(20.dp)); OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("活動名稱") }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp)); OutlinedTextField(value = groupName, onValueChange = { groupName = it }, label = { Text("所屬團體") }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp)); Text("活動類型", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("生日咖啡廳", "領取應援", "打卡燈箱","演唱會資訊").forEach { t -> FilterChip(selected = type == t, onClick = { type = t }, label = { Text(t) }) } }
+            Row(Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("生日咖啡廳", "領取應援", "打卡燈箱","演唱會資訊").forEach { t -> FilterChip(selected = type == t, onClick = { type = t }, label = { Text(t) }) } }
             OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("地點") }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(12.dp)); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) { OutlinedTextField(value = startDate, onValueChange = { startDate = it }, label = { Text("開始日期") }, modifier = Modifier.weight(1f), placeholder = { Text("YYYY/MM/DD") }); OutlinedTextField(value = endDate, onValueChange = { endDate = it }, label = { Text("結束日期") }, modifier = Modifier.weight(1f), placeholder = { Text("YYYY/MM/DD") }) }
+            Spacer(Modifier.height(12.dp)); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(value = startDate, onValueChange = {}, label = { Text("開始日期") }, modifier = Modifier.fillMaxWidth(), readOnly = true, placeholder = { Text("YYYY/MM/DD") }, trailingIcon = { Icon(Icons.Default.CalendarMonth, null) })
+                    Box(modifier = Modifier
+                        .matchParentSize()
+                        .clickable { datePickerTarget = "start"; showDatePicker = true })
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(value = endDate, onValueChange = {}, label = { Text("結束日期") }, modifier = Modifier.fillMaxWidth(), readOnly = true, placeholder = { Text("YYYY/MM/DD") }, trailingIcon = { Icon(Icons.Default.CalendarMonth, null) })
+                    Box(modifier = Modifier
+                        .matchParentSize()
+                        .clickable { datePickerTarget = "end"; showDatePicker = true })
+                }
+            }
             Spacer(Modifier.height(12.dp)); OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("活動詳情描述") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
-            Spacer(Modifier.height(32.dp)); Button(onClick = { if (title.isBlank() || imageUrl.isEmpty()) { Toast.makeText(context, "請填寫名稱並上傳圖片", Toast.LENGTH_SHORT).show(); return@Button }; val eventData = mutableMapOf("title" to title, "type" to type, "groupName" to groupName, "location" to location, "startDate" to startDate, "endDate" to endDate, "description" to description, "imageUrl" to imageUrl, "userId" to userId, "createdAt" to (existingEvent?.createdAt ?: FieldValue.serverTimestamp())); val task = if (existingEvent == null) db.collection("events").add(eventData) else db.collection("events").document(existingEvent.id).set(eventData); task.addOnSuccessListener { Toast.makeText(context, if(existingEvent == null) "發佈成功！" else "更新成功！", Toast.LENGTH_SHORT).show(); onSuccess() } }, modifier = Modifier.fillMaxWidth().height(50.dp), shape = RoundedCornerShape(12.dp), enabled = !isUploading) { Text(if(existingEvent == null) "確認發佈活動" else "儲存修改", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+            Spacer(Modifier.height(32.dp)); Button(onClick = { if (title.isBlank() || imageUrl.isEmpty()) { Toast.makeText(context, "請填寫名稱並上傳圖片", Toast.LENGTH_SHORT).show(); return@Button }; val eventData = mutableMapOf("title" to title, "type" to type, "groupName" to groupName, "location" to location, "startDate" to startDate, "endDate" to endDate, "description" to description, "imageUrl" to imageUrl, "userId" to userId, "createdAt" to (existingEvent?.createdAt ?: FieldValue.serverTimestamp())); val task = if (existingEvent == null) db.collection("events").add(eventData) else db.collection("events").document(existingEvent.id).set(eventData); task.addOnSuccessListener { Toast.makeText(context, if(existingEvent == null) "發佈成功！" else "更新成功！", Toast.LENGTH_SHORT).show(); onSuccess() } }, modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp), shape = RoundedCornerShape(12.dp), enabled = !isUploading) { Text(if(existingEvent == null) "確認發佈活動" else "儲存修改", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
             Spacer(Modifier.height(40.dp))
         }
     }
 }
 
+// --- EventPostItem：KaOne! 專屬卡片與互動風格 (已修復地點跳轉與標籤位置) ---
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EventPostItem(event: KpopEvent, currentUserId: String, onEdit: () -> Unit, onDelete: () -> Unit, onViewProfile: (String) -> Unit) {
+fun EventPostItem(
+    event: KpopEvent,
+    currentUserId: String,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onViewProfile: (String) -> Unit,
+    onStartChat: (String, KpopCard?) -> Unit
+) {
     var showMenu by remember { mutableStateOf(false) }
     var publisherName by remember { mutableStateOf("載入中...") }
     val db = FirebaseFirestore.getInstance()
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    var showCommentSheet by remember { mutableStateOf(false) }
+    var likesCount by remember { mutableIntStateOf(0) }
+    var isLiked by remember { mutableStateOf(false) }
+    var commentCount by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(event.userId) {
-        db.collection("users").document(event.userId).get().addOnSuccessListener { publisherName = it.getString("nickname") ?: "用戶" }
+        db.collection("users").document(event.userId).get().addOnSuccessListener {
+            publisherName = it.getString("nickname") ?: "用戶"
+        }
     }
 
-    Column(modifier = Modifier.fillMaxWidth().background(Color.White)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.clickable { onViewProfile(event.userId) }) { UserAvatar(userId = event.userId, size = 36) }
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.clickable { onViewProfile(event.userId) }) { Text(text = publisherName, fontWeight = FontWeight.Bold, fontSize = 14.sp); Text(text = event.location, fontSize = 12.sp, color = Color.Gray) }
-            Spacer(Modifier.weight(1f))
-            if (event.userId == currentUserId && currentUserId.isNotEmpty()) {
-                Box {
-                    IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreHoriz, null, tint = Color.Gray) }
-                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                        DropdownMenuItem(text = { Text("編輯活動") }, onClick = { showMenu = false; onEdit() }, leadingIcon = { Icon(Icons.Default.Edit, null) })
-                        DropdownMenuItem(text = { Text("刪除活動", color = Color.Red) }, onClick = { showMenu = false; onDelete() }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red) })
+    LaunchedEffect(event.id) {
+        db.collection("events").document(event.id).collection("likes").addSnapshotListener { snapshot, _ ->
+            likesCount = snapshot?.size() ?: 0
+            isLiked = snapshot?.documents?.any { it.id == currentUserId } ?: false
+        }
+        db.collection("events").document(event.id).collection("comments").addSnapshotListener { snapshot, _ ->
+            commentCount = snapshot?.size() ?: 0
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column {
+            // Header: 分離點擊邏輯
+            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.clickable { onViewProfile(event.userId) }) { UserAvatar(userId = event.userId, size = 38) }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = publisherName,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 15.sp,
+                        color = Color(0xFF2D3436),
+                        modifier = Modifier.clickable { onViewProfile(event.userId) } // 點名字去主頁
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { // 點地點去地圖
+                            if (event.location.isNotEmpty()) {
+                                try {
+                                    val gmmIntentUri = Uri.parse("geo:0,0?q=${Uri.encode(event.location)}")
+                                    val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                                    mapIntent.setPackage("com.google.android.apps.maps")
+                                    context.startActivity(mapIntent)
+                                } catch (e: Exception) {
+                                    val genericIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(event.location)}"))
+                                    context.startActivity(genericIntent)
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Default.LocationOn, null, tint = Color(0xFF586795), modifier = Modifier.size(12.dp))
+                        Text(text = " ${event.location}", fontSize = 11.sp, color = Color(0xFF586795), fontWeight = FontWeight.Bold)
+                    }
+                }
+                if (event.userId == currentUserId && currentUserId.isNotEmpty()) {
+                    Box {
+                        IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreHoriz, null, tint = Color.LightGray) }
+                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                            DropdownMenuItem(text = { Text("編輯活動") }, onClick = { showMenu = false; onEdit() }, leadingIcon = { Icon(Icons.Default.Edit, null) })
+                            DropdownMenuItem(text = { Text("刪除活動", color = Color.Red) }, onClick = { showMenu = false; onDelete() }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red) })
+                        }
+                    }
+                }
+            }
+
+            Box(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(16.dp))) {
+                AsyncImage(model = event.imageUrl, contentDescription = null, modifier = Modifier.fillMaxWidth().aspectRatio(1.1f), contentScale = ContentScale.Crop)
+            }
+
+            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    onClick = {
+                        if (currentUserId.isEmpty()) Toast.makeText(context, "請先登入後再點讚", Toast.LENGTH_SHORT).show()
+                        else {
+                            val ref = db.collection("events").document(event.id).collection("likes").document(currentUserId)
+                            if (isLiked) ref.delete() else ref.set(mapOf("timestamp" to FieldValue.serverTimestamp()))
+                        }
+                    },
+                    shape = CircleShape,
+                    color = if (isLiked) Color(0xFFFFEBEE) else Color(0xFFF1F3F9),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Row(modifier = Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder, null, tint = if (isLiked) Color.Red else Color.Gray, modifier = Modifier.size(18.dp))
+                        if (likesCount > 0) {
+                            Text(" $likesCount", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isLiked) Color.Red else Color.Gray)
+                        }
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                Surface(onClick = { showCommentSheet = true }, shape = CircleShape, color = Color(0xFFF1F3F9), modifier = Modifier.height(36.dp)) {
+                    Row(modifier = Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.ModeComment, null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                        Text(" ${if(commentCount > 0) commentCount else "留言"}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                    }
+                }
+                Spacer(Modifier.weight(1f))
+                if (event.userId != currentUserId && currentUserId.isNotEmpty()) {
+                    IconButton(onClick = { scope.launch { findOrCreateChatRoom(currentUserId, event.userId, null) { roomId -> onStartChat(roomId, null) } } }) {
+                        Icon(Icons.AutoMirrored.Filled.Chat, null, tint = Color(0xFF586795))
+                    }
+                }
+            }
+
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 0.dp)) {
+                Text(text = event.title, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF2D3436))
+                Text(text = event.description, fontSize = 13.sp, color = Color(0xFF636E72))
+                // 標籤放回內文下方
+                Row(modifier = Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(color = Color(0xFFE3F2FD), shape = RoundedCornerShape(6.dp)) {
+                        Text(text = event.type, color = Color(0xFF1976D2), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Text(text = "📅 ${event.startDate} ~ ${event.endDate}", fontSize = 12.sp, color = Color(0xFF586795).copy(0.7f), fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+        }
+    }
+
+    if (showCommentSheet) {
+        KaOneCommentBottomSheet(eventId = event.id, currentUserId = currentUserId, onDismiss = { showCommentSheet = false })
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun KaOneCommentBottomSheet(eventId: String, currentUserId: String, onDismiss: () -> Unit) {
+    val db = FirebaseFirestore.getInstance()
+    var comments by remember { mutableStateOf<List<KpopComment>>(emptyList()) }
+    var newCommentText by remember { mutableStateOf("") }
+    var currentUserNickname by remember { mutableStateOf("") }
+    var currentUserAvatar by remember { mutableStateOf("") }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotEmpty()) {
+            db.collection("users").document(currentUserId).get().addOnSuccessListener {
+                currentUserNickname = it.getString("nickname") ?: "卡友"
+                currentUserAvatar = it.getString("profileImageUrl") ?: ""
+            }
+        }
+    }
+
+    LaunchedEffect(eventId) {
+        db.collection("events").document(eventId).collection("comments")
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, _ ->
+                comments = snapshot?.documents?.mapNotNull { doc ->
+                    KpopComment(id = doc.id, userId = doc.getString("userId") ?: "", userName = doc.getString("userName") ?: "卡友", userProfileImage = doc.getString("userProfileImage") ?: "", text = doc.getString("text") ?: "", timestamp = doc.getTimestamp("timestamp"))
+                } ?: emptyList()
+            }
+    }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = Color.White) {
+        Column(modifier = Modifier.fillMaxHeight(0.85f).imePadding()) {
+            Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Text("卡友討論區", modifier = Modifier.align(Alignment.Center), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+            }
+            HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray.copy(0.3f))
+
+            if (comments.isEmpty()) {
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text("首位留言的卡友就是你！", color = Color.Gray)
+                }
+            } else {
+                LazyColumn(modifier = Modifier.weight(1f).padding(horizontal = 16.dp), contentPadding = PaddingValues(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    items(comments) { comment ->
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFFF1F3F9))) {
+                                UserAvatar(userId = comment.userId, size = 40, defaultUrl = comment.userProfileImage)
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(text = comment.userName, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = if (comment.userId == currentUserId) Color(0xFF586795) else Color.Black)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(text = comment.timestamp?.toDate()?.let { SimpleDateFormat("MM/dd HH:mm", Locale.getDefault()).format(it) } ?: "剛剛", fontSize = 11.sp, color = Color.LightGray)
+                                }
+                                Text(text = comment.text, fontSize = 15.sp, color = Color(0xFF4A4A4A), lineHeight = 20.sp)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Surface(modifier = Modifier.fillMaxWidth(), color = Color.White, shadowElevation = 8.dp) {
+                Row(modifier = Modifier.padding(16.dp).navigationBarsPadding().fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    UserAvatar(userId = currentUserId, size = 32, defaultUrl = currentUserAvatar)
+                    Spacer(Modifier.width(12.dp))
+                    Surface(modifier = Modifier.weight(1f), color = Color(0xFFF1F3F9), shape = RoundedCornerShape(24.dp)) {
+                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                            BasicTextField(
+                                value = newCommentText,
+                                onValueChange = { newCommentText = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                decorationBox = { innerTextField ->
+                                    if (newCommentText.isEmpty()) Text("寫下你的留言...", color = Color.Gray)
+                                    innerTextField()
+                                }
+                            )
+                        }
+                    }
+                    if (newCommentText.isNotBlank()) {
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                val data = mapOf("userId" to currentUserId, "userName" to currentUserNickname, "userProfileImage" to currentUserAvatar, "text" to newCommentText, "timestamp" to FieldValue.serverTimestamp())
+                                db.collection("events").document(eventId).collection("comments").add(data)
+                                newCommentText = ""
+                            },
+                            modifier = Modifier.size(40.dp).background(Color(0xFF586795), CircleShape)
+                        ) {
+                            Icon(Icons.Default.Send, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        }
                     }
                 }
             }
         }
-        AsyncImage(model = event.imageUrl, contentDescription = null, modifier = Modifier.fillMaxWidth().aspectRatio(1f).background(Color(0xFFF0F0F0)), contentScale = ContentScale.Crop)
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(color = Color(0xFFE3F2FD), shape = RoundedCornerShape(4.dp)) { Text(text = event.type, color = Color(0xFF1976D2), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) }
-                Spacer(Modifier.width(8.dp)); Text(text = "📅 ${event.startDate} ~ ${event.endDate}", fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            }
-            Spacer(Modifier.height(12.dp)); Text(text = event.title, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-            Spacer(Modifier.height(4.dp)); Text(text = event.description, fontSize = 14.sp, lineHeight = 20.sp)
-        }
-        HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFEEEEEE))
     }
 }
+
+// 注意：請確保檔案頂部已有 import android.content.Intent
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -1072,21 +1505,30 @@ fun MainDashboard(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF7F8FA))) {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .background(Color(0xFFF7F8FA))) {
         Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary, tonalElevation = 4.dp) {
             if (isSearchActive) {
                 Row(
-                    modifier = Modifier.statusBarsPadding().padding(horizontal = 8.dp, vertical = 8.dp).fillMaxWidth(),
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .padding(horizontal = 8.dp, vertical = 8.dp)
+                        .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = { isSearchActive = false; searchQuery = "" }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
                     }
-                    Box(modifier = Modifier.weight(1f).height(40.dp), contentAlignment = Alignment.CenterStart) {
+                    Box(modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp), contentAlignment = Alignment.CenterStart) {
                         BasicTextField(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
-                            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequester),
                             singleLine = true,
                             textStyle = TextStyle(fontSize = 16.sp, color = Color.White),
                             cursorBrush = SolidColor(Color.White),
@@ -1109,7 +1551,10 @@ fun MainDashboard(
                 }
                 LaunchedEffect(Unit) { focusRequester.requestFocus() }
             } else {
-                Row(modifier = Modifier.statusBarsPadding().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Row(modifier = Modifier
+                    .statusBarsPadding()
+                    .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp)
+                    .fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("KaOne!", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White, modifier = Modifier.padding(end = 12.dp))
                     Box(
                         modifier = Modifier
@@ -1145,7 +1590,9 @@ fun MainDashboard(
         }
 
         if (isSearchActive && searchQuery.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().padding(bottom = 100.dp), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 100.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         imageVector = Icons.Default.Search,
@@ -1184,11 +1631,19 @@ fun MainDashboard(
     if (selectedCard != null) {
         val card = selectedCard!!
         Dialog(onDismissRequest = { selectedCard = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-            Card(modifier = Modifier.fillMaxWidth(0.82f).wrapContentHeight().padding(vertical = 20.dp), shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F3F9))) {
+            Card(modifier = Modifier
+                .fillMaxWidth(0.82f)
+                .wrapContentHeight()
+                .padding(vertical = 20.dp), shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F3F9))) {
                 Box(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(14.dp).verticalScroll(rememberScrollState())) {
+                    Column(Modifier
+                        .padding(14.dp)
+                        .verticalScroll(rememberScrollState())) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(38.dp).clip(CircleShape).background(Color.White)) {
+                            Box(Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)) {
                                 UserAvatar(userId = card.userId, size = 38, defaultUrl = card.ownerProfileImageUrl)
                             }
                             Spacer(Modifier.width(8.dp))
@@ -1205,8 +1660,14 @@ fun MainDashboard(
                         }
 
                         Spacer(Modifier.height(12.dp))
-                        Box(Modifier.fillMaxWidth().height(210.dp).clip(RoundedCornerShape(16.dp)).background(Color.White), contentAlignment = Alignment.Center) {
-                            AsyncImage(model = card.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize().clickable { previewImageUrl = card.imageUrl }, contentScale = ContentScale.Fit)
+                        Box(Modifier
+                            .fillMaxWidth()
+                            .height(210.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White), contentAlignment = Alignment.Center) {
+                            AsyncImage(model = card.imageUrl, contentDescription = null, modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { previewImageUrl = card.imageUrl }, contentScale = ContentScale.Fit)
                         }
 
                         Spacer(Modifier.height(14.dp))
@@ -1228,7 +1689,11 @@ fun MainDashboard(
                                 Spacer(Modifier.height(8.dp))
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     items(card.wishlistImageUrls) { url ->
-                                        AsyncImage(model = url, contentDescription = null, modifier = Modifier.size(90.dp, 120.dp).clip(RoundedCornerShape(8.dp)).background(Color.White).clickable { previewImageUrl = url }, contentScale = ContentScale.Crop)
+                                        AsyncImage(model = url, contentDescription = null, modifier = Modifier
+                                            .size(90.dp, 120.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color.White)
+                                            .clickable { previewImageUrl = url }, contentScale = ContentScale.Crop)
                                     }
                                 }
                             }
@@ -1260,11 +1725,22 @@ fun MainDashboard(
                         Spacer(Modifier.height(60.dp))
                     }
                     if (card.userId != userId) {
-                        Row(modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { reportingCardId = card.id }, modifier = Modifier.size(42.dp).background(Color(0xFFF5F5F5), CircleShape)) { Icon(Icons.Default.Report, "檢舉", tint = Color.Gray, modifier = Modifier.size(20.dp)) }
-                            Spacer(Modifier.width(8.dp))
+                        Row(modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            if (!isGuest) {
+                                IconButton(onClick = { reportingCardId = card.id }, modifier = Modifier
+                                    .size(42.dp)
+                                    .background(Color(0xFFF5F5F5), CircleShape)) {
+                                    Icon(Icons.Default.Report, "檢舉", tint = Color.Gray, modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(Modifier.width(8.dp))
+                            }
+
                             if (isAdmin && !isGuest) {
-                                IconButton(onClick = { cardToDelete = card }, modifier = Modifier.size(42.dp).background(Color(0xFFFFEBEE), CircleShape)) { Icon(Icons.Default.Delete, "管理員刪除", tint = Color.Red, modifier = Modifier.size(20.dp)) }
+                                IconButton(onClick = { cardToDelete = card }, modifier = Modifier
+                                    .size(42.dp)
+                                    .background(Color(0xFFFFEBEE), CircleShape)) { Icon(Icons.Default.Delete, "管理員刪除", tint = Color.Red, modifier = Modifier.size(20.dp)) }
                                 Spacer(Modifier.width(8.dp))
                             }
                             Button(onClick = {
@@ -1280,10 +1756,16 @@ fun MainDashboard(
                             }
                         }
                     } else if (userId.isNotEmpty()) {
-                        Row(modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { onEditCard(card); selectedCard = null }, modifier = Modifier.size(42.dp).background(Color(0xFFE8EAF6), CircleShape)) { Icon(Icons.Default.Edit, "編輯", tint = Color(0xFF5C6BC0), modifier = Modifier.size(20.dp)) }
+                        Row(modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { onEditCard(card); selectedCard = null }, modifier = Modifier
+                                .size(42.dp)
+                                .background(Color(0xFFE8EAF6), CircleShape)) { Icon(Icons.Default.Edit, "編輯", tint = Color(0xFF5C6BC0), modifier = Modifier.size(20.dp)) }
                             Spacer(Modifier.width(8.dp))
-                            IconButton(onClick = { cardToDelete = card }, modifier = Modifier.size(42.dp).background(Color(0xFFFFEBEE), CircleShape)) { Icon(Icons.Default.Delete, null, tint = Color.Red, modifier = Modifier.size(20.dp)) }
+                            IconButton(onClick = { cardToDelete = card }, modifier = Modifier
+                                .size(42.dp)
+                                .background(Color(0xFFFFEBEE), CircleShape)) { Icon(Icons.Default.Delete, null, tint = Color.Red, modifier = Modifier.size(20.dp)) }
                         }
                     }
                 }
@@ -1300,7 +1782,10 @@ fun MainDashboard(
 
     if (previewImageUrl != null) {
         Dialog(onDismissRequest = { previewImageUrl = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-            Box(modifier = Modifier.fillMaxSize().background(Color.Black).clickable { previewImageUrl = null }, contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .clickable { previewImageUrl = null }, contentAlignment = Alignment.Center) {
                 AsyncImage(model = previewImageUrl, contentDescription = "預覽圖片", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
             }
         }
@@ -1321,14 +1806,23 @@ fun CardItem(card: KpopCard, isFavorite: Boolean, showFavorite: Boolean = true, 
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        modifier = Modifier.fillMaxWidth().clickable { onClick() }
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(185.dp)
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 0.dp, bottomEnd = 0.dp))
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 16.dp,
+                            topEnd = 16.dp,
+                            bottomStart = 0.dp,
+                            bottomEnd = 0.dp
+                        )
+                    )
                     .background(Color(0xFFF5F5F5))
             ) {
                 if (card.imageUrl.isNotEmpty()) {
@@ -1383,7 +1877,9 @@ fun CardItem(card: KpopCard, isFavorite: Boolean, showFavorite: Boolean = true, 
                 Spacer(Modifier.height(10.dp))
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -1412,6 +1908,114 @@ fun CardItem(card: KpopCard, isFavorite: Boolean, showFavorite: Boolean = true, 
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TrendingView(onBack: () -> Unit) {
+    val db = FirebaseFirestore.getInstance()
+    var topGroups by remember { mutableStateOf<List<Pair<String, Int>>>(emptyList()) }
+    var topMembers by remember { mutableStateOf<List<Pair<String, Int>>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        db.collection("cards").whereEqualTo("status", "available").get().addOnSuccessListener { snapshot ->
+            val cards = snapshot.documents.mapNotNull { it.toKpopCard() }
+            
+            // 統計團體熱度
+            topGroups = cards.groupingBy { it.groupName.split("|").first().trim() }
+                .eachCount()
+                .toList()
+                .sortedByDescending { it.second }
+                .take(10)
+
+            // 統計成員熱度 (拆分多人名)
+            topMembers = cards.flatMap { it.memberName.split(", ") }
+                .map { it.split("|").first().trim() }
+                .filter { it.isNotEmpty() }
+                .groupingBy { it }
+                .eachCount()
+                .toList()
+                .sortedByDescending { it.second }
+                .take(10)
+            
+            isLoading = false
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("熱門趨勢排行", fontWeight = FontWeight.Bold) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } }
+            )
+        }
+    ) { p ->
+        if (isLoading) {
+            Box(Modifier
+                .fillMaxSize()
+                .padding(p), Alignment.Center) { CircularProgressIndicator() }
+        } else {
+            LazyColumn(Modifier
+                .padding(p)
+                .fillMaxSize()
+                .padding(16.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                item {
+                    TrendingSection(title = "🔥 熱門交換團體 Top 10", items = topGroups, icon = Icons.Default.Groups)
+                }
+                item {
+                    TrendingSection(title = "✨ 人氣搜尋成員 Top 10", items = topMembers, icon = Icons.Default.Stars, color = Color(0xFFEC407A))
+                }
+                item { Spacer(Modifier.height(40.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+fun TrendingSection(title: String, items: List<Pair<String, Int>>, icon: ImageVector, color: Color = MaterialTheme.colorScheme.primary) {
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        }
+        Spacer(Modifier.height(16.dp))
+        if (items.isEmpty()) {
+            Text("目前尚無數據", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(start = 28.dp))
+        } else {
+            items.forEachIndexed { index, pair ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${index + 1}",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 16.sp,
+                        color = if (index < 3) color else Color.Gray,
+                        modifier = Modifier.width(30.dp)
+                    )
+                    Text(pair.first, modifier = Modifier.weight(1f), fontSize = 15.sp)
+                    Surface(
+                        color = color.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = "${pair.second} 張流通中",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            fontSize = 11.sp,
+                            color = color,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                if (index < items.size - 1) HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray.copy(alpha = 0.3f))
             }
         }
     }
