@@ -74,13 +74,11 @@ fun ChatList(userId: String, onRoomClick: (String, String) -> Unit) {
                     )
                 }
                 
-                // 異步獲取每個聊天室對對方的暱稱
                 fetchedRooms.forEach { room ->
                     val otherId = room.participantIds.firstOrNull { it != userId } ?: ""
                     if (otherId.isNotEmpty()) {
                         db.collection("users").document(otherId).get().addOnSuccessListener { userDoc ->
                             room.otherNickname = userDoc.getString("nickname") ?: "用戶"
-                            // 強制觸發重繪 (如果需要)
                             rooms = rooms.toList() 
                         }
                     }
@@ -116,7 +114,6 @@ fun ChatList(userId: String, onRoomClick: (String, String) -> Unit) {
         topBar = { 
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
                 TopAppBar(title = { Text("我的對話", fontWeight = FontWeight.Bold) })
-                // 搜尋框
                 Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Color(0xFFF1F3F4)).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Search, null, modifier = Modifier.size(20.dp), tint = Color.Gray)
@@ -217,7 +214,9 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     val timePickerState = rememberTimePickerState()
     var showTimePicker by remember { mutableStateOf(false) }
 
+    // --- 修改處：從 Firestore 讀取背景顏色 ---
     var chatBgColor by rememberSaveable { mutableLongStateOf(0xFF8BA2B5L) }
+    
     var showMenu by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     
@@ -228,6 +227,13 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
         db.collection("chatRooms").document(roomId).get().addOnSuccessListener { d -> 
             val oid = (d.get("participantIds") as? List<*>)?.mapNotNull { it.toString() }?.firstOrNull { it != userId } ?: ""
             otherId.value = oid
+            
+            // 讀取該聊天室的背景顏色設定
+            val customBg = (d.get("backgrounds") as? Map<*, *>)?.get(userId) as? Long
+            if (customBg != null) {
+                chatBgColor = customBg
+            }
+
             if (oid.isNotEmpty()) db.collection("users").document(oid).get().addOnSuccessListener { 
                 otherImageUrl = it.getString("profileImageUrl") ?: "" 
                 if (otherUserName.isEmpty() || otherUserName == "讀取中...") {
@@ -251,7 +257,6 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
             "unreadCount.${otherId.value}" to FieldValue.increment(1)
         ))
         
-        // 發送通知 (FCM / 本地橫幅)
         val notifTitle: String
         val notifContent: String
         when (type) {
@@ -272,7 +277,6 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                 notifContent = t
             }
         }
-        // 傳送通知，類別標註為 chat_silent 以便在 NotificationScreen 排除
         sendNotification(otherId.value, "chat_silent", notifTitle, notifContent, roomId)
     }
 
@@ -313,7 +317,6 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
             else if (newStatus == "completed") { if (msg.tradeTargetCardId.isNotEmpty()) db.collection("cards").document(msg.tradeTargetCardId).update("status", "exchanged"); if (msg.tradeOfferCardId != "custom" && msg.tradeOfferCardId.isNotEmpty()) db.collection("cards").document(msg.tradeOfferCardId).update("status", "exchanged") }
             db.collection("chatRooms").document(roomId).update(mapOf("lastMessage" to lastMsgText, "lastMessageTime" to FieldValue.serverTimestamp(), "unreadCount.${otherId.value}" to FieldValue.increment(1)))
             
-            // 狀態更新通知
             val statusTitle = when(newStatus) {
                 "accepted" -> "交換提案已接受"
                 "completed" -> "交換已順利完成"
@@ -369,7 +372,12 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                             bgOptions.forEach { (name, color) ->
                                 DropdownMenuItem(
                                     text = { Text("  • $name") },
-                                    onClick = { chatBgColor = color; showMenu = false }
+                                    onClick = { 
+                                        chatBgColor = color
+                                        showMenu = false
+                                        // --- 修改處：儲存到 Firestore ---
+                                        db.collection("chatRooms").document(roomId).update("backgrounds.$userId", color)
+                                    }
                                 )
                             }
                             HorizontalDivider()
@@ -391,7 +399,6 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                 itemsIndexed(messages) { index, m ->
                     val isMe = m.senderId == userId; val timeStr = m.timestamp?.let { SimpleDateFormat("HH:mm", Locale.getDefault()).format(it.toDate()) } ?: ""
                     
-                    // 日期顯示邏輯
                     val showDate = if (index == 0) {
                         m.timestamp != null
                     } else {
@@ -630,10 +637,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                         val reviewData = hashMapOf("reviewerId" to userId, "revieweeId" to otherId.value, "rating" to rating, "comment" to comment, "timestamp" to FieldValue.serverTimestamp())
                         db.collection("reviews").add(reviewData).addOnSuccessListener {
                             db.collection("chatRooms").document(roomId).collection("messages").document(reviewMsgId!!).update("reviewedBy", FieldValue.arrayUnion(userId))
-                            
-                            // 發送通知
                             sendNotification(otherId.value, "chat_silent", "收到新的評價", "有人對您的交換進行了評價！", roomId)
-
                             Toast.makeText(context, "評價已送出", Toast.LENGTH_SHORT).show()
                             isSubmitting = false
                             reviewMsgId = null

@@ -1461,9 +1461,14 @@ fun MainDashboard(
     }
 
     val filteredCards = cardList.filter { card ->
+        // 1. 狀態篩選：只顯示在架上的小卡
+        val isAvailable = card.status == "available"
+
+        // 2. 分頁篩選
         val matchesTab = if (selectedTab == 0 || selectedTab >= tabs.size) true
         else card.groupName.contains(tabs[selectedTab], ignoreCase = true)
 
+        // 3. 搜尋篩選
         val query = searchQuery.replace(" ", "").lowercase().trim()
         val matchesSearch = if (query.isEmpty()) true
         else {
@@ -1480,7 +1485,8 @@ fun MainDashboard(
                     }
         }
 
-        matchesTab && matchesSearch
+        // 同時符合三個條件才顯示
+        isAvailable && matchesTab && matchesSearch
     }
 
     fun formatMemberName(raw: String): String {

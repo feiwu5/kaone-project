@@ -2,10 +2,11 @@ package com.example.kaone.ui
 
 import android.Manifest
 import android.content.Context
-import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
+import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,7 +30,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -85,11 +85,11 @@ fun UploadScreen(
         }
     }
 
-    // --- 關鍵修正：加入 Key 確保編輯時狀態正確載入 ---
     var imageUrl by remember(existingCard?.id) { mutableStateOf(existingCard?.imageUrl ?: "") }
     var isUploadingMain by remember { mutableStateOf(false) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var activeUploadUri by remember { mutableStateOf<Uri?>(null) }
+    var isTargetingWishlist by remember { mutableStateOf(false) }
 
     var groupInput by remember(existingCard?.id) { mutableStateOf(existingCard?.groupName?.let { formatDisplayName(it) } ?: "") }
     val selectedMembers = remember(existingCard?.id) { mutableStateListOf<String>().apply { existingCard?.memberList?.let { addAll(it) } } }
@@ -116,71 +116,66 @@ fun UploadScreen(
     val allGroups = groupMembersData.keys.sorted()
     val currentMatchedGroupKey = remember(groupInput) { allGroups.find { it.getCleanName().equals(groupInput.trim(), ignoreCase = true) || formatDisplayName(it).equals(groupInput.trim(), ignoreCase = true) } }
 
-    fun handleSelectedImage(uri: Uri) {
-        val thisRequestUri = uri
-        activeUploadUri = thisRequestUri
-        isUploadingMain = true
-        imageUrl = ""
-        if (existingCard == null) { groupInput = ""; selectedMembers.clear(); typeInput = "" }
-
-        scope.launch(Dispatchers.Default) {
-            try {
+    // 獲取相容的 Bitmap
+    fun getBitmapFromUri(uri: Uri): Bitmap? {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 val source = ImageDecoder.createSource(context.contentResolver, uri)
-                val bitmap = ImageDecoder.decodeBitmap(source) { decoder, _, _ -> decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE }
-                val result = classifier.classify(bitmap)
-                withContext(Dispatchers.Main) {
-                    if (activeUploadUri == thisRequestUri && result != null) {
-                        val matchedGroup = allGroups.find { it.getCleanName().equals(result.group.trim(), ignoreCase = true) } ?: result.group
-                        groupInput = formatDisplayName(matchedGroup)
-                        val matchedMember = (groupMembersData[matchedGroup] ?: emptyList()).find { it.getCleanName().equals(result.member.trim(), ignoreCase = true) } ?: result.member
-                        selectedMembers.clear()
-                        selectedMembers.add(matchedMember)
-                        Toast.makeText(context, "AI 辨識成功！", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } catch (e: Exception) { e.printStackTrace() }
-        }
-        ImgbbUploader.uploadImage(context, uri, scope, onSuccess = { if (activeUploadUri == thisRequestUri) { imageUrl = it; isUploadingMain = false } }, onFailure = { if (activeUploadUri == thisRequestUri) isUploadingMain = false })
+                ImageDecoder.decodeBitmap(source) { decoder, _, _ -> decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE }
+            } else {
+                @Suppress("DEPRECATION")
+                MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+            }
+        } catch (e: Exception) { e.printStackTrace(); null }
     }
 
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { it?.let { handleSelectedImage(it) } }
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { if (it) activeUploadUri?.let { handleSelectedImage(it) } else isUploadingMain = false }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        if (it) {
+    fun handleSelectedImage(uri: Uri, isWishlist: Boolean) {
+        val thisRequestUri = uri
+        if (isWishlist) isUploadingWishlist = true else { isUploadingMain = true; imageUrl = "" }
+        if (!isWishlist && existingCard == null) { groupInput = ""; selectedMembers.clear(); typeInput = "" }
+
+        scope.launch(Dispatchers.Default) {
+            val bitmap = getBitmapFromUri(uri)
+            if (bitmap != null) {
+                val result = classifier.classify(bitmap)
+                withContext(Dispatchers.Main) {
+                    result?.let { res ->
+                        val matchedGroup = allGroups.find { it.getCleanName().equals(res.group.trim(), ignoreCase = true) } ?: res.group
+                        val matchedMember = (groupMembersData[matchedGroup] ?: emptyList()).find { it.getCleanName().equals(res.member.trim(), ignoreCase = true) } ?: res.member
+                        
+                        if (isWishlist) {
+                            if (matchedGroup !in selectedWishGroups) selectedWishGroups.add(matchedGroup)
+                            if (matchedMember !in selectedWishMembers) selectedWishMembers.add(matchedMember)
+                            Toast.makeText(context, "已自動帶入許願標籤！", Toast.LENGTH_SHORT).show()
+                        } else {
+                            groupInput = formatDisplayName(matchedGroup)
+                            selectedMembers.clear(); selectedMembers.add(matchedMember)
+                            Toast.makeText(context, "AI 辨識成功！", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            ImgbbUploader.uploadImage(context, uri, scope, onSuccess = { url ->
+                if (isWishlist) { wishlistImageUrls.add(url); isUploadingWishlist = false }
+                else { imageUrl = url; isUploadingMain = false }
+            }, onFailure = { if (isWishlist) isUploadingWishlist = false else isUploadingMain = false })
+        }
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { it?.let { handleSelectedImage(it, false) } }
+    val wishlistLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris -> uris.forEach { handleSelectedImage(it, true) } }
+    
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) activeUploadUri?.let { handleSelectedImage(it, isTargetingWishlist) }
+        else { isUploadingMain = false; isUploadingWishlist = false }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
             val tempFile = File(context.cacheDir, "camera_${UUID.randomUUID()}.jpg")
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
             activeUploadUri = uri
             cameraLauncher.launch(uri)
-        }
-    }
-    
-    // --- 關鍵修改：讓許願池上傳也能觸發 AI 辨識自動帶入標籤 ---
-    val wishlistLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-        if (uris.isNotEmpty()) {
-            isUploadingWishlist = true
-            uris.forEach { uri ->
-                // AI 辨識許願卡
-                scope.launch(Dispatchers.Default) {
-                    try {
-                        val source = ImageDecoder.createSource(context.contentResolver, uri)
-                        val bitmap = ImageDecoder.decodeBitmap(source) { decoder, _, _ -> decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE }
-                        val result = classifier.classify(bitmap)
-                        withContext(Dispatchers.Main) {
-                            result?.let { res ->
-                                val matchedGroup = allGroups.find { it.getCleanName().equals(res.group.trim(), ignoreCase = true) } ?: res.group
-                                if (matchedGroup !in selectedWishGroups) selectedWishGroups.add(matchedGroup)
-                                
-                                val matchedMember = (groupMembersData[matchedGroup] ?: emptyList()).find { it.getCleanName().equals(res.member.trim(), ignoreCase = true) } ?: res.member
-                                if (matchedMember !in selectedWishMembers) selectedWishMembers.add(matchedMember)
-                                Toast.makeText(context, "已自動帶入許願標籤！", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    } catch (e: Exception) { e.printStackTrace() }
-                }
-                
-                // 上傳圖片
-                ImgbbUploader.uploadImage(context, uri, scope, onSuccess = { wishlistImageUrls.add(it); if (wishlistImageUrls.size >= uris.size) isUploadingWishlist = false }, onFailure = { isUploadingWishlist = false })
-            }
         }
     }
 
@@ -191,7 +186,7 @@ fun UploadScreen(
             onDismissRequest = { showImageSourceDialog = false },
             title = { Text("選取照片來源") },
             confirmButton = { TextButton(onClick = { showImageSourceDialog = false; permissionLauncher.launch(Manifest.permission.CAMERA) }) { Text("相機拍照") } },
-            dismissButton = { TextButton(onClick = { showImageSourceDialog = false; galleryLauncher.launch("image/*") }) { Text("相簿選取") } }
+            dismissButton = { TextButton(onClick = { showImageSourceDialog = false; if (isTargetingWishlist) wishlistLauncher.launch("image/*") else galleryLauncher.launch("image/*") }) { Text("相簿選取") } }
         )
     }
 
@@ -202,7 +197,7 @@ fun UploadScreen(
         }
 
         Spacer(Modifier.height(24.dp))
-        Box(modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { if (!isUploadingMain) showImageSourceDialog = true }, contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { if (!isUploadingMain) { isTargetingWishlist = false; showImageSourceDialog = true } }, contentAlignment = Alignment.Center) {
             if (imageUrl.isNotEmpty()) AsyncImage(model = imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
             else if (isUploadingMain) CircularProgressIndicator()
             else Column(horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(40.dp), tint = Color.Gray); Text("點擊選取或拍攝照片 (必填)", color = Color.Gray) }
@@ -252,7 +247,7 @@ fun UploadScreen(
 
         Text("想換的小卡 (許願池)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
         LazyRow(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { Box(Modifier.size(120.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { wishlistLauncher.launch("image/*") }, Alignment.Center) { if(isUploadingWishlist) CircularProgressIndicator() else Icon(Icons.Default.AddPhotoAlternate, null, tint = Color.Gray) } }
+            item { Box(Modifier.size(120.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant).clickable { isTargetingWishlist = true; showImageSourceDialog = true }, Alignment.Center) { if(isUploadingWishlist) CircularProgressIndicator() else Icon(Icons.Default.AddPhotoAlternate, null, tint = Color.Gray) } }
             items(wishlistImageUrls) { url -> Box(Modifier.size(120.dp).clip(RoundedCornerShape(12.dp))) { AsyncImage(model = url, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop); IconButton(onClick = { wishlistImageUrls.remove(url) }, Modifier.align(Alignment.TopEnd).padding(4.dp).size(24.dp).background(Color.Black.copy(0.5f), CircleShape)) { Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(16.dp)) } } }
         }
         OutlinedTextField(value = wishlist, onValueChange = { wishlist = it }, label = { Text("想換的小卡描述 (必填)") }, modifier = Modifier.fillMaxWidth().padding(top = 16.dp), minLines = 2)
