@@ -413,6 +413,7 @@ fun ExploreMenuView(onNavigate: (String) -> Unit) {
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (String, KpopCard?) -> Unit, onViewProfile: (String) -> Unit) {
