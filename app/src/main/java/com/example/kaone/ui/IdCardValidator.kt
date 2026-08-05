@@ -57,7 +57,7 @@ object IdCardValidator {
                 }
 
                 // 2. 更寬鬆的關鍵字組合判斷 (確保影像在框框內)
-                val keywords = listOf("中華", "民國", "國民身分證",)
+                val keywords = listOf("中華", "民國", "國民身分證")
                 val foundKeywordsCount = keywords.count { allText.contains(it) }
 
                 if (foundKeywordsCount < 2) {
