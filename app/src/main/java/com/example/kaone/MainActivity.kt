@@ -143,39 +143,54 @@ class MainActivity : ComponentActivity() {
                         "signup" -> {
                             SignUpScreen(
                                 modifier = Modifier.padding(innerPadding),
-                                onSignUpClick = { email, password, name, gender, nickname, location ->
+                                onSignUpClick = { email, password, name, gender, nickname, location, idHash ->
                                     val cleanEmail = email.trim()
-                                    auth.createUserWithEmailAndPassword(cleanEmail, password)
-                                        .addOnCompleteListener(this) { task ->
-                                            if (task.isSuccessful) {
-                                                val userId = auth.currentUser?.uid
-                                                if (userId != null) {
-                                                    val user = hashMapOf(
-                                                        "name" to name,
-                                                        "nickname" to nickname,
-                                                        "gender" to gender,
-                                                        "location" to location,
-                                                        "email" to cleanEmail,
-                                                        "createdAt" to FieldValue.serverTimestamp(),
-                                                        "favoriteCardIds" to emptyList<String>(),
-                                                        "customDashboardTabs" to emptyList<String>(),
-                                                        "profileImageUrl" to "",
-                                                        "isAdmin" to false,
-                                                        "isBanned" to false
-                                                    )
-                                                    db.collection("users").document(userId).set(user)
-                                                        .addOnSuccessListener {
-                                                            Toast.makeText(this, "註冊成功！", Toast.LENGTH_SHORT).show()
-                                                            isGuestMode = false
-                                                            currentScreen = "home"
-                                                        }
-                                                        .addOnFailureListener { e ->
-                                                            Toast.makeText(this, "資料儲存失敗: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                                                        }
-                                                }
+
+                                    // 1. 先檢查這個身分證 Hash 是否已經被註冊過
+                                    db.collection("users")
+                                        .whereEqualTo("idHash", idHash)
+                                        .get()
+                                        .addOnSuccessListener { documents ->
+                                            if (!documents.isEmpty) {
+                                                Toast.makeText(this, "此身分證已被其他帳號綁定，無法重複註冊", Toast.LENGTH_LONG).show()
                                             } else {
-                                                Toast.makeText(this, "註冊失敗: ${task.exception?.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                // 2. 執行 Firebase Auth 註冊
+                                                auth.createUserWithEmailAndPassword(cleanEmail, password)
+                                                    .addOnCompleteListener(this) { task ->
+                                                        if (task.isSuccessful) {
+                                                            val userId = auth.currentUser?.uid
+                                                            if (userId != null) {
+                                                                val user = hashMapOf(
+                                                                    "name" to name,
+                                                                    "nickname" to nickname,
+                                                                    "gender" to gender,
+                                                                    "location" to location,
+                                                                    "email" to cleanEmail,
+                                                                    "idHash" to idHash,
+                                                                    "isVerified" to true,
+                                                                    "createdAt" to FieldValue.serverTimestamp(),
+                                                                    "favoriteCardIds" to emptyList<String>(),
+                                                                    "isAdmin" to false,
+                                                                    "isBanned" to false
+                                                                )
+                                                                // 3. 寫入資料庫
+                                                                db.collection("users").document(userId).set(user)
+                                                                    .addOnSuccessListener {
+                                                                        Toast.makeText(this, "實名認證註冊成功！", Toast.LENGTH_SHORT).show()
+                                                                        currentScreen = "home"
+                                                                    }
+                                                                    .addOnFailureListener { e ->
+                                                                        Toast.makeText(this, "資料庫寫入失敗: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                                    }
+                                                            }
+                                                        } else {
+                                                            Toast.makeText(this, "帳號創建失敗: ${task.exception?.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                        }
+                                                    }
                                             }
+                                        }
+                                        .addOnFailureListener { e ->
+                                            Toast.makeText(this, "網路錯誤: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                                         }
                                 },
                                 onBackToLoginClick = { currentScreen = "login" }

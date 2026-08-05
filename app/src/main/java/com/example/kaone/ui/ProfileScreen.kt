@@ -36,6 +36,7 @@ import com.example.kaone.ui.theme.ImgbbUploader
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.*
+import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
@@ -82,6 +83,12 @@ fun ProfileScreen(
     var selectedStatusTab by remember { mutableIntStateOf(0) }
     val statusTabs = listOf("全部", "在架上", "交換中", "已成交")
 
+    // --- 實名認證狀態與自訂相機顯示狀態 ---
+    var isVerified by remember { mutableStateOf(false) }
+    var currentUserVerified by remember { mutableStateOf(false) }
+    var isVerifyingId by remember { mutableStateOf(false) }
+    var showIdCamera by remember { mutableStateOf(false) } // <--- 控制實名認證相機顯示
+
     var showDeleteAccountConfirm by remember { mutableStateOf(false) }
     var isUploadingProfileImage by remember { mutableStateOf(false) }
 
@@ -108,7 +115,7 @@ fun ProfileScreen(
         }
     }
 
-    LaunchedEffect(userId) {
+    LaunchedEffect(userId, currentUserId) {
         db.collection("users").document(userId).addSnapshotListener { s, _ ->
             s?.let { d ->
                 nickname = d.getString("nickname") ?: "未設定"
@@ -119,18 +126,24 @@ fun ProfileScreen(
                 bio = d.getString("bio") ?: ""
                 concerts = d.getString("concerts") ?: ""
                 preference = d.getString("preference") ?: ""
+                isVerified = d.getBoolean("isVerified") ?: false
                 @Suppress("UNCHECKED_CAST")
                 favoriteCardIds = (d.get("favoriteCardIds") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList()
             }
         }
+
+        if (currentUserId != null) {
+            db.collection("users").document(currentUserId).addSnapshotListener { s, _ ->
+                currentUserVerified = s?.getBoolean("isVerified") ?: false
+            }
+        }
+
         db.collection("reviews").whereEqualTo("revieweeId", userId).addSnapshotListener { s, _ ->
             s?.let {
                 reviewCount = it.size()
                 avgRating = if (reviewCount > 0) {
                     it.documents.sumOf { d -> d.getLong("rating")?.toDouble() ?: 0.0 } / reviewCount
-                } else {
-                    0.0
-                }
+                } else { 0.0 }
             }
         }
         db.collection("cards").whereEqualTo("userId", userId).addSnapshotListener { s, _ ->
@@ -154,7 +167,15 @@ fun ProfileScreen(
                         else Icon(Icons.Default.Person, null, Modifier.size(60.dp), tint = MaterialTheme.colorScheme.primary)
                     }
                     Spacer(Modifier.height(16.dp))
-                    Text(nickname, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(nickname, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        if (isVerified) {
+                            Spacer(Modifier.width(6.6.dp))
+                            Icon(Icons.Default.CheckCircle, "已認證", tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
+                        }
+                    }
+
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { if (reviewCount > 0) showReviews = true }) {
                         Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
@@ -166,15 +187,25 @@ fun ProfileScreen(
                         )
                     }
                     Text("@$name • $location", fontSize = 14.sp, color = Color.Gray)
+
                     if (!isOwnProfile) {
                         Spacer(Modifier.height(16.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(onClick = { scope.launch { findOrCreateChatRoomInProfile(currentUserId ?: "", userId, null) { roomId, _ -> onStartChat(roomId, null) } } }, shape = RoundedCornerShape(24.dp)) {
+                            Button(
+                                onClick = {
+                                    if (!currentUserVerified) {
+                                        Toast.makeText(context, "為了交易安全，請先完成實名認證後再發起聊天！", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        scope.launch { findOrCreateChatRoomInProfile(currentUserId ?: "", userId, null) { roomId, _ -> onStartChat(roomId, null) } }
+                                    }
+                                },
+                                shape = RoundedCornerShape(24.dp)
+                            ) {
                                 Icon(Icons.AutoMirrored.Filled.Chat, null)
                                 Spacer(Modifier.width(8.dp))
                                 Text("私訊他")
                             }
-                            // --- 訪客隱藏檢舉按鈕 ---
+
                             if (currentUserId != null) {
                                 IconButton(onClick = { reportingTargetId = userId; reportingType = "user" }, modifier = Modifier.background(Color.LightGray.copy(0.3f), CircleShape)) {
                                     Icon(Icons.Default.Report, "檢舉用戶", tint = Color.Gray)
@@ -194,7 +225,7 @@ fun ProfileScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.AutoAwesome, null, tint = Color(0xFF5C6BC0), modifier = Modifier.size(20.dp)); Spacer(Modifier.width(8.dp)); Text("追星名片", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF2D3436)) }
                     Spacer(Modifier.height(16.dp))
                     StanningSection(label = "追蹤團體", icon = "💖") { if (fandoms.isBlank()) Text("尚未填寫", color = Color.LightGray, fontSize = 14.sp) else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { fandoms.split(Regex("[,\\s|]+")).filter { it.isNotBlank() }.forEach { tag -> Surface(color = Color(0xFFE8EAF6), shape = RoundedCornerShape(8.dp)) { Text(text = tag, color = Color(0xFF5C6BC0), fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)) } } } }
-                    StanningSection(label = "追星歷程", icon = "⏳") { if (bio.isBlank()) Text("尚未填寫", color = Color.LightGray, fontSize = 14.sp) else Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0xFFF5F7FA)).padding(12.dp)) { Text(text = bio, fontSize = 14.sp, fontStyle = FontStyle.Italic, color = Color(0xFF636E72)) } }
+                    StanningSection(label = "追蹤歷程", icon = "⏳") { if (bio.isBlank()) Text("尚未填寫", color = Color.LightGray, fontSize = 14.sp) else Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0xFFF5F7FA)).padding(12.dp)) { Text(text = bio, fontSize = 14.sp, fontStyle = FontStyle.Italic, color = Color(0xFF636E72)) } }
                     StanningSection(label = "演唱會紀錄", icon = "🎤") { if (concerts.isBlank()) Text("尚未填寫", color = Color.LightGray, fontSize = 14.sp) else Text(text = concerts, fontSize = 14.sp, color = Color(0xFF2D3436), lineHeight = 20.sp) }
                     StanningSection(label = "小卡偏好", icon = "💎", isLast = true) { if (preference.isBlank()) Text("尚未填寫", color = Color.LightGray, fontSize = 14.sp) else Surface(color = Color(0xFFFCE4EC), shape = RoundedCornerShape(8.dp)) { Text(text = preference, color = Color(0xFFD81B60), fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) } }
                 }
@@ -205,6 +236,20 @@ fun ProfileScreen(
                         ProfileMenuItem(Icons.Default.AdminPanelSettings, "管理員後台", "管理用戶、內容與公告", containerColor = MaterialTheme.colorScheme.secondaryContainer) { onAdminClick() }
                         HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFEEEEEE))
                     }
+
+                    if (!isVerified) {
+                        ProfileMenuItem(
+                            Icons.Default.VerifiedUser, "進行 AI 實名認證",
+                            if (isVerifyingId) "正在辨識中..." else "認證後可獲得信任勾勾 ✅ 並開啟私訊功能",
+                            containerColor = Color(0xFFFFEBEE)
+                        ) {
+                            if (!isVerifyingId) {
+                                showIdCamera = true // <--- 點擊後開啟自訂身分證相機
+                            }
+                        }
+                        HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFEEEEEE))
+                    }
+
                     ProfileMenuItem(Icons.Default.Edit, "編輯追星名片", "修改追星歷程、團體等資訊") { showEdit = true }
                     HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFEEEEEE))
                     ProfileMenuItem(Icons.Default.Settings, "帳號設定", "修改暱稱、地區、安全設定") { showSettings = true }
@@ -222,6 +267,59 @@ fun ProfileScreen(
             }
             if (isOwnProfile) { TextButton(onClick = onLogoutClick, Modifier.align(Alignment.CenterHorizontally), colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color.Red.copy(alpha = 0.7f))) { Text("登出帳號") } }
             Spacer(Modifier.height(80.dp))
+        }
+    }
+
+    // --- 實名認證自訂相機 Fullscreen Dialog (使用身分證專用橫式 IdCardCameraScreen) ---
+    if (showIdCamera) {
+        Dialog(
+            onDismissRequest = { showIdCamera = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false, // 允許全螢幕
+                decorFitsSystemWindows = false  // 延伸到系統欄位下方
+            )
+        ) {
+            IdCardCameraScreen(
+                onImageCaptured = { uri ->
+                    showIdCamera = false
+                    isVerifyingId = true
+                    try {
+                        val image = InputImage.fromFilePath(context, uri)
+                        IdCardValidator.scanIdCard(
+                            image = image,
+                            onSuccess = { idNumber ->
+                                val newHash = IdCardValidator.hashIdNumber(idNumber)
+                                db.collection("users").whereEqualTo("idHash", newHash).get()
+                                    .addOnSuccessListener { docs ->
+                                        if (!docs.isEmpty) {
+                                            Toast.makeText(context, "此身分證已被其他帳號綁定", Toast.LENGTH_LONG).show()
+                                            isVerifyingId = false
+                                        } else {
+                                            db.collection("users").document(currentUserId!!).update(mapOf("idHash" to newHash, "isVerified" to true))
+                                                .addOnSuccessListener {
+                                                    Toast.makeText(context, "實名認證成功！ ✅", Toast.LENGTH_SHORT).show()
+                                                    isVerifyingId = false
+                                                    currentUserVerified = true
+                                                }
+                                        }
+                                    }
+                                    .addOnFailureListener {
+                                        isVerifyingId = false
+                                        Toast.makeText(context, "網路錯誤，請稍後再試", Toast.LENGTH_SHORT).show()
+                                    }
+                            },
+                            onFailure = { e ->
+                                isVerifyingId = false
+                                Toast.makeText(context, "辨識失敗：${e.message}", Toast.LENGTH_LONG).show()
+                            }
+                        )
+                    } catch (e: Exception) {
+                        isVerifyingId = false
+                        Toast.makeText(context, "圖片處理出錯: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onDismiss = { showIdCamera = false }
+            )
         }
     }
 
@@ -247,64 +345,38 @@ fun ProfileScreen(
                             }
                             IconButton(onClick = { selectedCard = null }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Close, null, tint = Color.Gray.copy(0.5f), modifier = Modifier.size(18.dp)) }
                         }
-
                         Spacer(Modifier.height(12.dp))
                         Box(Modifier.fillMaxWidth().height(210.dp).clip(RoundedCornerShape(16.dp)).background(Color.White), contentAlignment = Alignment.Center) {
-                            AsyncImage(model = card.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize().clickable { previewImageUrl = card.imageUrl }, contentScale = ContentScale.Fit)
+                            AsyncImage(model = card.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize().clickable { previewImageUrl = card.imageUrl }, contentScale = ContentScale.Crop)
                             if (card.status != "available") { Surface(color = if(card.status == "trading") Color(0xFF1976D2) else Color(0xFF2E7D32), shape = RoundedCornerShape(bottomEnd = 12.dp), modifier = Modifier.align(Alignment.TopStart)) { Text(if(card.status == "trading") "🤝 交換中" else "✅ 已成交", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)) } }
                         }
-
                         Spacer(Modifier.height(14.dp))
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                             Surface(color = Color(0xFF586795), shape = RoundedCornerShape(8.dp)) { Text(card.groupName.split("|").first(), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) }
                             Spacer(Modifier.width(8.dp))
                             Text(card.memberName.split(", ").joinToString(", ") { it.split("|").first() }, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF1A202C))
                         }
-
-                        if (card.cardType.isNotEmpty()) {
-                            Spacer(Modifier.height(4.dp))
-                            CardTypeBadge(card.cardType)
-                        }
-
                         Spacer(Modifier.height(16.dp))
-                        DetailSection(label = "WISH LIST", icon = Icons.Default.Favorite) {
-                            Text(card.wishlist, fontSize = 14.sp, color = Color(0xFF2D3748), lineHeight = 20.sp)
-                            if (card.wishlistImageUrls.isNotEmpty()) {
-                                Spacer(Modifier.height(8.dp))
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    items(card.wishlistImageUrls) { url ->
-                                        AsyncImage(model = url, contentDescription = null, modifier = Modifier.size(90.dp, 120.dp).clip(RoundedCornerShape(8.dp)).background(Color.White).clickable { previewImageUrl = url }, contentScale = ContentScale.Crop)
-                                    }
-                                }
-                            }
-                        }
-
-                        Spacer(Modifier.height(12.dp))
-                        DetailSection(label = "REMARKS", icon = Icons.AutoMirrored.Filled.Notes) {
-                            Text(card.remarks.ifBlank { "無備註" }, fontSize = 14.sp, color = Color(0xFF4A5568), lineHeight = 20.sp)
-                        }
-
-                        Spacer(Modifier.height(20.dp))
-                        if (card.createdAt != null) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                                Icon(Icons.Default.Event, null, tint = Color.LightGray, modifier = Modifier.size(14.dp))
-                                Text(" ${SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()).format(card.createdAt.toDate())}", fontSize = 15.sp, color = Color.Gray)
-                            }
-                        }
+                        DetailSection(label = "WISH LIST", icon = Icons.Default.Favorite) { Text(card.wishlist, fontSize = 14.sp, color = Color(0xFF2D3748), lineHeight = 20.sp) }
+                        DetailSection(label = "REMARKS", icon = Icons.AutoMirrored.Filled.Notes) { Text(card.remarks.ifBlank { "無備註" }, fontSize = 14.sp, color = Color(0xFF4A5568)) }
                         Spacer(Modifier.height(60.dp))
                     }
                     if (card.userId != currentUserId) {
-                        Row(modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            // --- 訪客隱藏檢舉按鈕 ---
-                            if (currentUserId != null) {
-                                IconButton(onClick = { reportingTargetId = card.id; reportingType = "card" }, modifier = Modifier.size(42.dp).background(Color(0xFFF5F5F5), CircleShape)) { Icon(Icons.Default.Report, "檢舉", tint = Color.Gray, modifier = Modifier.size(20.dp)) }
-                                Spacer(Modifier.width(8.dp))
-                            }
-                            Button(onClick = { scope.launch { findOrCreateChatRoomInProfile(currentUserId ?: "", card.userId, card.id) { roomId, _ -> onStartChat(roomId, card); selectedCard = null } } }, modifier = Modifier.height(44.dp), shape = RoundedCornerShape(22.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF586795))) {
-                                Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("與他聊聊", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-                            }
+                        Button(
+                            onClick = {
+                                if (!currentUserVerified) {
+                                    Toast.makeText(context, "為了交易安全，請先完成實名認證後再與卡友聊天！", Toast.LENGTH_LONG).show()
+                                } else {
+                                    scope.launch { findOrCreateChatRoomInProfile(currentUserId ?: "", card.userId, card.id) { roomId, _ -> onStartChat(roomId, card); selectedCard = null } }
+                                }
+                            },
+                            modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp).height(44.dp),
+                            shape = RoundedCornerShape(22.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF586795))
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.6.dp))
+                            Text("與他聊聊", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
                         }
                     } else {
                         Row(modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -338,120 +410,44 @@ fun ProfileScreen(
 
         AlertDialog(onDismissRequest = { showSettings = false }, properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.padding(24.dp).fillMaxWidth(), shape = RoundedCornerShape(32.dp), containerColor = Color.White, title = { Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) { Text("帳號設定", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp); Spacer(Modifier.height(4.dp)); HorizontalDivider(Modifier.width(40.dp), 3.dp, MaterialTheme.colorScheme.primary.copy(0.3f)) } }, text = {
             Column(Modifier.verticalScroll(rememberScrollState()).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                // 修改大頭照
-                Box(
-                    modifier = Modifier.size(80.dp).clip(CircleShape).background(Color.LightGray).clickable { if (!isUploadingProfileImage) profileImageLauncher.launch("image/*") },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (profileImageUrl.isNotEmpty()) {
-                        AsyncImage(model = profileImageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    } else {
-                        Icon(Icons.Default.AddAPhoto, null, tint = Color.White)
-                    }
-                    if (isUploadingProfileImage) {
-                        CircularProgressIndicator(modifier = Modifier.size(30.dp), color = MaterialTheme.colorScheme.primary)
-                    }
+                Box(modifier = Modifier.size(80.dp).clip(CircleShape).background(Color.LightGray).clickable { if (!isUploadingProfileImage) profileImageLauncher.launch("image/*") }, contentAlignment = Alignment.Center) {
+                    if (profileImageUrl.isNotEmpty()) AsyncImage(model = profileImageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    else Icon(Icons.Default.AddAPhoto, null, tint = Color.White)
+                    if (isUploadingProfileImage) CircularProgressIndicator(modifier = Modifier.size(30.dp), color = MaterialTheme.colorScheme.primary)
                 }
                 Text("點擊更換頭像", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
-
                 Spacer(Modifier.height(16.dp))
                 Column(Modifier.fillMaxWidth()) {
                     Text("個人資訊", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
                     EditField(tNickname, { tNickname = it }, "暱稱", Icons.Default.Badge)
-                    ExposedDropdownMenuBox(expanded = cityExpanded, onExpandedChange = { cityExpanded = !cityExpanded }) { EditField(tCity, {}, "所在縣市", Icons.Default.Place, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable), readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cityExpanded) }); ExposedDropdownMenu(expanded = cityExpanded, onDismissRequest = { cityExpanded = false }) { cityDistricts.keys.forEach { city -> DropdownMenuItem(text = { Text(city) }, onClick = { tCity = city; tDistrict = ""; cityExpanded = false }) } } }
-                    if (tCity.isNotEmpty()) { ExposedDropdownMenuBox(expanded = districtExpanded, onExpandedChange = { districtExpanded = !districtExpanded }) { EditField(tDistrict, {}, "行政區", Icons.Default.Map, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable), readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = districtExpanded) }); ExposedDropdownMenu(expanded = districtExpanded, onDismissRequest = { districtExpanded = false }) { cityDistricts[tCity]?.forEach { d -> DropdownMenuItem(text = { Text(d) }, onClick = { tDistrict = d; districtExpanded = false }) } } } }
-
+                    ExposedDropdownMenuBox(expanded = cityExpanded, onExpandedChange = { cityExpanded = it }) { EditField(tCity, {}, "所在縣市", Icons.Default.Place, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable), readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cityExpanded) }); ExposedDropdownMenu(expanded = cityExpanded, onDismissRequest = { cityExpanded = false }) { cityDistricts.keys.forEach { city -> DropdownMenuItem(text = { Text(city) }, onClick = { tCity = city; tDistrict = ""; cityExpanded = false }) } } }
+                    if (tCity.isNotEmpty()) { ExposedDropdownMenuBox(expanded = districtExpanded, onExpandedChange = { districtExpanded = it }) { EditField(tDistrict, {}, "行政區", Icons.Default.Map, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable), readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = districtExpanded) }); ExposedDropdownMenu(expanded = districtExpanded, onDismissRequest = { districtExpanded = false }) { cityDistricts[tCity]?.forEach { d -> DropdownMenuItem(text = { Text(d) }, onClick = { tDistrict = d; districtExpanded = false }) } } } }
                     Spacer(Modifier.height(16.dp)); Text("安全與通知", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
                     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Notifications, null, tint = Color.Gray, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(12.dp)); Text("推播通知", Modifier.weight(1f)); Switch(checked = pushEnabled, onCheckedChange = { pushEnabled = it }) }
                     OutlinedButton(onClick = { FirebaseAuth.getInstance().sendPasswordResetEmail(FirebaseAuth.getInstance().currentUser?.email ?: "").addOnSuccessListener { Toast.makeText(context, "重設郵件已寄出", Toast.LENGTH_LONG).show() } }, Modifier.fillMaxWidth().padding(vertical = 8.dp), shape = RoundedCornerShape(12.dp)) { Icon(Icons.Default.LockReset, null); Spacer(Modifier.width(8.dp)); Text("重設登入密碼") }
                     Text("電子信箱：${FirebaseAuth.getInstance().currentUser?.email ?: "未知"}", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
-
                     Spacer(Modifier.height(24.dp))
-                    TextButton(
-                        onClick = { showDeleteAccountConfirm = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color.Red.copy(alpha = 0.6f))
-                    ) {
-                        Icon(Icons.Default.DeleteForever, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("永久刪除帳號", fontSize = 14.sp)
-                    }
+                    TextButton(onClick = { showDeleteAccountConfirm = true }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color.Red.copy(alpha = 0.6f))) { Icon(Icons.Default.DeleteForever, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("永久刪除帳號", fontSize = 14.sp) }
                 }
             }
         }, confirmButton = {
-            Button(
-                onClick = {
-                    val finalLocation = if (tDistrict.isNotEmpty()) "$tCity $tDistrict" else tCity
-                    scope.launch {
-                        // 1. 更新使用者資料
-                        db.collection("users").document(userId).update(mapOf(
-                            "nickname" to tNickname,
-                            "location" to finalLocation,
-                            "profileImageUrl" to profileImageUrl
-                        )).await()
-
-                        // 2. 同步更新該用戶上傳的所有小卡資訊
-                        val cardUpdates = db.collection("cards").whereEqualTo("userId", userId).get().await()
-                        val batch = db.batch()
-                        cardUpdates.documents.forEach { doc ->
-                            batch.update(doc.reference, mapOf(
-                                "ownerNickname" to tNickname,
-                                "ownerProfileImageUrl" to profileImageUrl,
-                                "location" to finalLocation
-                            ))
-                        }
-                        batch.commit().await()
-
-                        Toast.makeText(context, "設定已儲存 ✅", Toast.LENGTH_SHORT).show()
-                        showSettings = false
-                    }
-                },
-                Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(16.dp),
-                enabled = !isUploadingProfileImage
-            ) {
-                Text("儲存設定", fontWeight = FontWeight.Bold)
-            }
+            Button(onClick = {
+                val finalLocation = if (tDistrict.isNotEmpty()) "$tCity $tDistrict" else tCity
+                scope.launch {
+                    db.collection("users").document(userId).update(mapOf("nickname" to tNickname, "location" to finalLocation, "profileImageUrl" to profileImageUrl)).await()
+                    val cardUpdates = db.collection("cards").whereEqualTo("userId", userId).get().await()
+                    val batch = db.batch()
+                    cardUpdates.documents.forEach { doc -> batch.update(doc.reference, mapOf("ownerNickname" to tNickname, "ownerProfileImageUrl" to profileImageUrl, "location" to finalLocation)) }
+                    batch.commit().await()
+                    Toast.makeText(context, "設定已儲存 ✅", Toast.LENGTH_SHORT).show()
+                    showSettings = false
+                }
+            }, Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp), enabled = !isUploadingProfileImage) { Text("儲存設定", fontWeight = FontWeight.Bold) }
         }, dismissButton = { TextButton(onClick = { showSettings = false }, Modifier.fillMaxWidth()) { Text("關閉", color = Color.Gray) } })
     }
 
     if (showDeleteAccountConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteAccountConfirm = false },
-            title = { Text("刪除帳號？", fontWeight = FontWeight.Bold, color = Color.Red) },
-            text = { Text("這將會永久刪除您的個人資料、上傳的小卡及所有對話記錄。此動作無法復原，您確定要繼續嗎？") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val user = FirebaseAuth.getInstance().currentUser
-                        if (user != null) {
-                            scope.launch {
-                                try {
-                                    // 1. 刪除 Firestore 中的用戶資料
-                                    db.collection("users").document(userId).delete().await()
-
-                                    // 2. 刪除該用戶上傳的所有小卡
-                                    val cards = db.collection("cards").whereEqualTo("userId", userId).get().await()
-                                    cards.documents.forEach { doc -> doc.reference.delete() }
-
-                                    // 3. 刪除 Auth 中的帳號
-                                    user.delete().await()
-
-                                    Toast.makeText(context, "帳號已成功刪除", Toast.LENGTH_LONG).show()
-                                    onLogoutClick()
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, "刪除失敗：請重新登入後再試一次 (${e.localizedMessage})", Toast.LENGTH_LONG).show()
-                                }
-                                showDeleteAccountConfirm = false
-                                showSettings = false
-                            }
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-                ) { Text("確定刪除", color = Color.White) }
-            },
-            dismissButton = { TextButton(onClick = { showDeleteAccountConfirm = false }) { Text("取消") } }
-        )
+        AlertDialog(onDismissRequest = { showDeleteAccountConfirm = false }, title = { Text("刪除帳號？", fontWeight = FontWeight.Bold, color = Color.Red) }, text = { Text("這將會永久刪除您的個人資料、上傳的小卡及所有對話記錄。此動作無法復原，您確定要繼續嗎？") }, confirmButton = { Button(onClick = { val user = FirebaseAuth.getInstance().currentUser; if (user != null) { scope.launch { try { db.collection("users").document(userId).delete().await(); val cards = db.collection("cards").whereEqualTo("userId", userId).get().await(); cards.documents.forEach { doc -> doc.reference.delete() }; user.delete().await(); Toast.makeText(context, "帳號已成功刪除", Toast.LENGTH_LONG).show(); onLogoutClick() } catch (e: Exception) { Toast.makeText(context, "刪除失敗：請重新登入後再試一次 (${e.localizedMessage})", Toast.LENGTH_LONG).show() }; showDeleteAccountConfirm = false; showSettings = false } } }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("確定刪除", color = Color.White) } }, dismissButton = { TextButton(onClick = { showDeleteAccountConfirm = false }) { Text("取消") } })
     }
 
     if (showFavs) {
@@ -463,13 +459,7 @@ fun ProfileScreen(
     if (showTabSet) {
         var tempTabs by remember { mutableStateOf(emptyList<String>()) }
         LaunchedEffect(Unit) { db.collection("users").document(userId).get().addOnSuccessListener { d -> tempTabs = (d.get("customDashboardTabs") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList() } }
-        AlertDialog(onDismissRequest = { showTabSet = false }, title = { Text("標籤順序設定") }, text = { Column(Modifier.verticalScroll(rememberScrollState())) {
-            Text("目前排列 (點擊移除)：", fontSize = 12.sp, color = Color.Gray)
-            FlowRow(Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) { tempTabs.forEach { g -> FilterChip(selected = true, onClick = { tempTabs = tempTabs - g }, label = { Text(g) }) } }
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            Text("可加入團體：", fontSize = 12.sp, color = Color.Gray)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { allGroups.filter { it !in tempTabs }.forEach { g -> FilterChip(selected = false, onClick = { tempTabs = tempTabs + g }, label = { Text(g) }) } }
-        } }, confirmButton = { Button(onClick = { db.collection("users").document(userId).update("customDashboardTabs", tempTabs).addOnSuccessListener { Toast.makeText(context, "已儲存", Toast.LENGTH_SHORT).show(); showTabSet = false } }) { Text("儲存") } }, dismissButton = { TextButton(onClick = { showTabSet = false }) { Text("取消") } })
+        AlertDialog(onDismissRequest = { showTabSet = false }, title = { Text("標籤順序設定") }, text = { Column(Modifier.verticalScroll(rememberScrollState())) { Text("目前排列 (點擊移除)：", fontSize = 12.sp, color = Color.Gray); FlowRow(Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) { tempTabs.forEach { g -> FilterChip(selected = true, onClick = { tempTabs = tempTabs - g }, label = { Text(g) }) } }; HorizontalDivider(Modifier.padding(vertical = 8.dp)); Text("可加入團體：", fontSize = 12.sp, color = Color.Gray); FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { allGroups.filter { it !in tempTabs }.forEach { g -> FilterChip(selected = false, onClick = { tempTabs = tempTabs + g }, label = { Text(g) }) } } } }, confirmButton = { Button(onClick = { db.collection("users").document(userId).update("customDashboardTabs", tempTabs).addOnSuccessListener { Toast.makeText(context, "已儲存", Toast.LENGTH_SHORT).show(); showTabSet = false } }) { Text("儲存") } }, dismissButton = { TextButton(onClick = { showTabSet = false }) { Text("取消") } })
     }
 
     if (showReviews) { ReviewDetailsDialog(userId, currentUserId ?: "", onDismiss = { showReviews = false }) }
@@ -595,12 +585,10 @@ fun ProfileCardItem(card: KpopCard, onClick: () -> Unit) {
             Column(Modifier.padding(12.dp)) {
                 Text(card.memberName.split(", ").joinToString(", ") { it.split("|").first() }, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black, maxLines = 1)
                 Text(card.groupName.split("|").first(), fontSize = 12.sp, color = Color.Gray, maxLines = 1)
-
                 if (card.cardType.isNotEmpty()) {
                     Spacer(Modifier.height(4.dp))
                     CardTypeBadge(card.cardType)
                 }
-
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(16.dp).clip(CircleShape).background(Color.LightGray)) {
@@ -615,17 +603,8 @@ fun ProfileCardItem(card: KpopCard, onClick: () -> Unit) {
 
 @Composable
 fun CardTypeBadge(type: String) {
-    Surface(
-        color = Color(0xFFF0F2F8),
-        shape = RoundedCornerShape(4.dp)
-    ) {
-        Text(
-            text = type,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF5C6BC0)
-        )
+    Surface(color = Color(0xFFF0F2F8), shape = RoundedCornerShape(4.dp)) {
+        Text(text = type, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5C6BC0))
     }
 }
 
@@ -637,8 +616,7 @@ suspend fun findOrCreateChatRoomInProfile(u1: String, u2: String, cid: String?, 
     if (res.documents.isNotEmpty()) {
         val roomId = res.documents.first().id
         onComplete(roomId, null)
-    }
-    else {
+    } else {
         val nr = hashMapOf("participantIds" to participants, "createdAt" to FieldValue.serverTimestamp(), "lastMessage" to "", "lastMessageTime" to FieldValue.serverTimestamp(), "activeInquiryCardId" to (cid ?: ""), "unreadCount" to mapOf(u1 to 0, u2 to 0))
         val ar = db.collection("chatRooms").add(nr).await()
         onComplete(ar.id, null)

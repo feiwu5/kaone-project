@@ -78,6 +78,16 @@ dependencies {
     // 強制更新 graphics-path 以修正 16KB 警告
     implementation("androidx.graphics:graphics-path:1.0.1")
 
+    // ML Kit 文字辨識 (繁體中文版)
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
+
+    // CameraX 核心庫
+    val cameraVersion = "1.3.4"
+    implementation("androidx.camera:camera-core:$cameraVersion")
+    implementation("androidx.camera:camera-camera2:$cameraVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraVersion")
+    implementation("androidx.camera:camera-view:$cameraVersion")
+
     // TensorFlow Lite
     implementation("org.tensorflow:tensorflow-lite:2.17.0")
 

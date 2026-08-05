@@ -143,6 +143,7 @@ fun HomeScreen(
     var viewingAdmin by remember { mutableStateOf(false) }
     var viewingNotifications by remember { mutableStateOf(false) }
     var isAdmin by remember { mutableStateOf(false) }
+    var isVerified by remember { mutableStateOf(true) } // 預設為 true 避免畫面閃爍
 
     var activeExploreView by rememberSaveable { mutableStateOf("menu") }
     var homeSelectedTab by rememberSaveable { mutableIntStateOf(0) }
@@ -155,27 +156,32 @@ fun HomeScreen(
 
     LaunchedEffect(userId) {
         if (!isGuest) {
-            db.collection("users").document(userId).get().addOnSuccessListener { document ->
-                isAdmin = document.getBoolean("isAdmin") ?: false
-                val loc = document.getString("location") ?: ""
+            // 使用 addSnapshotListener 這樣使用者一認證完，首頁紅框就會自動消失
+            db.collection("users").document(userId).addSnapshotListener { snapshot, _ ->
+                if (snapshot != null && snapshot.exists()) {
+                    isAdmin = snapshot.getBoolean("isAdmin") ?: false
+                    isVerified = snapshot.getBoolean("isVerified") ?: false // 更新實名狀態
 
-                // --- 全域自動修復舊卡片地點 ---
-                if (loc.isNotEmpty()) {
-                    db.collection("cards")
-                        .whereEqualTo("userId", userId)
-                        .get()
-                        .addOnSuccessListener { snapshot ->
-                            var fixCount = 0
-                            snapshot.documents.forEach { doc ->
-                                if (doc.getString("location").isNullOrEmpty()) {
-                                    doc.reference.update("location", loc)
-                                    fixCount++
+                    val loc = snapshot.getString("location") ?: ""
+
+                    // --- 全域自動修復舊卡片地點 ---
+                    if (loc.isNotEmpty()) {
+                        db.collection("cards")
+                            .whereEqualTo("userId", userId)
+                            .get()
+                            .addOnSuccessListener { snapshotCards ->
+                                var fixCount = 0
+                                snapshotCards.documents.forEach { doc ->
+                                    if (doc.getString("location").isNullOrEmpty()) {
+                                        doc.reference.update("location", loc)
+                                        fixCount++
+                                    }
+                                }
+                                if (fixCount > 0) {
+                                    Toast.makeText(context, "已自動為 $fixCount 張舊小卡同步地區資訊", Toast.LENGTH_SHORT).show()
                                 }
                             }
-                            if (fixCount > 0) {
-                                Toast.makeText(context, "已自動為 $fixCount 張舊小卡同步地區資訊", Toast.LENGTH_SHORT).show()
-                            }
-                        }
+                    }
                 }
             }
 
@@ -266,13 +272,15 @@ fun HomeScreen(
                         0 -> MainDashboard(
                             userId = userId,
                             isAdmin = isAdmin,
+                            isVerified = isVerified, // 傳入剛剛監聽到的狀態
                             onStartChat = { roomId, card -> targetChatRoomId = roomId; targetInquiryCard = card; selectedBottomTab = 3 },
                             onViewProfile = { viewingOtherUserId = it },
                             selectedTab = homeSelectedTab,
                             onTabChange = { homeSelectedTab = it },
                             onEditCard = { editingCard = it; selectedBottomTab = 2 },
                             unreadNotificationCount = unreadNotificationCount,
-                            onNotificationClick = { viewingNotifications = true }
+                            onNotificationClick = { viewingNotifications = true },
+                            onGoToProfile = { selectedBottomTab = 4 } // 點擊後跳轉至「個人」分頁去認證
                         )
                         1 -> ExploreScreen(userId = userId, onViewProfile = { viewingOtherUserId = it }, activeView = activeExploreView, onActiveViewChange = { activeExploreView = it }, onStartChat = { roomId, card -> targetChatRoomId = roomId; targetInquiryCard = card; selectedBottomTab = 3 })
                         2 -> if (isGuest) GuestModePlaceholder(onLogoutClick) else UploadScreen(
@@ -301,6 +309,33 @@ fun HomeScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+// 實名認證提醒 Banner
+@Composable
+fun VerificationReminderBanner(onVerifyClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable { onVerifyClick() },
+        color = Color(0xFFFFEBEE), // 淺紅色
+        shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFCDD2))
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.VerifiedUser, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("安全認證提醒", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFD32F2F))
+                Text("您尚未完成實名認證，認證後可獲得「信任勾勾」並開啟完整交易功能。", fontSize = 12.sp, color = Color(0xFF5D4037))
+            }
+            Text("去認證 >", fontWeight = FontWeight.ExtraBold, color = Color(0xFFD32F2F), fontSize = 13.sp)
         }
     }
 }
@@ -423,7 +458,6 @@ fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (Stri
     var matches by remember { mutableStateOf<List<KpopMatchResult>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // 預覽相關狀態
     var selectedCard by remember { mutableStateOf<KpopCard?>(null) }
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
     var ownerAvgRating by remember { mutableDoubleStateOf(0.0) }
@@ -431,12 +465,11 @@ fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (Stri
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // --- 新增名稱格式化助手：合併英文與中文，移除網址 ---
     fun formatMatchMemberName(raw: String): String {
         return raw.split(", ").joinToString(", ") { m ->
             val parts = m.split("|").map { it.trim() }.filter { it.isNotBlank() && !it.startsWith("http") }
             if (parts.size >= 2) {
-                "${parts[0]} ${parts[1]}" // 顯示 "英文名 中文名"
+                "${parts[0]} ${parts[1]}"
             } else {
                 parts.firstOrNull() ?: m
             }
@@ -446,10 +479,6 @@ fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (Stri
     fun normalize(s: String): String {
         return s.replace(Regex("[\\s|/()]+"), "").lowercase().trim()
     }
-
-    // /Users/linyijie/AndroidStudioProjects/KaOne/app/src/main/java/com/example/kaone/ui/HomeScreen.kt
-
-// 尋找 SmartMatchView 中的 LaunchedEffect(currentUserId) 區塊並進行以下修改：
 
     LaunchedEffect(currentUserId) {
         isLoading = true
@@ -463,26 +492,20 @@ fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (Stri
         allOtherCards.forEach { otherCard ->
             var maxScore = 0f
             val reasons = mutableListOf<String>()
-            // 取得對方的持有成員清單 (已正規化)
             val otherMembersClean = otherCard.memberList.map { normalize(it) }
 
             myCards.forEach { myCard ->
-                // 取得我的許願成員與持有成員 (已正規化)
                 val myWishMembers = myCard.wishMemberList.map { normalize(it) }
                 val myMembersClean = myCard.memberList.map { normalize(it) }
 
-                // 核心邏輯：僅比對成員
-                // 他有我想要的成員
                 val heHasWhatIWant = myWishMembers.any { wish ->
                     otherMembersClean.any { it.contains(wish) || wish.contains(it) }
                 }
 
-                // 我有他想要的成員
                 val iHaveWhatHeWants = otherCard.wishMemberList.map { normalize(it) }.any { wish ->
                     myMembersClean.any { it.contains(wish) || wish.contains(it) }
                 }
 
-                // 根據比對結果設定分數與原因
                 if (heHasWhatIWant && iHaveWhatHeWants) {
                     maxScore = maxOf(maxScore, 1.0f)
                     reasons.add("雙向成員匹配：你們互有對方想要的成員！")
@@ -533,7 +556,6 @@ fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (Stri
             } else {
                 LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     items(matches) { match ->
-                        // 這裡傳入格式化後的名稱
                         MatchCardItem(
                             match,
                             onStartChat,
@@ -576,7 +598,6 @@ fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (Stri
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                             Surface(color = Color(0xFF586795), shape = RoundedCornerShape(8.dp)) { Text(card.groupName.split("|").first(), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) }
                             Spacer(Modifier.width(8.dp));
-                            // 預覽標題也使用格式化名稱
                             Text(formatMatchMemberName(card.memberName), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF1A202C))
                         }
                         Spacer(Modifier.height(16.dp))
@@ -616,7 +637,7 @@ fun MatchCardItem(
     onViewProfile: (String) -> Unit,
     currentUserId: String,
     onCardClick: (KpopCard) -> Unit,
-    displayName: String // 新增參數
+    displayName: String
 ) {
     val card = match.card
     val scope = rememberCoroutineScope()
@@ -665,7 +686,6 @@ fun MatchCardItem(
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) {
                     Text(card.groupName.split("|").first(), fontSize = 11.sp, color = Color.Gray)
-                    // 這裡使用 displayName
                     Text(displayName, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
                     if (card.cardType.isNotEmpty()) {
                         Text(card.cardType, fontSize = 12.sp, color = Color.DarkGray)
@@ -1063,7 +1083,7 @@ fun ExploreEventUploadView(userId: String, existingEvent: KpopEvent? = null, onB
 
     val datePickerState = rememberDatePickerState()
     var showDatePicker by remember { mutableStateOf(false) }
-    var datePickerTarget by remember { mutableStateOf("start") } // "start" or "end"
+    var datePickerTarget by remember { mutableStateOf("start") }
 
     val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
@@ -1117,19 +1137,19 @@ fun ExploreEventUploadView(userId: String, existingEvent: KpopEvent? = null, onB
                 .padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("生日咖啡廳", "領取應援", "打卡燈箱","演唱會資訊").forEach { t -> FilterChip(selected = type == t, onClick = { type = t }, label = { Text(t) }) } }
             OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("地點") }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp)); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(modifier = Modifier.weight(1f)) {
-                    OutlinedTextField(value = startDate, onValueChange = {}, label = { Text("開始日期") }, modifier = Modifier.fillMaxWidth(), readOnly = true, placeholder = { Text("YYYY/MM/DD") }, trailingIcon = { Icon(Icons.Default.CalendarMonth, null) })
-                    Box(modifier = Modifier
-                        .matchParentSize()
-                        .clickable { datePickerTarget = "start"; showDatePicker = true })
-                }
-                Box(modifier = Modifier.weight(1f)) {
-                    OutlinedTextField(value = endDate, onValueChange = {}, label = { Text("結束日期") }, modifier = Modifier.fillMaxWidth(), readOnly = true, placeholder = { Text("YYYY/MM/DD") }, trailingIcon = { Icon(Icons.Default.CalendarMonth, null) })
-                    Box(modifier = Modifier
-                        .matchParentSize()
-                        .clickable { datePickerTarget = "end"; showDatePicker = true })
-                }
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedTextField(value = startDate, onValueChange = {}, label = { Text("開始日期") }, modifier = Modifier.fillMaxWidth(), readOnly = true, placeholder = { Text("YYYY/MM/DD") }, trailingIcon = { Icon(Icons.Default.CalendarMonth, null) })
+                Box(modifier = Modifier
+                    .matchParentSize()
+                    .clickable { datePickerTarget = "start"; showDatePicker = true })
             }
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedTextField(value = endDate, onValueChange = {}, label = { Text("結束日期") }, modifier = Modifier.fillMaxWidth(), readOnly = true, placeholder = { Text("YYYY/MM/DD") }, trailingIcon = { Icon(Icons.Default.CalendarMonth, null) })
+                Box(modifier = Modifier
+                    .matchParentSize()
+                    .clickable { datePickerTarget = "end"; showDatePicker = true })
+            }
+        }
             Spacer(Modifier.height(12.dp)); OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("活動詳情描述") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
             Spacer(Modifier.height(32.dp)); Button(onClick = { if (title.isBlank() || imageUrl.isEmpty()) { Toast.makeText(context, "請填寫名稱並上傳圖片", Toast.LENGTH_SHORT).show(); return@Button }; val eventData = mutableMapOf("title" to title, "type" to type, "groupName" to groupName, "location" to location, "startDate" to startDate, "endDate" to endDate, "description" to description, "imageUrl" to imageUrl, "userId" to userId, "createdAt" to (existingEvent?.createdAt ?: FieldValue.serverTimestamp())); val task = if (existingEvent == null) db.collection("events").add(eventData) else db.collection("events").document(existingEvent.id).set(eventData); task.addOnSuccessListener { Toast.makeText(context, if(existingEvent == null) "發佈成功！" else "更新成功！", Toast.LENGTH_SHORT).show(); onSuccess() } }, modifier = Modifier
             .fillMaxWidth()
@@ -1139,7 +1159,6 @@ fun ExploreEventUploadView(userId: String, existingEvent: KpopEvent? = null, onB
     }
 }
 
-// --- EventPostItem：KaOne! 專屬卡片與互動風格 (已修復地點跳轉與標籤位置) ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventPostItem(
@@ -1184,7 +1203,6 @@ fun EventPostItem(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
-            // Header: 分離點擊邏輯
             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.clickable { onViewProfile(event.userId) }) { UserAvatar(userId = event.userId, size = 38) }
                 Spacer(Modifier.width(12.dp))
@@ -1194,11 +1212,11 @@ fun EventPostItem(
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 15.sp,
                         color = Color(0xFF2D3436),
-                        modifier = Modifier.clickable { onViewProfile(event.userId) } // 點名字去主頁
+                        modifier = Modifier.clickable { onViewProfile(event.userId) }
                     )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { // 點地點去地圖
+                        modifier = Modifier.clickable {
                             if (event.location.isNotEmpty()) {
                                 try {
                                     val gmmIntentUri = Uri.parse("geo:0,0?q=${Uri.encode(event.location)}")
@@ -1269,7 +1287,6 @@ fun EventPostItem(
             Column(Modifier.padding(horizontal = 16.dp, vertical = 0.dp)) {
                 Text(text = event.title, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF2D3436))
                 Text(text = event.description, fontSize = 13.sp, color = Color(0xFF636E72))
-                // 標籤放回內文下方
                 Row(modifier = Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Surface(color = Color(0xFFE3F2FD), shape = RoundedCornerShape(6.dp)) {
                         Text(text = event.type, color = Color(0xFF1976D2), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
@@ -1384,20 +1401,20 @@ fun KaOneCommentBottomSheet(eventId: String, currentUserId: String, onDismiss: (
     }
 }
 
-// 注意：請確保檔案頂部已有 import android.content.Intent
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MainDashboard(
     userId: String,
     isAdmin: Boolean,
+    isVerified: Boolean, // <--- 已接收由 HomeScreen 傳入的實名狀態參數
     onStartChat: (String, KpopCard?) -> Unit,
     onViewProfile: (String) -> Unit,
     selectedTab: Int,
     onTabChange: (Int) -> Unit,
     onEditCard: (KpopCard) -> Unit,
     unreadNotificationCount: Int = 0,
-    onNotificationClick: () -> Unit = {}
+    onNotificationClick: () -> Unit = {},
+    onGoToProfile: () -> Unit // <--- 用來跳轉至個人頁面進行認證
 ) {
     val db = FirebaseFirestore.getInstance(); val context = LocalContext.current; val scope = rememberCoroutineScope()
     var cardList by remember { mutableStateOf<List<KpopCard>>(emptyList()) }; var favoriteIds by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -1416,7 +1433,6 @@ fun MainDashboard(
 
     var reportingCardId by remember { mutableStateOf<String?>(null) }
 
-    // --- AI 辨識搜尋實作 ---
     val classifier = remember { IdolClassifier(context) }
     val photoPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
@@ -1428,7 +1444,6 @@ fun MainDashboard(
             }
             val result = classifier.classify(bitmap)
             if (result != null) {
-                // 將 AI 辨識的名字去頭去尾，並自動切換到「全部」分頁
                 searchQuery = result.member.trim()
                 isSearchActive = true
                 onTabChange(0)
@@ -1462,14 +1477,11 @@ fun MainDashboard(
     }
 
     val filteredCards = cardList.filter { card ->
-        // 1. 狀態篩選：只顯示在架上的小卡
         val isAvailable = card.status == "available"
 
-        // 2. 分頁篩選
         val matchesTab = if (selectedTab == 0 || selectedTab >= tabs.size) true
         else card.groupName.contains(tabs[selectedTab], ignoreCase = true)
 
-        // 3. 搜尋篩選
         val query = searchQuery.replace(" ", "").lowercase().trim()
         val matchesSearch = if (query.isEmpty()) true
         else {
@@ -1486,20 +1498,16 @@ fun MainDashboard(
                     }
         }
 
-        // 同時符合三個條件才顯示
         isAvailable && matchesTab && matchesSearch
     }
 
     fun formatMemberName(raw: String): String {
         return raw.split(", ").joinToString(", ") { m ->
-            // 先嘗試用 | 分割 (官方資料格式)
             val pipeParts = m.split("|").map { it.trim() }.filter { it.isNotBlank() && !it.startsWith("http") }
-            
+
             if (pipeParts.size >= 2) {
-                // 如果有英文和中文名
                 if (showChineseName) pipeParts[1] else pipeParts[0]
             } else if (pipeParts.isNotEmpty()) {
-                // 如果沒有 | 分隔，檢查是否有空格 (針對手動輸入或 AI 直接存入格式)
                 val spaceParts = pipeParts[0].split(" ").filter { it.isNotBlank() }
                 if (spaceParts.size >= 2) {
                     if (showChineseName) spaceParts.last() else spaceParts.first()
@@ -1594,6 +1602,11 @@ fun MainDashboard(
                     IconButton(onClick = { if (isGuest) Toast.makeText(context, "請先登入後再設定標籤", Toast.LENGTH_SHORT).show() else showTabSettingsDialog = true }) { Icon(Icons.Default.Tune, "設定", tint = Color.White) }
                 }
             }
+        }
+
+        // 如果登入了但還沒認證，就顯示紅框提醒 Banner
+        if (userId.isNotEmpty() && !isVerified && !isSearchActive) {
+            VerificationReminderBanner(onVerifyClick = onGoToProfile)
         }
 
         if (isSearchActive && searchQuery.isEmpty()) {
@@ -1931,15 +1944,13 @@ fun TrendingView(onBack: () -> Unit) {
     LaunchedEffect(Unit) {
         db.collection("cards").whereEqualTo("status", "available").get().addOnSuccessListener { snapshot ->
             val cards = snapshot.documents.mapNotNull { it.toKpopCard() }
-            
-            // 統計團體熱度
+
             topGroups = cards.groupingBy { it.groupName.split("|").first().trim() }
                 .eachCount()
                 .toList()
                 .sortedByDescending { it.second }
                 .take(10)
 
-            // 統計成員熱度 (拆分多人名)
             topMembers = cards.flatMap { it.memberName.split(", ") }
                 .map { it.split("|").first().trim() }
                 .filter { it.isNotEmpty() }
@@ -1948,7 +1959,7 @@ fun TrendingView(onBack: () -> Unit) {
                 .toList()
                 .sortedByDescending { it.second }
                 .take(10)
-            
+
             isLoading = false
         }
     }
