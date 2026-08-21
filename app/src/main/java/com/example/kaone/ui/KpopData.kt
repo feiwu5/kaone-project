@@ -55,24 +55,24 @@ object KpopData {
         "BTS|防彈少年團|https://drive.google.com/uc?export=view&id=17V_uzNZnUQXTr1r3ZsaP2o0Z8NIWYjD-" to listOf("RM|金南俊|https://drive.google.com/uc?export=view&id=1nltdrLgeOKz0FznrSjKXjyafVC0bp_cI", "Jin|金碩珍|https://drive.google.com/uc?export=view&id=1USBYkESReJfOJL1Gv5cSomO4jWVi636i", "Suga|閔玧其|https://drive.google.com/uc?export=view&id=1BRrkpNBcey2N_AfgOuvvGAgaGQmT4mfr", "J-Hope|鄭號錫|https://drive.google.com/uc?export=view&id=1xjRLQN_9qg2oQNbfBgodoSYDWmvO997t", "Jimin|朴智旻|https://drive.google.com/uc?export=view&id=1Ew82m62xpTDwQjOibGJnnKGaOynK1mq2", "V|金泰亨|https://drive.google.com/uc?export=view&id=1oyG70FqbBeyXglgIwNTw1-u2jPPFl1Dc", "Jungkook|田柾國|https://drive.google.com/uc?export=view&id=13RVqbzjGGE7zvLqttxmrETP9iCq0dTrI"),
         "BIGBANG||https://drive.google.com/uc?export=view&id=18J7ocFI9Va7rtpXNoS8r5ETynWd6bpJY" to listOf("Taeyang|太陽|https://drive.google.com/uc?export=view&id=1cIVleMl_U3DfMwRW7MAiRHdLZdnPmoNL", "G-Dragon|權志龍|https://drive.google.com/uc?export=view&id=1xhK9a8UUkP6M57cILONuhIPMs9ITaxZV", "Daesung|大聲|https://drive.google.com/uc?export=view&id=1B35haFXrs9DD7Dz7LESBZO1wutsNeMwj"),
         "BTOB||https://drive.google.com/uc?export=view&id=1iQGx9QZHAcAoHDXjRGc0ZO1lniRsKgWE" to listOf("Eunkwang|徐恩光","Minhyuk|李旼赫","Changsub|李昌燮","Hyunsik|任炫植","Peniel|辛東根","Sungjae|陸星材"),
-        "S.Coup X Mingyu|CxM|https://drive.google.com/uc?export=view&id=1hOYdsm52SvvM0cOax92GMmeFXlJxvP9U" to listOf("S.Coup|崔勝哲|https://drive.google.com/uc?export=view&id=1JMTOvD3Z6HWs-hJ9558rMHZ2WpOZAi_2","Mingyu|金珉奎|https://drive.google.com/uc?export=view&id=1UZpS_Xg_XgLG_UeyJruvadNj5uxXtZCx"),
+        "CxM|S.Coup X Mingyu|https://drive.google.com/uc?export=view&id=1hOYdsm52SvvM0cOax92GMmeFXlJxvP9U" to listOf("S.Coup|崔勝哲|https://drive.google.com/uc?export=view&id=1JMTOvD3Z6HWs-hJ9558rMHZ2WpOZAi_2","Mingyu|金珉奎|https://drive.google.com/uc?export=view&id=1UZpS_Xg_XgLG_UeyJruvadNj5uxXtZCx"),
         "CIX||https://drive.google.com/uc?export=view&id=1QUCHGpgFgOUXHJoSLFxOQcH_LHFmLHfD" to listOf("BX|炳坤","Seunghun|昇勳","Yonghee|龍熙","Hyunsuk|炫晳"),
         "CLASS:y||https://drive.google.com/uc?export=view&id=1541rukYu3r16kBewAHwdvjEBPE32R_dJ" to listOf("Hyungseo|明炯瑞", "Chaewon|尹彩源", "Hyeju|洪慧朱", "Riwon|金利源", "Jimin|元知敏", "Boeun|朴甫檼", "Seonyou|金璇猷"),
         "CLOSE YOUR EYES||https://drive.google.com/uc?export=view&id=1dkxntrt05fDMN3UGiZd-hlNkA6FMKd9M" to listOf("Minwook|全珉稶", "Jingxiang|馬靖翔", "Yeojun|張汝遵", "Sungmin|金成旼", "Seungho|宋承浩", "Sakurada Kenshin|櫻田健真", "Kyoungbae|徐竟培"),
         "CNBLUE||https://drive.google.com/uc?export=view&id=1U9J3eQxb4_hZot2XMegFOo62f5XlXV4n" to listOf("Yonghwa|鄭容和", "Minhyuk|姜敏赫", "Jungshin|李正信"),
-        "CORTIS||https://drive.google.com/uc?export=view&id=1Dp6Y800Ggrrf2GVqYV6ffbJ3R5Kr35CW" to listOf("James|趙雨凡", "Juhoon|金主訓", "Martin|馬丁", "Seonghyeon|嚴成玹", "Keonho|安乾鎬"),
+        "CORTIS||https://drive.google.com/uc?export=view&id=1Dp6Y800Ggrrf2GVqYV6ffbJ3R5Kr35CW" to listOf("James|趙雨凡|https://drive.google.com/uc?export=view&id=14TpttFaG4EyuDGsj3Ks4M3xzoSM0mRav", "Juhoon|金主訓|https://drive.google.com/uc?export=view&id=1SJVlYK3uhocsQdLFbZfLYHJwCTcGcHec", "Martin|馬丁|https://drive.google.com/uc?export=view&id=1jVqul91XYJZbkQmXbcQWhanuqNE5wp5k", "Seonghyeon|嚴成玹|https://drive.google.com/uc?export=view&id=1rM6sXTHoC5g7MrOLBppwesYk9ota1mC6", "Keonho|安乾鎬|https://drive.google.com/uc?export=view&id=1H7Rhvk0ZyBqwAJM8XkNTEZiWYRqLsv2K"),
         "CRAVITY||https://drive.google.com/uc?export=view&id=1mAnP1I8RHWLCYxDj8lV23mBEYTKlfxSM" to listOf("Serim|朴世琳|https://drive.google.com/uc?export=view&id=1nlXvZjQYcJHg11UooNOAabcjlPJ9wqsA", "Allen|馬蒔權|https://drive.google.com/uc?export=view&id=1lc0HZiqUrb3sUrULM-uWL_d_E_yGVxuO", "Jungmo|具廷謨|https://drive.google.com/uc?export=view&id=1WY5U1vQLBZhroOwzq1aE7GZfNLv1qGKg", "Woobin|徐宇璸|https://drive.google.com/uc?export=view&id=19lX6o3FGFTpufh_cFtNEELVyXGq_PeNw", "Wonjin|咸元進|https://drive.google.com/uc?export=view&id=1rhtC8nsAkaWM9ssrp6W5L-OSRJ19OVSy", "Minhee|姜珉熙|https://drive.google.com/uc?export=view&id=1t2xrw7m0dwq7bNYBmgkpL88APT05rZdV", "Hyeongjun|宋刑準|https://drive.google.com/uc?export=view&id=1VKBUOyePBW75BOocI2NMXxCoP6UbBF8K", "Taeyoung|金太榮|https://drive.google.com/uc?export=view&id=1JWk9w8w2AHm_2zKt5tqEtZ8STcZGnNLi", "Seongmin|安性珉|https://drive.google.com/uc?export=view&id=1NaO6kE8Xuj8gFHgFtR-SKz3X0a5fmUXD"),
         "DAYCHILD||https://drive.google.com/uc?export=view&id=1etjVnrAXZAQwfyB768y1Kd18BpHMhlxv" to listOf("Intae|千仁泰","Siwoo|咸勝完","K|金建","Eden|黃載浩","Yejong|全業鐘","Sung Hoon|尹升勳"),
         "Dreamcatcher||https://drive.google.com/uc?export=view&id=1adnhlPZXXf0v4NYomA2jEKUoWt6y1l4F" to listOf("JiU|祉攸", "SuA|秀雅", "SiYeon|始娟", "HanDong|韓東", "YooHyeon|裕賢", "DaMi|多美", "GaHyeon|佳泫"),
         "DRIPPIN||https://drive.google.com/uc?export=view&id=1uEaVmI4J0Y_KpKtLVBkUhYXAEoEiqsdk" to listOf("Hyeop|李協","Yunseong|黃允省","Changuk|周昌煜","Dongyun|金東玧","Minseo|金敏緒","Junho|車俊昊"),
-        "DK X Seungkwan|DxS|https://drive.google.com/uc?export=view&id=1L_fcXBe71Zv-xnn02sECwNeNHMqpTBGW" to listOf("DK|李碩珉|https://drive.google.com/uc?export=view&id=1e7JpI5q3pACKofBwIPdteWfw6EUGzaDr","Seungkwan|夫勝寬|https://drive.google.com/uc?export=view&id=1IC7ucxSOOlIhmP_0dGfsfX3s6TUNpskY"),
+        "DxS|DK X Seungkwan|https://drive.google.com/uc?export=view&id=1L_fcXBe71Zv-xnn02sECwNeNHMqpTBGW" to listOf("DK|李碩珉|https://drive.google.com/uc?export=view&id=1e7JpI5q3pACKofBwIPdteWfw6EUGzaDr","Seungkwan|夫勝寬|https://drive.google.com/uc?export=view&id=1IC7ucxSOOlIhmP_0dGfsfX3s6TUNpskY"),
         "ENHYPEN||https://drive.google.com/uc?export=view&id=186-yoIW1nhm0IWAgpGN7M1P8bTR1xWo6" to listOf("Jay|朴綜星|https://drive.google.com/uc?export=view&id=1_ybjqB6kh-bI09gvnUp_4Jv6xaluIn6Y", "Jake|沈載倫|https://drive.google.com/uc?export=view&id=1Li2pU8D9CFV8SAbztVMb2IKPZDA2P8aK", "Sunghoon|朴成訓|https://drive.google.com/uc?export=view&id=1fTc0qY7uaM8os2Rf1o73WgyqGpGraGTJ", "Sunoo|金善禹|https://drive.google.com/uc?export=view&id=1pEOJxoviky7YYVV8JJM0ZsshcFPtxQMU", "Jungwon|梁禎元|https://drive.google.com/uc?export=view&id=1w6bvUG-AIBX_BFdNsW9-h1QWYfY3v1x7", "Ni-ki|西村力|https://drive.google.com/uc?export=view&id=1KccUwNQ2oGkr_VJRiS3hLBmLLi8NxdCr"),
         "EXO||https://drive.google.com/uc?export=view&id=1UlsO58Lc6JXbxhXxXGcVnkgCNkIURZGY" to listOf("Suho|金俊勉|https://drive.google.com/uc?export=view&id=1LWDLWud20JJx-4WPtoVQVKjDzdE050Cc", "Xiumin|金珉錫|https://drive.google.com/uc?export=view&id=13RVyVYtp5MK825sITr1RTBuVJV9ThSnC", "Lay|張藝興|https://drive.google.com/uc?export=view&id=1ivF5HFx-PgACYfDV-p96eGYMwM1Ryd6I", "Baekhyun|邊伯賢|https://drive.google.com/uc?export=view&id=1ZMAUXIZkF1xLzTaMNsPHIAE4VfPC6Rat", "Chen|金鍾大|https://drive.google.com/uc?export=view&id=1mT0LB_0Ep8VCJcNuYsA-XV456zSZmsGn", "Chanyeol|朴燦烈|https://drive.google.com/uc?export=view&id=1Zt7aShvhR4BHSEbORV0k0mb48ibW8K7Y", "D.O.|都敬秀|https://drive.google.com/uc?export=view&id=1Y4VahMWUrBl7T6MCqQhB0QFSN8RHuvWm", "Kai|金鍾仁|https://drive.google.com/uc?export=view&id=19dWXJZbFo8a7stY7EXCP2yZ6bSKQXHYT", "Sehun|吳世勳|https://drive.google.com/uc?export=view&id=1O4yhiQ6UKBWP-Y-NNX0rZjpQY6Eth2iS"),
         "E'LAST||https://drive.google.com/uc?export=view&id=17_jCMBSGTZb9mo8yu7t7hdh5Ye60m7-S" to listOf("Choi In|崔仁","Seung Yeop|昇燁","Rano|邊龍燮","Baek Gyeul|白潔","Romin|崔榮敏","Won Hyuk|元赫","Won Jun|沅俊","Ye Jun|藝俊"),
         "EXID||https://drive.google.com/uc?export=view&id=1gQIZdhk7YYQf_ROWZk6iUI8GHpNn4zbS" to listOf("Solji|許率智","LE|安孝珍","Hani|安喜延","Hyelin|徐慧潾","Jeonghwa|朴正花"),
         "EPEX||https://drive.google.com/uc?export=view&id=1-y4BXaPljFb3DTKma24lcxb6iKYIOpOh" to listOf("WISH","MU|徐烱慜","A-MIN|曺敏宇","BAEKSEUNG|金賢佑","AYDEN|權叡俊","YEWANG|徐藝汪","JEFF|李宰昊"),
         "EunBi|權恩妃|https://drive.google.com/uc?export=view&id=1kTm3WY-d6oF-JgB5V384ip-qvH8jA6ok" to listOf("EunBi|權恩妃|https://drive.google.com/uc?export=view&id=1kTm3WY-d6oF-JgB5V384ip-qvH8jA6ok"),
-        "fromis_9||https://drive.google.com/uc?export=view&id=1vZYSZHPAPOBNibrnC4F6sg7zJqvRLhUr" to listOf("Hayoung|宋河英", "Jiwon|朴池原", "Chaeyoung|李彩煐", "Nagyung|李娜炅", "Jiheon|白知憲"),
+        "fromis_9||https://drive.google.com/uc?export=view&id=1vZYSZHPAPOBNibrnC4F6sg7zJqvRLhUr" to listOf("Hayoung|宋河英|https://drive.google.com/uc?export=view&id=1F5Ov2NNOiAetEmNLsr4e2X63BlNqDY5x", "Jiwon|朴池原|https://drive.google.com/uc?export=view&id=1H09xrLbTRvGihYhXZ5jI-QBZ_ozgvx6r", "Chaeyoung|李彩煐|https://drive.google.com/uc?export=view&id=1TN1P-LKm4FoAj0oovTWhh2HakXHeAuvo", "Nagyung|李娜炅|https://drive.google.com/uc?export=view&id=1QiVTIoL3iAsuE5Cpva6lsxZD4G-BE0yk", "Jiheon|白知憲|https://drive.google.com/uc?export=view&id=1IsRXqKKinxjOJy45rTrdDc8dai8gjtDQ"),
         "G-Dragon||https://drive.google.com/uc?export=view&id=1xhK9a8UUkP6M57cILONuhIPMs9ITaxZV" to listOf("G-Dragon|權志龍|https://drive.google.com/uc?export=view&id=1xhK9a8UUkP6M57cILONuhIPMs9ITaxZV"),
         "Girls' Generation|少女時代|https://drive.google.com/uc?export=view&id=1TQq1a6PpKwFTJTTugbqCjFHlVzYExkDV" to listOf("Taeyeon|金太妍", "Sunny|李純揆", "Tiffany|黃美永", "Hyoyun|金孝淵", "Yuri|權俞利", "Sooyoung|崔秀榮", "Yoona|林潤娥", "Seohyun|徐朱玄"),
         "GFRIEND||https://drive.google.com/uc?export=view&id=1YbhIS13I_PNqm7yTXM1H5vFz5TxIEfa5" to listOf("Sowon|金韶情|https://drive.google.com/uc?export=view&id=1Qc6MgHtS3vNJYgVMGB-KlRP8R958Q9cW", "Yerin|鄭睿隣|https://drive.google.com/uc?export=view&id=1gioXbddBd9L0hPwKS_ESwNSutOtuTqLB", "Eunha|銀河|https://drive.google.com/uc?export=view&id=1RRmx96RplgZaNPe0plHmWNL9BglsXm6t", "Yuju|崔裕娜|https://drive.google.com/uc?export=view&id=1Wj08VMbe9NsE0r9v12NDCpVmS0ptMrC8", "SinB|信飛|https://drive.google.com/uc?export=view&id=1aEUilprAXWLsWJqP2-ae1EiEZHkhJcDM", "Umji|嚴智|https://drive.google.com/uc?export=view&id=17B3NdVt8EiX8joQ3_I1pA1rPfwb4xyuW"),
@@ -80,7 +80,7 @@ object KpopData {
         "GOT7||https://drive.google.com/uc?export=view&id=1tt73ZWaD_py0nbpkRI6escdQ2sDBfVDF" to listOf("Mark|段宜恩|https://drive.google.com/uc?export=view&id=1tt73ZWaD_py0nbpkRI6escdQ2sDBfVDF", "Jay B|林在範|https://drive.google.com/uc?export=view&id=1SZJWaNpCb0jpal_wIb04pbFX5KqhCl8N", "Jackson｜王嘉爾|https://drive.google.com/uc?export=view&id=1HBNkIU51GIlyFECYTSBTa-FnZaUzfQcR", "Jinyoung|朴珍榮|https://drive.google.com/uc?export=view&id=1cw44nxaLtzw4Th_8_v0RT6ZZ5HVcl1IW", "Youngjae|崔榮宰|https://drive.google.com/uc?export=view&id=1ScJCnfzwOGMYeYU5ilCS7qHEEpHaUIzK", "BamBam|恭比穆格·普瓦古爾|https://drive.google.com/uc?export=view&id=1jfOzgG6N0VtXB3r1j4GgaZr-qqN4CcJW", "Yugyeom|金有謙|https://drive.google.com/uc?export=view&id=1YuQuB-kzhDlSQfUGzM3fHOMexUKpESSK"),
         "Highlight||https://drive.google.com/uc?export=view&id=1Brc-AIHbqmuazWL-_frx5Qsi_P6e50LA" to listOf("Yoon Dujun|尹斗俊","Yang Yoseop|梁耀燮","Lee Gikwang|李起光","Son Dongwoon|孫東雲"),
         "Heart2Hearts||https://drive.google.com/uc?export=view&id=1Mha88R1TpG3yLSon8CFBgvwEKwhM1qqB" to listOf("Carmen", "Jiwoo|崔志宇", "Yuha|柳河覽", "Stella|金多絢", "Juun|金主恩", "A-Na|盧惟娜", "Ian|鄭以安", "Ye-On|金奈延"),
-        "Hoshi X Woozi|HxW|https://drive.google.com/uc?export=view&id=1XNHeLSqCKtYISFAo0UnAdjjsEaJCFBMF" to listOf("Hoshi|權順榮|https://drive.google.com/uc?export=view&id=16rAzpDACaAWZ5IbbIVQYwBq0lv_oC3XT","Woozi|李知勳|https://drive.google.com/uc?export=view&id=1PdEfOar1uRevAp6A2fMlNo5__gZvnzxV"),
+        "HxW|Hoshi X Woozi|https://drive.google.com/uc?export=view&id=1XNHeLSqCKtYISFAo0UnAdjjsEaJCFBMF" to listOf("Hoshi|權順榮|https://drive.google.com/uc?export=view&id=16rAzpDACaAWZ5IbbIVQYwBq0lv_oC3XT","Woozi|李知勳|https://drive.google.com/uc?export=view&id=1PdEfOar1uRevAp6A2fMlNo5__gZvnzxV"),
         "I-DLE||https://drive.google.com/uc?export=view&id=1QkwZEyw11ctpnOAMCnvD5LwQdebUvRZe" to listOf("Miyeon|曺薇娟|https://drive.google.com/uc?export=view&id=1aXq-d2OTvsUuE7hlgfVJ_79eR7TcSlDa", "Minnie|米妮|https://drive.google.com/uc?export=view&id=1Rkl1NRE6uRqwSCmKyTI-gHSnlF6DHd0T", "Soyeon|田小娟|https://drive.google.com/uc?export=view&id=1Zq-Ts4QDoQMMCETdpetlX1okgGbvc0aa", "Yuqi|宋雨琦|https://drive.google.com/uc?export=view&id=10k1EhqEaQijC_ZJrQ54vj7jbu1wN9gdt", "Shuhua|葉舒華|https://drive.google.com/uc?export=view&id=1Qg744y7iIfTF8Bl2tVS8CmPsFSvYzlQh"),
         "IDID||https://drive.google.com/uc?export=view&id=1G_46Rz4FykdiuXj7GWaDIER_vwUHcRSn" to listOf("Yonghoon|張容熏|https://drive.google.com/uc?export=view&id=1_4U7GHx0iXABNk3b6lJB_8EDFsu6AWdK", "Minjae|金民財|https://drive.google.com/uc?export=view&id=1VBMew8soJQK0eoAKTTS_gFtDlqN-rbmO", "Wonbin|朴元彬|https://drive.google.com/uc?export=view&id=1Tus-prCY7JM0LtL5gJZQ2kzjEmmPSFfO", "Yoochan|秋喩纂|https://drive.google.com/uc?export=view&id=1LGEaeyfGY8-WcPmSr0KjPJ7djkHJVsYx", "Seonghyeon|朴省炫|https://drive.google.com/uc?export=view&id=1EtPa9zPOPXW_XZjTZn1aOMgO5hiAKQ7Y", "Junhyuk|白峻赫|https://drive.google.com/uc?export=view&id=19JP1EduUkLke8kcxCRk6Rwh4EuKA6q_f", "Semin|鄭勢潣|https://drive.google.com/uc?export=view&id=1fkzwGmF4MtGrfD5ZT_puFTCF2rAUt-q5"),
         "ITZY||https://drive.google.com/uc?export=view&id=1-eAq7etXNC21L3sXP1PBADdv9T0J7WHo" to listOf("Yeji|黃禮志|https://drive.google.com/uc?export=view&id=1Kp6QCkfiQM0McSW0RPiTdRTMvInSKbgq", "Lia|崔智壽|https://drive.google.com/uc?export=view&id=1inOgrgo33-KOvyZfVcQ0R_VcWi-6CyAg", "Ryujin|申留眞|https://drive.google.com/uc?export=view&id=1sqkSVBYklGiDwO0ePVsyEUv6FCaWW1Mp", "Chaeryeong|李彩領|https://drive.google.com/uc?export=view&id=18zMS-xL4g6D02HHZya2f6hpbG0D7_vSe", "Yuna|申有娜|https://drive.google.com/uc?export=view&id=1HQo6Q0QY7GbFlIUYe9mhHiZKeRBdJh6H"),
@@ -89,7 +89,7 @@ object KpopData {
         "IZ*ONE||https://drive.google.com/uc?export=view&id=176bIu-h8BV2PGbUoisjoYWJRNh5EONSK" to listOf("Eunbi|權恩妃|https://drive.google.com/uc?export=view&id=1PstKge1wDXs0L9Eb8hH9sPn7IJWWq-wV", "Sakura|宮脇咲良|https://drive.google.com/uc?export=view&id=1JgIJbA-vxow6MwWAth8-KGQx736OT-XK", "Hyewon|姜惠元|https://drive.google.com/uc?export=view&id=16FX92kJM31ys-3nADP9hmxvDcJ1UJoe5", "Yena|崔叡娜|https://drive.google.com/uc?export=view&id=1n4ut7267cTonVG_GYk8eYxifvTdh0PEG", "Chaeyeon|李彩演|https://drive.google.com/uc?export=view&id=1BlqG2NeOGam3eDWfhNEVSV8m7H5qx0uW", "Chaewon|金采源|https://drive.google.com/uc?export=view&id=1YffxjFR9xaFR7R2UEStRvQNy1VfkjQhb", "Minju|金玟周|https://drive.google.com/uc?export=view&id=19IEDl9UTq2-ZaohH24mO89QsC2_MJoQ4", "Nako|矢吹奈子|https://drive.google.com/uc?export=view&id=1wv0Ua_8MSkwHem7wrhjwPPYDkB4eCMQR", "Hitomi|本田仁美|https://drive.google.com/uc?export=view&id=1SVcu5NpEsArIM10NgGFket5-bln5Sh7Z", "Yuri|曺柔理|https://drive.google.com/uc?export=view&id=1yqfEGEJeUj8vsBK0-NM1o9ahLzeiqmAe", "Yujin|安俞真|https://drive.google.com/uc?export=view&id=1iCKWWt3tsGSPYc2IDoF_9__ahWqVeV1v", "Wonyoung|張員瑛|https://drive.google.com/uc?export=view&id=1Dvr572SeY67O7uPM3JJwTDNE89a2VxL1"),
         "JxW||https://drive.google.com/uc?export=view&id=1IYh_d7nmD8EA-r0HYKtbPrxijE-156dK" to listOf("Jeonghan|尹淨漢|https://drive.google.com/uc?export=view&id=188hvd48oZ2sDCT24yg_4J7Qru_SJxi_n","Wonwoo|全圓佑|https://drive.google.com/uc?export=view&id=1iCQ-fuvzDVfN9qzEzExgfRV9JBGHj63D"),
         "Kep1er||https://drive.google.com/uc?export=view&id=1z84FPkrxJQaoIdyHmRiuDx2tGHT-dJSY" to listOf("Yujin|崔有眞","Xiaoting|沈小婷","Chaehyun|金采炫","Dayeon|金多娟","Ezaki Hikaru|江崎光","Huening Bahiyyih|休寧巴伊葉"),
-        "kickflip||https://drive.google.com/uc?export=view&id=1k-9sbSF5QRmAAceukRb1_dBXGeCO5q_e" to listOf("Kyehoon|啟訓","Amaru|亞丸","Donghwa|東花","Juwang|主汪","Minje|旻帝","Keiju|佳樹","Donghyeon|東玹"),
+        "KickFlip||https://drive.google.com/uc?export=view&id=1k-9sbSF5QRmAAceukRb1_dBXGeCO5q_e" to listOf("Kyehoon|啟訓","Amaru|亞丸","Donghwa|東花","Juwang|主汪","Minje|旻帝","Keiju|佳樹","Donghyeon|東玹"),
         "KiiiKiii||https://drive.google.com/uc?export=view&id=1CsswYQFbFWYlVgYi6G2070EbLCcT7z-t" to listOf("Leesol|李修旻", "Sui|李守彬", "Jiyu|徐知裕", "Haum|郭河音", "Kya|朴祉禹"),
         "KISS OF LIFE||https://drive.google.com/uc?export=view&id=1AthGVHc2mVVQthdaRRoEIYlHttFvEKTi" to listOf("Julie||https://drive.google.com/uc?export=view&id=1f-eUFCDzzj_aumxEhuL4-t_FAKCxYvEp", "Natty||https://drive.google.com/uc?export=view&id=1TtppxJBPqOFlMo775D6ilxKHJWx1xFUO", "Belle||https://drive.google.com/uc?export=view&id=1mRv8wacvi1vq0UVoag-U47tAA6qFrFDC", "Haneul||https://drive.google.com/uc?export=view&id=1WQG2e9Xk4Qy5kDBGTfAYDBRomA083OCf"),
         "LE SSERAFIM||https://drive.google.com/uc?export=view&id=1Mx_9fuJ0S9rT-Q_vnE8eRU-bvtuzKR04" to listOf("Sakura|宮脇咲良|https://drive.google.com/uc?export=view&id=1MskIkE18HycJjfJdYeklK-UFF5IOEo6V", "Chaewon|金采源|https://drive.google.com/uc?export=view&id=1jWyzkBdsgRXSQDVo5jsYBTJHkxblsNWP", "Yunjin|許允眞|https://drive.google.com/uc?export=view&id=1DxaK2J9x64sgRdFEfo0HTB_1C5QHhxWu", "Kazuha|中村一葉|https://drive.google.com/uc?export=view&id=1u1gqpa3BtRlZ-hYC_gayxGF6QUZ1z-GM", "Eunchae|洪恩採|https://drive.google.com/uc?export=view&id=1L0CMoNEfsVFgP8nbnOwLgqR1COkaUbwy"),
@@ -100,14 +100,14 @@ object KpopData {
         "MEOVV||https://drive.google.com/uc?export=view&id=1Tk5yzlUcbSaX1ipbYIb8hKd9wznMMjrU" to listOf("Ella||https://drive.google.com/uc?export=view&id=1ZNAHKVZy9fekEtBSeLoTE9jsQ3Xn-xVL", "Gawon|李嘉元|https://drive.google.com/uc?export=view&id=1lcpgHm7c_CpLuym_vwBPeSWcCx4mc4cW", "Sooin|金粹仁|https://drive.google.com/uc?export=view&id=1hJiuREBn2lrVzSzGEA25dvkJOHrYjo3f", "Anna|田中杏奈|https://drive.google.com/uc?export=view&id=1mtJ2rd3z_qOD9msOIy9GIBPocdjpSQ23", "Narin|羅潾|https://drive.google.com/uc?export=view&id=1-X9io-GXsSkXwP5AqDkY1JD6XJeKQWVt"),
         "MONSTA X||https://drive.google.com/uc?export=view&id=1N523Lhma34eM-dj6W3b3XES1PDxR7pz4" to listOf("Shownu|孫賢祐", "Minhyuk|李玟赫", "Kihyun|柳基現", "Hyungwon|蔡亨願", "Joohoney|李周憲", "I.M|任創均"),
         "NCT 127||https://drive.google.com/uc?export=view&id=1bPGLJ5wnxP8-m9jZan5bMUpgFjK0tBik" to listOf("Taeyong|李泰容", "Johnny|徐煐淏", "Yuta|中本悠太", "Doyoung|道英", "Jaehyun|在玹", "Jungwoo|金廷祐", "Mark|李敏形", "Haechan|楷燦", "Winwin|昀昀"),
-        "NCT DOJAEJUNG||https://drive.google.com/uc?export=view&id=1SB49-vHQv7DvMewaIjhFkmEqUYbbue1O" to listOf("Doyoung|道英|https://drive.google.com/uc?export=view&id=1N1Lt25Inmx9TkNJ-8fI9flxNhmZZiLoD", "Jaehyun|在玹|https://drive.google.com/uc?export=view&id=1KqvgcKY1ofSxRH8Dc-ekEWzT-C0kVU_C", "Jungwoo|廷祐|https://drive.google.com/uc?export=view&id=16V4zG5a_u73I41q3-wVmRKdNRncoaVCc"),
+        "NCT DOJAEJUNG||https://drive.google.com/uc?export=view&id=1KqvgcKY1ofSxRH8Dc-ekEWzT-C0kVU_C" to listOf("Doyoung|道英|https://drive.google.com/uc?export=view&id=1N1Lt25Inmx9TkNJ-8fI9flxNhmZZiLoD", "Jaehyun|在玹|https://drive.google.com/uc?export=view&id=1SB49-vHQv7DvMewaIjhFkmEqUYbbue1O", "Jungwoo|廷祐|https://drive.google.com/uc?export=view&id=16V4zG5a_u73I41q3-wVmRKdNRncoaVCc"),
         "NCT DREAM||https://drive.google.com/uc?export=view&id=1Wxs2SPLjGc7btdwfU5TUIYciKWx6Kv_i" to listOf("Mark|李敏形", "Renjun|黃仁俊", "Jeno|李帝努", "Haechan|李楷燦", "Jaemin|羅渽民", "Chenle|鍾辰樂", "Jisung|朴志晟"),
         "NCT WISH||https://drive.google.com/uc?export=view&id=1Wxs2SPLjGc7btdwfU5TUIYciKWx6Kv_i" to listOf("Sion|吳是溫", "Riku|前田陸", "Yushi|得能勇志", "Jaehee|栽禧", "Ryo|廣瀨遼", "Sakuya|藤永咲哉"),
         "NCT JNJM||https://drive.google.com/uc?export=view&id=1urOs1ydgABEfP_H_6koZ7h-Jlbg0PM4-" to listOf("Jeno|李帝努|https://drive.google.com/uc?export=view&id=1fmpS4QtLFAF-zcgWUsTVaAUIWU1Ge5On","Jaemin|羅渽民|https://drive.google.com/uc?export=view&id=1kWdxVwq_OxkgAtqoR9hvOdFFL2uQ9tr4"),
         "NewJeans||https://drive.google.com/uc?export=view&id=1Q82kFocrTpkp06FxE7Hvyml8bWtSOXSl" to listOf("Minji|金玟池|https://drive.google.com/uc?export=view&id=11i1YDRuKWJOuIWlc6u7UvoB5W9U4K9lH", "Hanni|范玉欣|https://drive.google.com/uc?export=view&id=10zTHhu9jOqBnV4q1o_J8IzzEG6g1TYBd", "Danielle|牟智慧|https://drive.google.com/uc?export=view&id=18xWh_szDsfhBgloAQu4SRIUkrHa5bfVO", "Haerin|姜諧潾|https://drive.google.com/uc?export=view&id=1JUQSjq_uH_Nu9ssVlW_lGtMvjc5U5xh9", "Hyein|李惠仁|https://drive.google.com/uc?export=view&id=15H-K7JrPlYY6DNG7kJKTG8dspy1D0uif"),
         "NEXZ||https://drive.google.com/uc?export=view&id=1bJISd0MiHG0S3XXUYKEgS-1vi-D-fGrS" to listOf("Yu|富安悠", "Tomoya|植村朋哉", "Haru|井上陽", "So Geon|蘇建", "Seita|河嶋星太", "Hyui|小森優陽", "Yuki|西山裕貴"),
         "NiziU||https://drive.google.com/uc?export=view&id=1lIMk2nPLqoBwE3mmXvKGNiTYlyDgKkT5" to listOf("Mako|山口真子", "Rio|花橋梨緒", "Maya|勝村摩耶", "Riku|大江梨久", "Ayaka|新井彩花", "Mayuka|小合麻由佳", "Rima|橫井里茉", "Miihi|鈴野未光", "Nina|牧野仁菜"),
-        "NMIXX||https://drive.google.com/uc?export=view&id=1fzhRi7O6ATt2umCDiMXr07Rk5E-OwJ5P" to listOf("Lily|朴珍|https://drive.google.com/uc?export=view&id=1AkfuUiIJ14d4fCtZtImO7Rqs9ZnOURgn", "Haewon|吳海嫄|https://drive.google.com/uc?export=view&id=1yhUf9H1IRu2JvSWHl2smzoQ_P5etUrM7", "Sullyoon|薛侖娥|https://drive.google.com/uc?export=view&id=1y3ZryTIZOgPYXu6RP5v6LyGqD6R9nnvE", "Bae|裴真率|https://drive.google.com/uc?export=view&id=1K4xvr_3G-CC6i9WHN7I8wjS4VjY1im3K", "Jiwoo|金智佑|https://drive.google.com/uc?export=view&id=1IyQrs07ih8HjWgJup_eSpBDnJTRWsCF3", "Kyujin|張圭真|https://drive.google.com/uc?export=view&id=1-W1lzqlGsOakgZHk949CcktBbsXe0H46"),
+        "NMIXX||https://drive.google.com/uc?export=view&id=1IyQrs07ih8HjWgJup_eSpBDnJTRWsCF3" to listOf("Lily|朴珍|https://drive.google.com/uc?export=view&id=1yhUf9H1IRu2JvSWHl2smzoQ_P5etUrM7", "Haewon|吳海嫄|https://drive.google.com/uc?export=view&id=1K4xvr_3G-CC6i9WHN7I8wjS4VjY1im3K", "Sullyoon|薛侖娥|https://drive.google.com/uc?export=view&id=1fzhRi7O6ATt2umCDiMXr07Rk5E-OwJ5P", "Bae|裴真率|https://drive.google.com/uc?export=view&id=1y3ZryTIZOgPYXu6RP5v6LyGqD6R9nnvE", "Jiwoo|金智佑|https://drive.google.com/uc?export=view&id=1AkfuUiIJ14d4fCtZtImO7Rqs9ZnOURgn", "Kyujin|張圭真|https://drive.google.com/uc?export=view&id=1-W1lzqlGsOakgZHk949CcktBbsXe0H46"),
         "N.Flying||https://drive.google.com/uc?export=view&id=1wd0GHEhC1FwEqDzcmTSetv7vPQHKh3Z4" to listOf("Lee Seung Hyub|李承協","Cha Hun|車勳","Kim Jae Hyun|金宰鉉","Yoo Hwe Seung|柳會勝","Seo Dong Sung|徐東成"),
         "NTX||https://drive.google.com/uc?export=view&id=1A6rYwvsnr6PH2w2tO4KT-g0AwH9rFKse" to listOf("Hyeongjin|白泂鎭","Yunhyeok|張允赫","Xiha|始廈","Changhun|智暢薰","Hojun|孫鎬晙","Rawhyun|金序現","Eunho|趙恩晧","Seungwon|宋承元"),
         "n.SSign||https://drive.google.com/uc?export=view&id=1JUe1HVlt8y7a9G64Ry3eiZ9t_QcG80s-" to listOf("Kazuta|知念和汰","Doha|尹度賀","Sungyun|鄭墭允","Robin","Hanjun|李漢俊","Laurence|方毅家","Huiwon|張熙援"),
@@ -134,13 +134,13 @@ object KpopData {
         "TOMORROW X TOGETHER|TXT|https://drive.google.com/uc?export=view&id=1RRpJszSztb1DJS0ULGi2YadDuEZZwEI2" to listOf("Soobin|崔秀彬|https://drive.google.com/uc?export=view&id=1v1bu1hy2Z6LCmVkSwnm9GrHjKlOnH6As", "Yeonjun|崔然竣|https://drive.google.com/uc?export=view&id=18xaIVnNDV7gbUMNfbp5pjm5QMX6awbOM", "Beomgyu|崔杋圭|https://drive.google.com/uc?export=view&id=1ljQLoDV8oMlGPSgpnEN2OveVM4LmlYRa", "Taehyun|姜太顯|https://drive.google.com/uc?export=view&id=1EopFaYhX80xR_XUp2QWM2DNcQYYqk_C6", "Hueningkai|休寧凱|https://drive.google.com/uc?export=view&id=1QTCOow4dJ2sF_JcQyHtd3sa4_EEQwAdD"),
         "The New Six|TNX|https://drive.google.com/uc?export=view&id=1V5uvymqkZslnDkHfeGfP1AIRLBCIK7QW" to listOf("Taehun|崔態訓","Hyunsoo|張賢洙","Junhyeok|千晙赩","Hwi|殷輝","Sungjun|吳省峻"),
         "The Wind||https://drive.google.com/uc?export=view&id=1B69KusXrQ94ZbxrVX-i23hGuk1rlneya" to listOf("Heesoo|金希洙","Thanatorn","Hanbin|崔翰彬","Hayuchan|朴遐柳燦","Chanwon|安燦元","Hyounjoon|張玹準"),
-        "tripleS||https://drive.google.com/uc?export=view&id=1-_zSWo9ynjGw6Ceq2t2-D3zqUm_I5Vzd" to listOf("Yooyeon|金琉然", "Mayu|髙麗 真友", "Xinyu|周心語", "Nakyoung|金拏炅", "Sohyun|朴昭玹", "Dahyun|徐多賢", "Nien|許念慈", "Seoyeon|尹舒姸", "JiYeon|池諝娫", "Kotone|嘉味元 琴音", "ChaeYeon|金采嬿", "YuBin|孔裕彬", "Jiwoo|李知禹", "Kaede|山田楓", "Shion|朴示溫", "Lynn|川上凜", "Sullin", "HyeRin|鄭慧潾", "ChaeWon|金采湲", "HaYeon|丁夏妍", "SooMmn|金秀珉", "Yeonji|郭姸知", "Joobin|周彬", "Seoah|鄭楷潾"),
+        "tripleS||https://drive.google.com/uc?export=view&id=1-_zSWo9ynjGw6Ceq2t2-D3zqUm_I5Vzd" to listOf("Yooyeon|金琉然", "Mayu|髙麗 真友", "Xinyu|周心語", "Nakyoung|金拏炅", "Sohyun|朴昭玹", "Dahyun|徐多賢", "Nien|許念慈", "Seoyeon|尹舒姸", "JiYeon|池諝娫", "Kotone|嘉味元 琴音", "ChaeYeon|金采嬿", "YuBin|孔裕彬", "Jiwoo|李知禹", "Kaede|山田楓", "Shion|朴示溫", "Lynn|川上凜", "Sullin", "HyeRin|鄭慧潾", "ChaeWon|金采湲", "HaYeon|丁夏妍", "SooMin|金秀珉", "Yeonji|郭姸知", "Joobin|周彬", "Seoah|鄭楷潾"),
         "TWICE||https://drive.google.com/uc?export=view&id=1BP1Br6cD7x_o7jVXVuNjiokd61-7RXGE" to listOf("Nayeon|林娜璉|https://drive.google.com/uc?export=view&id=1c6gzgXniYY22LHagjbrtPO7xFRAkbjue", "Jeongyeon|俞定延|https://drive.google.com/uc?export=view&id=1hVx8An0QjPHA94BTXZmtuJv1qjBpI0T4", "Momo|平井桃|https://drive.google.com/uc?export=view&id=1SF0OfXO4FnhtaRlsat58Xicl7Vu8Z4ld", "Sana|湊崎紗夏|https://drive.google.com/uc?export=view&id=1HRneESaJUHIwTLwuMbey1yre-MiJYxcY", "Jihyo|朴志效|https://drive.google.com/uc?export=view&id=1lVWvcSYk4ufkomwkcN9gWF8R6gE9fFKN", "Mina|名井南|https://drive.google.com/uc?export=view&id=11geJsDRrzgpeBK_cxJyu-O56JrS4DBdk", "Dahyun|金多賢|https://drive.google.com/uc?export=view&id=1uDVCpLuWm7pnZaOND5hrXOpiqqq1FMLy", "Chaeyoung|孫彩瑛|https://drive.google.com/uc?export=view&id=1Fz8zzEzigQvKQddVL2UHo4Umj_s9Cap5", "Tzuyu|周子瑜|https://drive.google.com/uc?export=view&id=1m2DO55438_-gpdWxllCJN1ZAok_vBgie"),
         "TWS||https://drive.google.com/uc?export=view&id=1FzrvGbnd9bSvqi1FInfaxH71fQla0df1" to listOf("Shinyu|申惟|https://drive.google.com/uc?export=view&id=1bN4zpvZE0XezLpgynKpx03jjI69YAFwR", "Dohoon|崔道勳|https://drive.google.com/uc?export=view&id=1A44HehsCEgheJPemxob1xMZco4GdVM_K", "Youngjae|崔英宰|https://drive.google.com/uc?export=view&id=1uUnOyvvQbScJ0ii52sitk1P0bF_Kr-_2", "Hanjin|韓振|https://drive.google.com/uc?export=view&id=1fY3b51ypaSkFEnCVGG8mzp1kb4thZIWv", "Jihoon|韓志訓|https://drive.google.com/uc?export=view&id=13qc6r5Dgqy5BjXYuFHRyo2UsjgXqHQAC", "Kyungmin|李炅潣|https://drive.google.com/uc?export=view&id=16byZqoMYMW60J3Hg9XXmL1UhwcngFGGM"),
         "UNIS||https://drive.google.com/uc?export=view&id=1Cpw4GAUmRRiMlY2BXsJh_4O1lQCqRlh_" to listOf("Hyeonju|陳賢珠","Nana|江角奈奈","Gehlee","Kotoko|河田琴子","Yunha|方鈗河","Elisia","Yoona|吳潤妸","Seowon|林恕願"),
         "VERIVERY||https://drive.google.com/uc?export=view&id=1uMs1PLG3Sym3dDmCfIIjGDSvKfqioQZ4" to listOf("Dongheon|李東憲", "Hoyoung|裴浩榮", "Minchan|洪慜撰", "Gyehyeon|趙啓賢", "Yeonho|朱延浩", "Yongseung|金勇勝", "Kangmin|柳岡旻"),
         "VIVIZ||https://drive.google.com/uc?export=view&id=1ZRZxU6W2Xi70TNp1qwlmjC2mbrHVSMzo" to listOf("Eunha|銀河|https://drive.google.com/uc?export=view&id=1PrTFFgacs4CYc5xQixvVFv2ctkaxYMVv", "SinB|信飛|https://drive.google.com/uc?export=view&id=1IqCeBlfRALRXDE8nJzutJ8WUkhV6ujAX", "Umji|嚴智|https://drive.google.com/uc?export=view&id=1E4EQUI9bx5bsf4uTmAdxQKNLOej0a_jT"),
-        "WANNA ONE||https://drive.google.com/uc?export=view&id=1FJBJUYb7FezmwRiDEYixQWE9gIy5twFj" to listOf("Jisung|尹智聖", "Sungwoon|河成雲", "Minhyun|黃旼炫", "Seongwu|邕聖祐", "Jaehwan|金在煥", "Daniel|姜丹尼爾", "Jihoon|朴志訓", "Woojin|朴佑鎭", "Jinyoung|裴珍映", "Daehwi|李大輝", "Kuanlin|賴冠霖"),
+        "WANNA ONE||https://drive.google.com/uc?export=view&id=1FJBJUYb7FezmwRiDEYixQWE9gIy5twFj" to listOf("Jisung|尹智聖", "Sungwoon|河成雲", "Minhyun|黃旼炫", "Seongwu|邕聖祐", "Jaehwan|金在煥", "Kang Daniel|姜丹尼爾", "Jihoon|朴志訓", "Woojin|朴佑鎭", "Jinyoung|裴珍映", "Daehwi|李大輝", "Kuanlin|賴冠霖"),
         "WayV|威神V|https://drive.google.com/uc?export=view&id=1scU4_fx_ChrBvBnWo9r1kGnK9qXxeY4O" to listOf("Kun|錢錕", "Ten", "Winwin|昀昀", "Xiaojun|肖俊", "Hendery|黃冠亨", "Yangyang|劉揚揚"),
         "WEi||https://drive.google.com/uc?export=view&id=1PBRS03wsyqk9afXugbmAdsIqDuge_hZV" to listOf("Daehyeon|張大賢", "Donghan|金東漢", "Yongha|劉勇河", "Yohan|金曜漢", "Seokhwa|姜錫華", "Junseo|金俊抒"),
         "WJSN|宇宙少女|https://drive.google.com/uc?export=view&id=17YxWkzATEasp_WvvpyKxNBd18x7UJe_e" to listOf("Seola|雪娥|https://drive.google.com/uc?export=view&id=1NQvaEjdzlJFa54YRt0pD4zZRinS-Y819", "Bona|苞娜|https://drive.google.com/uc?export=view&id=132HKkbRwtyGgpSGFRbPCtcsR2iwZdXZJ", "Exy|秋昭貞|https://drive.google.com/uc?export=view&id=1XiVohXFYT0VdqcOuj5iEazbLHdHDovtR", "Soobin|秀斌|https://drive.google.com/uc?export=view&id=1Mda-44iAU5VvQWhHN3IkuvbtHwv-kO5N", "Eunseo|恩熙|https://drive.google.com/uc?export=view&id=1IaRRfH2IgCuJsmTtyz93p3PDopas3Wcc", "Yeoreum|夏天|https://drive.google.com/uc?export=view&id=1EgsOimTytdB3vDhiaqsOZxj4Ydv7-FgD", "Dayoung|多榮|https://drive.google.com/uc?export=view&id=17YxWkzATEasp_WvvpyKxNBd18x7UJe_e", "Yeonjung|延靜|https://drive.google.com/uc?export=view&id=1NPEVtOisJLQ5nqkr3ohxfLpO9eSDqwcJ"),
@@ -166,16 +166,16 @@ object KpopData {
         "Apink" to listOf("Seven Springs Of Apink","Une Année","Secret Garden","Pink Blossom","Pink Luv","Pink Memory","Pink Revolution","ONE & SIX","PERCENT","LOOK","HORN","SELF","RE : LOVE","鄭恩地 (Jeong Eun-ji)《Dream》","鄭恩地 (Jeong Eun-ji)《空間》","鄭恩地 (Jeong Eun-ji)《暳花》","鄭恩地 (Jeong Eun-ji)《Simple》","鄭恩地 (Jeong Eun-ji)《Log》","金南珠 (Kim Nam-joo)《Bird》","金南珠 (Kim Nam-joo)《BAD》","吳夏榮 (Oh Ha-young)《OH!》","日輯《Pink Season》","日輯《Pink Doll》","日輯《Pink Stories》"),
         "ARrC" to listOf("AR^C","nu kidz: out the box","CTRL+ALT+SKIID"),
         "ASTRO" to listOf("Spring Up","Summer Vibes","Autumn Story","Winter Dream","Dream Part.01","Dream Part.02","All Light","Blue Flame","GATEWAY","All Yours","Switch On","Drive to the Starry Road","車銀優 (Cha Eun-woo)《ENTITY》","車銀優 (Cha Eun-woo)《ELSE》","尹產賀 (Yoon San-ha)《DUSK》","文彬 & 產賀 (Moonbin & Sanha)《IN-OUT》","文彬 & 產賀 (Moonbin & Sanha)《REFUGE》","文彬 & 產賀 (Moonbin & Sanha)《INCENSE》","JINJIN & ROCKY《Restore》"),
-        "AB6IX" to listOf("B:COMPLETE","6IXENSE","MO' COMPLETE","THE FUTURE IS OURS : LOST","FOUND","BORN LIKE THIS","UPSIDE DOWN","SEVEN : CRIMSON HORIZON","朴佑鎮 (Park Woo-jin)《oWn》","李大輝 (Lee Dae-hwi)《COMPLETE WITH YOU》","日輯《ABSOLUTE 6IX》","日輯《SAVIOR》","日輯《TRAP / GRAB ME》"),
+        "AB6IX" to listOf("B:COMPLETE","6IXENSE","SALUTE","A to B","MO' COMPLETE","THE FUTURE IS OURS : LOST","FOUND","BORN LIKE THIS","UPSIDE DOWN","SEVEN : CRIMSON HORIZON","朴佑鎮 (Park Woo-jin)《oWn》","李大輝 (Lee Dae-hwi)《COMPLETE WITH YOU》","日輯《ABSOLUTE 6IX》","日輯《SAVIOR》","日輯《TRAP / GRAB ME》"),
         "A.C.E" to listOf("Cactus","Callin'","5TAR (Injustice)","A.C.E Adventures in Wonderland","UNDER COVER : THE MAD SQUAD","HJZM : The Butterfly Phantasy","SIREN : DAWN","Changer : Dear Eris","My Girl : My Choice","PINATA","REBEL"),
-        "ATEEZ" to listOf("TREASURE","ZERO : FEVER","THE WORLD","GOLDEN HOUR : Part.1","GOLDEN HOUR : Part.2","GOLDEN HOUR : Part.3 [In Your Fantasy Edition]","GOLDEN HOUR : Part.4","日輯《NOT OKAY》","日輯《Birthday》"),
+        "ATEEZ" to listOf("TREASURE","ZERO : FEVER","THE WORLD","GOLDEN HOUR : Part.1","GOLDEN HOUR : Part.2","GOLDEN HOUR : Part.3 [In Your Fantasy Edition]","GOLDEN HOUR : Part.4","GOLDEN HOUR : Part.5","日輯《NOT OKAY》","日輯《Birthday》"),
         "AMPERS&ONE" to listOf("AMPERSAND ONE","ONE HEARTED","ONE QUESTION","WILD & FREE","LOUD & PROUD"),
         "ADYA" to listOf("ADYA","What's Up?","STARTING HOUSE PARTY"),
         "AtHeart" to listOf("Plot Twist","Good Girl (AtHeart)","Shut Up"),
         "ASC2NT" to listOf("Expecting Tomorrow","Conversion Part.1","Conversion Part.2","STILL : I"),
         "BLACKPINK" to listOf("As If It's Your Last","Square Up","Kill This Love","How You Like That","THE ALBUM","BORN PINK","DEADLINE","Jennie《SOLO》","Rosé《-R-》","Lisa《LALISA》","Jisoo《ME》","Lisa 《Alter Ego》","Jennie 《Ruby》","Rosé 《rosie》","Jisoo 《Amortage》","日輯《Blackpink》","日輯《Blackpink In Your Area》","日輯《Kill This Love》","日輯《THE ALBUM》","日版《Blackpink 2019-2020 World Tour In Your Area - Tokyo Dome》","《THE SHOW》 Live CD","《The Girls》 (Blackpink The Game OST)"),
-        "BSS|夫碩順" to listOf("SECOND WIND","Just Do It (거침없이)","TELEPARTY","Oreo 聯名","Cass Beer 代言","Bananain  聯名","Music Bank「打歌禮/放送卡」","Inkigayo「打歌禮/放送卡」"),
-        "BABYMONSTER" to listOf("BABYMONS7ER","DRIP","H.I.T.S"),
+        "BSS" to listOf("SECOND WIND","Just Do It (거침없이)","TELEPARTY","Oreo 聯名","Cass Beer 代言","Bananain  聯名","Music Bank「打歌禮/放送卡」","Inkigayo「打歌禮/放送卡」"),
+        "BABYMONSTER" to listOf("BABYMONS7ER","DRIP","H.I.T.S","WE GO UP"),
         "Billlie" to listOf("the Billage of perception: chapter one","the collective soul and unconscious: snowy night","the collective soul and unconscious: chapter one","the Billage of perception: chapter two","the Billage of perception: chapter three","the collective soul and unconscious: chapter zero","the Billage of perception: chapter four","the Billage of perception: finale / transition","日輯《GingaMingaYo (the strange world) - Japanese ver.》","日輯《Knock-on Effect》"),
         "BOYNEXTDOOR" to listOf("WHO!","WHY..","HOW?","19.99","AND?","20.00","日輯《AND,》"),
         "BTS" to listOf("2 Cool 4 Skool","O!RUL8,2?","Skool Luv Affair","Dark & Wild","花樣年華 Pt.1 & Pt.2","花樣年華 Young Forever","WINGS","You Never Walk Alone","Love Yourself 承 'Her'","Love Yourself 轉 'Tear'","Love Yourself 結 'Answer'","Map of the Soul: Persona","Map of the Soul: 7","BE","Butter","Proof","Jin (The Astronaut)","Jin (Happy)","RM (Indigo)","RM (Right Place, Wrong Person)","J-Hope (Jack In The Box)","J-Hope (HOPE ON THE STREET VOL.1)","Suga (D-DAY)","Jimin (FACE)","Jimin (MUSE)","V (Layover)","Jungkook (GOLDEN)","2014日輯《No More Dream》","2014日輯《Boy In Luv》","2014日輯《Danger》","2015日輯《Wake Up》","2015日輯《For You》","2015日輯《I NEED U》","2016日輯《RUN》","2016日輯《YOUTH》","2017日輯《血、汗、淚 (Blood Sweat & Tears)》","2017日輯《MIC Drop/DNA/Crystal Snow》","2018日輯《Face Yourself》","2018日輯《Fake Love/Airplane pt.2》","2019日輯《Lights/Boy With Luv》","2020日輯《Map of the Soul: 7 ~The Journey~》","2021日輯《BTS, THE BEST》","Memories 2014","Memories 2015","Memories 2016","Memories 2017","Memories 2018","Memories 2019","Memories 2020","Memories 2021","Memories 2019+2020 藍光版","Memories 《BTS 7 Moments》","2014: 1st Muster [MUSTE]","2016: 2nd Muster [ZIP+CODE : 17520]","2016: 3rd Muster [ARMY.ZIP+]","2018: 4th Muster [Happy Ever After]","2019: 5th Muster [Magic Shop]","2021: 6th Muster [Sowoozoo]","2014-2015: The Red Bullet (World Tour)","2015: Wake Up: Open Your Eyes (World Tour)","2016: 花樣年華 On Stage / Epilogue (World Tour)","2017: THE WINGS TOUR / The Final (World Tour)","2018-2019: Love Yourself / Speak Yourself (World Tour)","2020-2022: Permission To Dance On Stage (World Tour)","Summer Package (2014-2019)","Bon Voyage (2016-2019): 第一季至第四季","Winter Package (2020-2021)","In the SOOP (2020-2022): 第一季、第二季","Exhibition 展覽: 2015: 《Butterfly Dream》","Exhibition 展覽: 2018: 《24/7 = Serendipity》","Exhibition 展覽: 2022: 《Proof》","Exhibition 展覽: 2024: 《Hybe Insight》系列展覽卡","Puma 聯名","SK Telecom (電信公司)聯名","Mediheal 面膜 (整套小卡組)聯名","VT Cosmetics (化妝品)聯名","Lotte Duty Free (樂天免稅店)聯名","Samsung Galaxy S20+ (紫色限定版)聯名","Baskin Robbins (冰淇淋)聯名","McDonald's (麥當勞 The BTS Meal 聯名卡)聯名","Coway (飲水機/空氣清淨機)聯名","Celine 聯名","Dior 聯名","Valentino 聯名","Tiffany & Co. 聯名"),
@@ -185,7 +185,7 @@ object KpopData {
         "CLASS:y" to listOf("CLASS IS OVER","LIVES ACROSS","Day & Night","LOVE XX","Hitchhiking","ROLL CALL","日輯《SHUT DOWN -JP Ver.-》","日輯《TARGET》","日輯《Crack-Crack-Crackle》"),
         "CLOSE YOUR EYES" to listOf("ETERNALT","SNOWY SUMMER","BLACKOUT","《The Judge Returns》OST"),
         "CNBLUE" to listOf("2gether","Blueming","7℃N","RE-CODE","WANTED","PLEASURES","X","STAY GOLD","日輯《Code Name Blue》","日輯《What turns you on?》","日輯《Colors》","日輯《EUPHORIA》","日輯《STAY GOLD》","日輯《PLEASURES》","日輯《X-TREME》","日單曲《In My Head》","日單曲《Where you are》","日單曲《Come on》","日單曲《Robot》","日單曲《Blind Love》","日單曲《Lady》","日單曲《Truth》","日單曲《Go your way》","日單曲《WHITE》","日單曲《Puzzle》","日單曲《SHAKE》","日單曲《LET IT SHINE》","日單曲《MOONLIGHT》","日單曲《NEW DAWN》","日單曲《STAY GOLD -2026 Special Edition-》","日精選輯《Present》","日精選輯《Best of CNBLUE / OUR BOOK [2011-2018]》","精選輯《Blue Hits For Asia》","鄭容和 (Jung Yong Hwa)《One Fine Day》","鄭容和 (Jung Yong Hwa)《Do Disturb》","鄭容和 (Jung Yong Hwa)《YOUR CITY》","鄭容和 (Jung Yong Hwa) 日輯《FEEL THE Y'S CITY》","鄭容和 (Jung Yong Hwa)華語 EP 《和.唱 (Stay in Touch)》","姜敏赫 (Kang Min Hyuk)《On the Way》","姜敏赫 (Kang Min Hyuk)《Hologram》","姜敏赫 (Kang Min Hyuk)《SEE YOU AGAIN》","李正信 (Lee Jung Shin)日單曲《413》","李正信 (Lee Jung Shin)《BLUE CANVAS》"),
-        "CORTIS" to listOf("COLOR OUTSIDE THE LINES","PRISM","2025 《COLOR OUTSIDE THE LINES》 Release Party"),
+        "CORTIS" to listOf("COLOR OUTSIDE THE LINES","GREENGREEN"),
         "CRAVITY" to listOf("HIDEOUT Season 1. [REMEMBER WHO WE ARE]","HIDEOUT Season 2. [THE NEW DAY WE STEP INTO]","HIDEOUT Season 3. [BE OUR VOICE]","THE AWAKENING: WRITTEN IN THE STARS","LIBERTY: IN OUR COSMOS","NEW WAVE","MASTER : PIECE","SUN SEEKER","EVERSHINE","FIND THE ORBIT","Dare to Crave","Dare to Crave : Epilogue","Blast Out","日輯《Groovy -Japanese ver.-》","日輯《SHOW OFF》","日輯《BLAST OUT》"),
         "CxM" to listOf("HYPE VIBES"),
         "CHOBOM (初瓏 X 普美)" to listOf("Copycat"),
@@ -207,7 +207,7 @@ object KpopData {
         "GOT7" to listOf("Got it?","GOT♡","AROUND THE WORLD","Identify","LOVE TRAIN","Just right","LAUGH LAUGH LAUGH","MAD","翻天↑覆地","FLIGHT LOG : DEPARTURE","FLIGHT LOG : TURBULENCE","Hey Yah","FLIGHT LOG : ARRIVAL","MY SWAGGER","Turn Up","7 for 7","7 for 7 Present Edition(改版)","Eyes On You","THE New Era","Present: YOU","<Present：YOU> &ME Edition(改版)","I WON'T LET YOU GO","SPINNING TOP : BETWEEN SECURITY & INSECURITY","LOVE LOOP","Call My Name","DYE","Breath of LOVE : Last Piece","GOT7","WINTER HEPTAGON"),
         "Highlight" to listOf("Can You Feel It?","俊亨 單曲專輯《WONDERIF》","起光 迷你專輯《ONE》","Calling you(改版專)","CELEBRATE","俊亨 數位單曲《陣雨 (Feat. 10cm)》","俊亨 正規專《GOODBYE 20’s》","東雲 數位單曲《Prelude : 목소리》","數位單曲《잘 지내줘(TAKE CARE)》","OUTRO","耀燮 數位單曲《20 Full Moons》","起光 數位單曲專輯《I》","起光 數位單曲專輯《笑著問候》","東雲 迷你專輯《Act 1 : The Orchestra》","The Blowing","耀燮 正規專輯《Chocolate Box》","DAYDREAM","ATAFTER SUNSET","數位單曲《Give You My All 》","Switch On","From Real to Surreal"),
         "Heart2Hearts" to listOf("The Chase","Style","Focus"),
-        "Hoshi X Woozi|HxW" to listOf("BEAM"),
+        "HxW" to listOf("BEAM"),
         "I-DLE" to listOf("I am","I made","I trust","I burn","I NEVER DIE","I love","I feel","2","I SWAY","WE ARE","日輯《i-dle》","田小娟 (Soyeon)《Windy》","薇娟 (Miyeon)《MY》","薇娟 (Miyeon)《MY, Lover》","雨琦 (Yuqi)《YUQ1》","雨琦 (Yuqi)《MOTIVATION》","Minnie《HER》"),
         "IDID" to listOf("I Did It.","PUSH BACK"),
         "ITZY" to listOf("IT'z Different","IT'z ICY","IT'z ME","Not Shy","CRAZY IN LOVE","CHECKMATE","CHESHIRE","KILL MY DOUBT","BORN TO BE","GOLD","TUNNEL VISION","日輯《RINGO》","日輯《Collector》","有娜(Yuna)《ICE CREAM》"),
@@ -218,11 +218,11 @@ object KpopData {
         "KiiiKiii" to listOf("UNCUT GEM","Delulu Pack"),
         "KISS OF LIFE" to listOf("KISS OF LIFE","Born to be XX","Midas Touch","Lose Yourself","224","Who is she"),
         "Kep1er" to listOf("FIRST IMPACT","DOUBLAST","日單曲專《FLY-UP》","TROUBLESHOOTER","日單曲專《FLY-BY》","LOVESTRUCK!","Magic Hour","日單曲專《FLY-HIGH》","日輯《Kep1going》","Kep1going On","TIPI-TAP","日單曲《Yum》","日EP《AGAINST THE WORLD》","BUBBLE GUM","CRACK CODE"),
-        "kickflip" to listOf("Flip it, Kick it!","Kick Out, Flip Now!","My First Flip"),
+        "KickFlip" to listOf("Flip it, Kick it!","Kick Out, Flip Now!","My First Flip"),
         "LE SSERAFIM" to listOf("FEARLESS","ANTIFRAGILE","UNFORGIVEN","EASY","CRAZY","HOT","SPAGHETT","日單曲《FEARLESS》","日單曲《UNFORGIVEN》","日單曲《Dress Code》","日單曲《DIFFERENT》"),
         "LIGHTSUM" to listOf("LIGHTSUM","Light a Wish","Into The Light","Honey or Spice","POSE!","DREAMY"),
         "LNGSHOT" to listOf("SHOT CALLERS"),
-        "MAMAMOO" to listOf("Melting","reality in BLACK","Travel","WAW","I SAY MAMAMOO : THE BEST","MIC ON","日輯《I Say Mamamoo : The Best -Japan Edition-》","Solar (頌樂)《SPIT IT OUT》","Solar (頌樂)《容 : FACE》","Solar (頌樂)《COLOURS》","Solar (頌樂)《Your Own Star》","Moonbyul (玟星)《Dark Side of the Moon》","Moonbyul (玟星)《6equence》","Moonbyul (玟星)《C.I.T.T》","Moonbyul (玟星)《Starlit of Muse》","Moonbyul (玟星)《PRESENT》","Wheein (輝人)《Redd》","Wheein (輝人)《WHEE》","Wheein (輝人)《IN the mood》","Wheein (輝人)《Wheee》","Hwasa (華莎)《Maria》","Hwasa (華莎)《Guilty Pleasure》","Hwasa (華莎)《O》","Hwasa (華莎)《Star》"),
+        "MAMAMOO" to listOf("Hello","Piano Man","Pink Funky","MEMORY","Purple","Yellow Flower","Red Moon","BLUE;S","White Wind","TRAVEL","WAW","Melting","reality in BLACK","I SAY MAMAMOO : THE BEST","MIC ON","4WARD","日輯《I Say Mamamoo : The Best -Japan Edition-》","Solar (頌樂)《SPIT IT OUT》","Solar (頌樂)《容 : FACE》","Solar (頌樂)《COLOURS》","Solar (頌樂)《Your Own Star》","Moonbyul (玟星)《Dark Side of the Moon》","Moonbyul (玟星)《6equence》","Moonbyul (玟星)《C.I.T.T》","Moonbyul (玟星)《Starlit of Muse》","Moonbyul (玟星)《PRESENT》","Wheein (輝人)《Redd》","Wheein (輝人)《WHEE》","Wheein (輝人)《IN the mood》","Wheein (輝人)《Wheee》","Hwasa (華莎)《Maria》","Hwasa (華莎)《Guilty Pleasure》","Hwasa (華莎)《O》","Hwasa (華莎)《Star》"),
         "MAMAMOO+" to listOf("ACT 1, SCENE 1","TWO RABBITS"),
         "MEOVV" to listOf("MEOW","TOXIC","BODY","MY EYES OPEN VVIDE","BURNING UP","HANDS UP"),
         "MISAMO" to listOf("Masterpiece","HAUTE COUTURE","PLAY"),
@@ -254,12 +254,12 @@ object KpopData {
         "STAYC" to listOf("Star To A Young Culture","STAYDOM","YOUNG-LUV.COM","WE NEED LOVE","Teddy Bear","TEENFRESH","Metamorphic","S","I WANT IT","日輯《POPPY》","日輯《Teddy Bear -JP Ver.-》"),
         "Stray Kids" to listOf("Mixtape","GO生","IN生","NOEASY","ODDINARY","MAXIDENT","★★★★★ (5-STAR)","樂-STAR (ROCK-STAR)","ATE","KARMA","合 (HOP)","日單曲《Hollow》","日輯《GIANT》"),
         "Super Junior" to listOf("Bonamana","Mr. Simple","Sexy, Free & Single","MAMACITA","Devil","PLAY","REPLAY","Time_Slip","The Renaissance","The Road","SJ 20th Anniversary Special Album","日輯《Hero》","日輯《Star》","日輯《I Think U》","日單曲《Bonamana (Victory Japan)》","日單曲《Mr. Simple》","日單曲《Opera》","日單曲《Sexy, Free & Single》","日單曲《Blue World》","日單曲《MAMACITA -AYAYA-》","日單曲《On and On》","圭賢 (Kyuhyun)《At Gwanghwamun》","圭賢 (Kyuhyun)《Fall, Once Again》","圭賢 (Kyuhyun)《Waiting, Still》","圭賢 (Kyuhyun)《Love Story (4 Seasons Project 季)》","圭賢 (Kyuhyun)《Restart》","圭賢 (Kyuhyun)日輯《One Voice》","藝聲 (Yesung)《Here I am》","藝聲 (Yesung)《Spring Falling》","藝聲 (Yesung)《Pink Magic》","藝聲 (Yesung)《Beautiful Night》","藝聲 (Yesung)《Sensory Flows》","藝聲 (Yesung)《Unfading Sense》","藝聲 (Yesung)《It’s Complicated》 ","藝聲 (Yesung)日輯《STORY》","藝聲 (Yesung)日輯《君という桜の花びらが僕の心に舞い降りた》","厲旭 (Ryeowook)《The Little Prince》","厲旭 (Ryeowook)《Drunk on Love》","厲旭 (Ryeowook)《A Wild Rose》","厲旭 (Ryeowook)日單曲《櫻花笑（桜の花が咲く頃）》","厲旭 (Ryeowook)日單曲《茜色に染まる空の下》","東海 (Donghae)《Harmony》","東海 (Donghae)《California Love》","銀赫 (Eunhyuk)《be》","希澈 (Heechul)《Old Movie》","晟敏 (Sungmin)《Orgel》","晟敏 (Sungmin)《Lovesick》"),
-        "SJ-D&E|東海&銀赫" to listOf("The Beat Goes On","'Bout You","DANGER","BAD BLOOD","BAD LIAR","COUNTDOWN","606","INEVITABLE","日輯《Ride Me》","日輯《Present》","日輯《STYLE》","日單曲《Wings》","日單曲《You&Me》"),
+        "SJ-D&E" to listOf("The Beat Goes On","'Bout You","DANGER","BAD BLOOD","BAD LIAR","COUNTDOWN","606","INEVITABLE","日輯《Ride Me》","日輯《Present》","日輯《STYLE》","日單曲《Wings》","日單曲《You&Me》"),
         "SJ-K.R.Y." to listOf("日單曲《Promise You》","日單曲《JOIN HANDS》","日單曲《Traveler》","When We Were Us"),
         "SJ-L.S.S." to listOf("C'MON","JOKE","Suit Up","日輯《Let's Stay Show》"),
         "TEMPEST" to listOf("It's ME,It's WE","2022 DELING(雜誌)","2022 SCHOOL KIT","SHINING UP","ON and ON","2022 EVERLINE 聖誕快閃活動","2023 SEASON'S GREENTINGS[It's WE TEMPEST](年曆)","THE CALM BEFORE THE STORM","2023 SOUNDWAVE線下快閃活動","TEMPEST 1ST OFFICIAL FANCLUB iE [iE-CLOUD]","2023 TEMPEST SHOW CON[T-OUR]","Into The TEMPEST","2023 EVERLINE 線下快閃活動","2024 SEASON'S GREENTINGS[OUR T-EEN](年曆)","Voyage","2024 Voyage 周邊快閃活動","SCawaii!ME TEMPEST (日本雜誌)","2024 韓流ぴあ","日輯《BANG!》","TEMPEST 2ND GENERATION OFFICIAL FAN CLUB iE [Romance TemPezia]","2025 SEASON'S GREENTINGS[FROM HOME](年曆)","日輯《BUBBLE GUM》","RE:Full of Youth","日輯《My Way》","ITTA MAGAZINE TEMPEST (雜誌)","As I am","2025-26 TEMPEST AISA T-OUR"),
         "THE BOYZ" to listOf("THE FIRST","THE START","THE SPHERE","THE ONLY","2018THE BOYZ FAN-CON＜THE CASTLE＞","Bloom Bloom","2019THE BOYZ ASIA FAN-CON TOUR＜THE CASTLE＞(亞巡)","DREAMLIKE","日輯《TATTOO》","REVEAL","2020 THE BOYZ CONCERT [RE:AL]","Chase","日輯《Breaking Dawn》","THRILL-ING","Maverick","2021 THE BOYZ FAN－CON [THE B-ZONE]","日輯《SHE'S THE BOSS》","2022 THE BOYZ WORLD TOUR:THE B-ZONE","BE AWARE","2022 THE BOYZ FAN－CON [THE B-ROAD]","2023 THE BOYZ WORLD TOUR [ZENERATION]","BE AWAKE","PHANTASY(三部系列)","日輯《Delicious》","日輯《Gibberish》","TRIGGER (導火線)","Unexpected","a;effect"),
-        "TOMORROW X TOGETHER|TXT" to listOf("The Dream Chapter: STAR","The Dream Chapter: MAGIC","日單曲《MAGIC HOUR》","The Dream Chapter: ETERNITY","日單曲《DRAMA》","minisode 1: Blue Hour","日輯《STILL DREAMING》","The Chaos Chapter: FREEZE","The Chaos Chapter: FIGHT OR ESCAPE","日輯《Chaotic Wonderland》","2021《ACT：BOY》(一巡)","minisode 2: Thursday's Child","日單曲《GOOD BOY GONE BAD》","2022《ACT：LOVE SICK》(二巡)","The Name Chapter: TEMPTATION","日輯《Sweet》","The Name Chapter: FREEFALL","2023《ACT：SWEET MIRAGE》(三巡)","minisode 3: TOMORROW","日單曲《誓い》","The Star Chapter: SANCTUARY","2024《ACT：PROMISE》(四巡)","The Star Chapter: TOGETHER","日輯《Starkissed》","2025《ACT：PROMISE》- EP.2","2025《ACT：TOMORROW》(五巡)","7TH YEAR: A Moment of Stillness in the Thorns"),
+        "TOMORROW X TOGETHER" to listOf("The Dream Chapter: STAR","The Dream Chapter: MAGIC","日單曲《MAGIC HOUR》","The Dream Chapter: ETERNITY","日單曲《DRAMA》","minisode 1: Blue Hour","日輯《STILL DREAMING》","The Chaos Chapter: FREEZE","The Chaos Chapter: FIGHT OR ESCAPE","日輯《Chaotic Wonderland》","2021《ACT：BOY》(一巡)","minisode 2: Thursday's Child","日單曲《GOOD BOY GONE BAD》","2022《ACT：LOVE SICK》(二巡)","The Name Chapter: TEMPTATION","日輯《Sweet》","The Name Chapter: FREEFALL","2023《ACT：SWEET MIRAGE》(三巡)","minisode 3: TOMORROW","日單曲《誓い》","The Star Chapter: SANCTUARY","2024《ACT：PROMISE》(四巡)","The Star Chapter: TOGETHER","日輯《Starkissed》","2025《ACT：PROMISE》- EP.2","2025《ACT：TOMORROW》(五巡)","7TH YEAR: A Moment of Stillness in the Thorns"),
         "tripleS" to listOf("Acid Angel from Asia（tripleS AAA）《ACCESS》","S1-S10 《ASSEMBLE》","+(KR)ystal Eyes（tripleS KRE）《AESTHETIC》","Acid Eyes（tripleS Acid Eyes）《Cherry Gene》","LOVElution（tripleS LOVElution）《ↀ》","EVOLution（tripleS EVOLution）《⟡》","NXT（tripleS NXT）單曲〈Just Do It〉","Aria（tripleS Aria）《Structure of Sadness》","ASSEMBLE24","Glow（tripleS Glow）〈Inner Dance〉","Visionary Vision（tripleS VV）《Performante》","ASSEMBLE25","msnz（tripleS msnz）《Beyond Beauty》","日本分隊∞!（tripleS ∞!）日單曲《Untitled》","日本分隊∞!（tripleS ∞!）先行單曲〈Password〉","日本分隊∞!（tripleS ∞!）日輯《SecretHimitsuBimil》"),
         "TWICE" to listOf("The Story Begins","Page Two","TWICEcoaster: LANE 1","TWICEcoaster: LANE 2","Signal","日輯《#TWICE》","Twicetagram","Merry&Happy","日單曲〈Candy Pop〉","What is Love?","日單曲〈Wake Me Up〉","Summer Nights","日輯《BDZ》","YES or YES","The year of 'Yes'","日輯《＃TWICE2》","FANCY YOU","單曲〈Happy Happy〉","單曲〈Breakthrough〉","Feel Special","日輯《&TWICE》","MORE & MORE","日單曲〈Fanfare〉","日輯《＃TWICE3》","Eyes wide open","日單曲〈Better〉","單曲〈CRY FOR ME〉","日單曲〈Kura Kura〉","Taste of Love","日輯《Perfect World》","英單曲〈The Feels〉","Formula of Love: O+T=<3","日單曲〈Doughnut〉","日輯《＃TWICE4》","日輯《Celebrate》","BETWEEN 1&2","READY TO BE","日單曲〈Hare Hare〉","With YOU-th","日輯《DIVE》","STRATEGY","〈The Wish〉","日輯《＃TWICE5》","This Is For","日輯《ENEMY》","Ten: The Story Goes On","娜璉(NAYEON)《IM NAYEON》","娜璉(NAYEON)《NA》","志效 《ZONE》","彩瑛《LIL FANTASY vol.1》","彩瑛x定延x志效單曲〈擊倒〉（Takedown）","子瑜(TZUYU)《abouTZU》"),
         "TWS" to listOf("Sparkling Blue","SUMMER BEAT!","單曲《Last Bell》","TRY WITH US","日單曲《はじめまして》","play hard","韓文單曲〈다시 만난 오늘〉"),
@@ -276,8 +276,3227 @@ object KpopData {
         "xikers" to listOf("Doorbell Ringing","HOW TO PLAY","Trial And Error","WATCH OUT","SPUR","WRECKING THE HOUS","日輯《Tsuki (Lunatic)》"),
         "Xdinary Heroes" to listOf("Happy Death Day","Hello, world!","Overload","Deadlock","Livelock","Troubleshooting","Open ♭eta","LIVE and FALL","Beautiful Mind","LXVE to DEATH","DEAD AND"),
         "YOUNG POSSE" to listOf("MACARONI CHEESE","單曲《YOUNG POSSE UP》","XXL","Ate That","單曲《We Still Loading》","單曲《Street Carol》","Cold","OST《UPSIDE DOWN》","Growing Pain Pt1:Free","單曲《Lose Your Shxt》","單曲《Visa / Pilot3》","單曲《We Don't Go To Bed Tonight》"),
-        "YENA|崔叡娜" to listOf("SMiLEY","SMARTPHONE","單曲專《LOVE WAR》","單曲專《Hate XX》","日單曲《SMiLEY》","Good Morning","日單曲《DNA》","單曲專《NEMONEMO》","Blooming Wings","LOVE CATCHER"),
-        "ZEROBASEONE|ZB1" to listOf("YOUTH IN THE SHADE","MELTING POINT","You had me at HELLO","CINEMA PARADISE","BLUE PARADISE","NEVER SAY NEVER","日單曲《ゆらゆら -運命の花-》","日輯《PREZENT》","日輯《ICONIK》")
+        "YENA" to listOf("SMiLEY","SMARTPHONE","單曲專《LOVE WAR》","單曲專《Hate XX》","日單曲《SMiLEY》","Good Morning","日單曲《DNA》","單曲專《NEMONEMO》","Blooming Wings","LOVE CATCHER"),
+        "ZEROBASEONE" to listOf("YOUTH IN THE SHADE","MELTING POINT","You had me at HELLO","CINEMA PARADISE","BLUE PARADISE","NEVER SAY NEVER","日單曲《ゆらゆら -運命の花-》","日輯《PREZENT》","日輯《ICONIK》")
     )
 
-}
+    val albumTemplateData = mapOf(
+        //&TEAM
+        "Back to Life" to "https://drive.google.com/uc?export=view&id=1aIpHCJv_KAkaaLc6WGARi_27h6HxJIRY",
+        "日單曲《First Howling : ME》" to "https://drive.google.com/uc?export=view&id=12AeC7bTXaatiXZpYaZRISH3VnyVEDim_",
+        "日單曲《五月雨》(春Samidare)" to "https://drive.google.com/uc?export=view&id=1WRSReIpwRvSpz__yR9unFkTgiLPzw-X0",
+        //AB6IX
+        "SALUTE" to "https://drive.google.com/uc?export=view&id=1MgKlxRpB6MWfLu9ao9k4po0ZF7BNxZ_u",
+        "A to B" to "https://drive.google.com/uc?export=view&id=1uTcqD9o9AsnU16nD57OSQgpAg4qeCTB4",
+        //aespa
+        "Drama" to "https://drive.google.com/uc?export=view&id=1XYisTX7DyoGU1jG9B0l9EZVWjvXA7prQ",
+        "Savage" to "https://drive.google.com/uc?export=view&id=1rodKQcAAd_Fpb5TF3LO1xTzM0y_uzZpb",
+        //ALLDAY PROJECT
+        "FAMOUS" to "http://drive.google.com/uc?export=view&id=1gXd1XkMEKUAPYa1eI_PIekIo_4ENUrt3",
+        //ATEEZ
+        "GOLDEN HOUR : Part.1" to "https://drive.google.com/uc?export=view&id=1DwqZPuG3RFMbliFq42jK8QNLNlRDe89B",
+        "GOLDEN HOUR : Part.5" to "https://drive.google.com/uc?export=view&id=1ZhNlByBM0XMrgbrC8HkmN_JImw1ShBLG",
+        //BTS
+        "Butter" to "https://drive.google.com/uc?export=view&id=1GRyB8kd6lhFIfSf04m9el7JIUJQCILyf/view?usp=drive_link",
+        "Proof" to "https://drive.google.com/uc?export=view&id=1CU2x91j9TE7NVr4XboV1r7CI6nfg89Bz/view?usp=drive_link",
+        //BSS
+        "SECOND WIND" to "https://drive.google.com/uc?export=view&id=1f41yuSHU3a8vvHn-Pe3qfNJo0e6vbG3m",
+        "TELEPARTY" to "https://drive.google.com/uc?export=view&id=1ta6ExDQW4qy0en69EJ2Z9fQXg0W66L4T",
+        //BLACKPINK
+        "BORN PINK" to "https://drive.google.com/uc?export=view&id=1456lkVXbjyvt7mJfNeC2HKyDMhFaa75p",
+        "DEADLINE" to "https://drive.google.com/uc?export=view&id=17ICS0BzCAtiuzbz8TbKc0xoFFs_ptMfk",
+        //BABYMONSTER
+        "DRIP" to "https://drive.google.com/uc?export=view&id=1Uwm4jXa5iw0_cF7sX_tCzzpvKnt6xCGf",
+        "WE GO UP" to "https://drive.google.com/uc?export=view&id=1tDNWl1pu5FhGNB9fYuYkc1JwJSzBEtcD",
+        //BOYNEXTDOOR
+        "HOW?" to "https://drive.google.com/uc?export=view&id=15O1AHVsoJ_c1mlrUfMXVmydIVrhy5UxC",
+        "19.99" to "https://drive.google.com/uc?export=view&id=1trtqV6QJlgKDwFWaYSSaFDN13ohEnRKr",
+        //CORTIS
+        "COLOR OUTSIDE THE LINES" to "https://drive.google.com/uc?export=view&id=1I9L9OD1mRkZ5c5-ITKBZAa3jxPXXxG8J",
+        "GREENGREEN" to "https://drive.google.com/uc?export=view&id=1I9L9OD1mRkZ5c5-ITKBZAa3jxPXXxG8J",
+        //CxM
+        "HYPE VIBES" to "https://drive.google.com/uc?export=view&id=1H92Tvb9WHEpjygjtavwMiU-YOh2xez8U",
+        //ENHYPEN
+        "DESIRE : UNLEASH" to "https://drive.google.com/uc?export=view&id=1npvNzWpIhFYiznntT_Z4mvCql6mr6O6b",
+        "THE SIN : VANISH" to "https://drive.google.com/uc?export=view&id=1pd-zgehFhOib5D6CTVRd5fQKDalb6s-J",
+        //EXO
+        "MAMA" to "https://drive.google.com/uc?export=view&id=1yQOEv1CwXZMu4ZlvqUMuzCcFM39MpZX_",
+        //Eunbi
+        "OPEN" to "https://drive.google.com/uc?export=view&id=1Te-l9SF9Q8gKX8WbWud0BKC1n06Riavu",
+        //fromis_9
+        "Midnight Guest" to "https://drive.google.com/uc?export=view&id=1o7HE1F0bdIwCVfKW8zxhdikAeMWLlJlk",
+        "from our Memento Box" to "https://drive.google.com/uc?export=view&id=1YP9lgsAl9hsinHAk_KoEQQ1WtnFrSspl",
+        //GFRIEND
+        "回：LABYRINTH" to "https://drive.google.com/uc?export=view&id=1YO9-qdHeJUKIJXsxlhIHfczIJhSCux77",
+        "回：Song of the Sirens" to "https://drive.google.com/uc?export=view&id=1MUbHIdEyqjOckhSt75vDYCatQIyCx0E8",
+        //Girl's Generation
+        "FOREVER 1" to "https://drive.google.com/uc?export=view&id=1YEebIJDY7z3ql-HmY8T2M3k5KvCcnX7t",
+        //HxW
+        "BEAM" to "https://drive.google.com/uc?export=view&id=1lJ-8wMuMQBjx4RIpxjx7jXidvctwz9UA",
+        //Heart2Hearts
+        "Focus" to "https://drive.google.com/uc?export=view&id=1GKRo0Ri_pGPIAQ3P8RW5GvEQB2gZxKzM",
+        "The Chase" to "https://drive.google.com/uc?export=view&id=1WydRCkP7HYzTymw1FicYBvjR9YotzOcE",
+        //ITZY
+        "BORN TO BE" to "https://drive.google.com/uc?export=view&id=1HAQZIHIHFneg6S8eLRadfxjOuJvhjgEW",
+        "GOLD" to "https://drive.google.com/uc?export=view&id=1OKQWWVPHRpSNpIB9O2xqWPhtAXWqjPXm",
+        //IVE
+        "IVE SWITCH" to "https://drive.google.com/uc?export=view&id=10uz4e3iCUW4H-Fd3zuwiqhb3RaojdPrr",
+        "IVE SECRET" to "https://drive.google.com/uc?export=view&id=1_TdC2XmM25Zoi6bRn0g40oNP3bE7VniG",
+        //IZ*ONE
+        "COLOR*IZ" to "https://drive.google.com/uc?export=view&id=1SKHbWmChzUNgYe7dO9Qf5TpOWxtBgn95",
+        "HEART*IZ" to "https://drive.google.com/uc?export=view&id=1yJa3Tno8N3x9poc2vrI4ymS9DaiXutJ3",
+        "BLOOM*IZ" to "https://drive.google.com/uc?export=view&id=1TZbhE5KjjeaV8ZZPWoDikiW4K6fLWZt7",
+        "Oneiric Diary" to "https://drive.google.com/uc?export=view&id=1x0xbeTgse6v5uGSdqGY4QnO0WEu4oIvo",
+        "One-reeler / Act IV" to "https://drive.google.com/uc?export=view&id=1k1dVL2fT_OUKFd46sRkOGYGMhAj5F5nu",
+        //I-DLE
+        "I SWAY" to "https://drive.google.com/uc?export=view&id=1WxtyOjEEgrmgIVY6bWjISJHQO9vEC65K",
+        "WE ARE" to "https://drive.google.com/uc?export=view&id=1M4FJXAsPr0XCXKpuES9HIAQ3EhKVHHM_",
+        //izna
+        "Not Just Pretty" to "https://drive.google.com/uc?export=view&id=1EHXpd_oQY0fxDokDoY73esZKzmiKB5UX",
+        "N/a" to "https://drive.google.com/uc?export=view&id=1K3P-DwNWv7yEsrhBqUunZOCH8PjSuIP9",
+        //JxW
+        "THIS MAN" to "https://drive.google.com/uc?export=view&id=1YeRTHi-KvdNptkIqkZqz1c0Pk__EDlzk",
+        //Kep1er
+        "DOUBLAST" to "https://drive.google.com/uc?export=view&id=1Z3u49x7T62YONxF4U5VL74MPhc0Q7L7O",
+        "TROUBLESHOOTER" to "https://drive.google.com/uc?export=view&id=1y8yBG0cOzawA3lw72JLz8JrVroCdzAaE",
+        //KiiiKiii
+        "UNCUT GEM" to "https://drive.google.com/uc?export=view&id=1xXhjTMB9F52975PxHxEEHEcl3rSs8FxY",
+        //Le Sserafim
+        "CRAZY" to "https://drive.google.com/uc?export=view&id=1utki7XOEEouWv29lhvoQO2p1vCdSmgXE",
+        "EASY" to "https://drive.google.com/uc?export=view&id=1b86YIByYv4XZf0dWIMcxXsr1dmYkgamy",
+        //LNGSHOT
+        "SHOT CALLERS" to "https://drive.google.com/uc?export=view&id=1Qej0e2OSDiAyG-6KEeuqflZ6Y93xrVT8",
+        //MAMAMOO
+        "Hello" to "https://drive.google.com/uc?export=view&id=1z1YEJi_QdNhNWhnTcZBcjf5v2Q6hrg8W",
+        "Piano Man" to "https://drive.google.com/uc?export=view&id=1z1YEJi_QdNhNWhnTcZBcjf5v2Q6hrg8W",
+        "Pink Funky" to "https://drive.google.com/uc?export=view&id=1z1YEJi_QdNhNWhnTcZBcjf5v2Q6hrg8W",
+        "MEMORY" to "https://drive.google.com/uc?export=view&id=1z1YEJi_QdNhNWhnTcZBcjf5v2Q6hrg8W",
+        "reality in BLACK" to "https://drive.google.com/uc?export=view&id=1ydcyd1hfayFiz1sPR5DM-9AJsuFa8Ey3",
+        "I SAY MAMAMOO : THE BEST" to "https://drive.google.com/uc?export=view&id=1ZuJPMvsvH_7HGTGDGBDwObqDIllKORZb",
+        "MIC ON" to "https://drive.google.com/uc?export=view&id=14xaTjDVvS-jLBFPQZSk2TjeDIRTqzHPZ",
+        "Solar (頌樂)《容 : FACE》" to "https://drive.google.com/uc?export=view&id=19Am25fli6PK7tE1d3UaJSGYFiWB0KJY4",
+        "Moonbyul (玟星)《6equence》" to "https://drive.google.com/uc?export=view&id=11odcud2aPZ6inI4bmvj_cOkElFFHQTPA",
+        "Moonbyul (玟星)《C.I.T.T》" to "https://drive.google.com/uc?export=view&id=1kvotCTnILWgREhwlhu7wrGkUgswkX90u",
+        "Moonbyul (玟星)《PRESENT》" to "https://drive.google.com/uc?export=view&id=14NtHZR1eOwtujm3n3o_3UpS0fbFN6F3I",
+        "Wheein (輝人)《Redd》" to "https://drive.google.com/uc?export=view&id=1HH-83p1xumxSqgZxbBOXuafWzZH04kok",
+        "Hwasa (華莎)《Maria》" to "https://drive.google.com/uc?export=view&id=11O2_UMOkgLC6QDbq7ku9Oro0XBXPjnFj",
+        "WAW" to "https://drive.google.com/uc?export=view&id=1z1YEJi_QdNhNWhnTcZBcjf5v2Q6hrg8W",
+        "TRAVEL" to "https://drive.google.com/uc?export=view&id=1KegtiJMM_RFWHduakWDtexVnE-fVCbVn",
+        "AYA" to "https://drive.google.com/uc?export=view&id=1FOPrEKh5B4cEULJGWj32P4VgluqNjrTD",
+        //MAMAMOO+
+        "ACT 1 ,SCENE 1" to "https://drive.google.com/uc?export=view&id=1e134gihtAtPKXCPmfLN854_13wMMPKAs",
+        "TWO RABBITS" to "https://drive.google.com/uc?export=view&id=1z1YEJi_QdNhNWhnTcZBcjf5v2Q6hrg8W",
+        //MEOVV
+        "MY EYES OPEN VVIDE" to "https://drive.google.com/uc?export=view&id=11owO5T3INVC0ZFw8f1vy6Wc8CBiK1I18",
+        //NMIXX
+        "AD MARE" to "https://drive.google.com/uc?export=view&id=1r62OCbskFcLVMFjPiKZvRyuAVta6rfLh",
+        "ENTWURF" to "https://drive.google.com/uc?export=view&id=1mvMMfFobZOQ7qSmQNQq4-kZ_hWqF6j8g",
+        "A Midsummer NMIXX's Dream" to "https://drive.google.com/uc?export=view&id=1sGJIkVI8ja40YRP515v67PW7fbFxdR5b",
+        "expérgo" to "https://drive.google.com/uc?export=view&id=1QDewGEm-zH058EkRdoFm8qVsr0C_1znj",
+        "Fe3O4: BREAK" to "https://drive.google.com/uc?export=view&id=1uxMFrCJAUwZxIidZjqmTzAybrC9uPORl",
+        "Fe3O4: STICK OUT" to "https://drive.google.com/uc?export=view&id=1BhF5TAzhKWQXt0t-A8LsHniMPkS-RhuC",
+        "Fe3O4: FORWARD" to "https://drive.google.com/uc?export=view&id=1z_0iNJS29_DMvVvwa7zw25Nc9WR6CPu7",
+        "BLUE VALENTINE" to "https://drive.google.com/uc?export=view&id=1sNKVjJAF9oUhYQRR4uU8Pk334Y3azpsG",
+        //NEXZ
+        "Beat-Boxer" to "https://drive.google.com/uc?export=view&id=1ygndwv0qU_9Ovx4DUiK0czokPvK3h7Dp/view?usp=drive_link",
+        "NALLINA" to "https://drive.google.com/uc?export=view&id=1b_E8S7h2myuoDuQcESuk_QxgglTqHVNL/view?usp=drive_link",
+        //One Pact
+        "One Fact" to "https://drive.google.com/uc?export=view&id=1Bhr9fZD6k898y7o0mXyw-VN_x4ES-fHJ",
+        //Purple Kiss
+        "HIDE & SEEK" to "https://drive.google.com/uc?export=view&id=1y9FN3kuJ1wzw364RYaQKRNi9r59myFVG",
+        //QWER
+        "MANITO" to "https://drive.google.com/uc?export=view&id=15UPuQfHCHeeCwyZuRVaiVBHyckZ_KKdJ",
+        //Red Velvet
+        "Cosmic" to "https://drive.google.com/uc?export=view&id=1cTFgonIRc3BoPKfvyQ67QF8SFHIOaF5d",
+        "Chill Kill" to "https://drive.google.com/uc?export=view&id=1EDKE6tnMsithvvKgDlR-t5cCg2RCnefy",
+        //RIIZE
+        "Get A Guitar" to "https://drive.google.com/uc?export=view&id=1ScG7eu9feq85v7wMw9MQi0o-j9VKjBy6",
+        //Stray Kids
+        "KARMA" to "https://drive.google.com/uc?export=view&id=1X_2iGHt1Kv7s-1SNi8pxEq3dzV1ejVKA",
+        "MAXIDENT" to "https://drive.google.com/uc?export=view&id=1atKpqkjTMDqfAhvXLexBGKbeDwSnLImv",
+        //TWS
+        "Spaarkling Blue" to "https://drive.google.com/uc?export=view&id=1v_agrchbQlT6Ro10BCvNZ98VGOJY3UsM",
+        "play hard" to "https://drive.google.com/uc?export=view&id=1pRM5MCwfds4qPkgkUVOUGxrZurX0WYcJ",
+        //TWICE
+        "The Story Begins" to "https://drive.google.com/uc?export=view&id=1XfLd0c5ASeArrm774_w52taBa_iXCU97",
+        "Page Two" to "https://drive.google.com/uc?export=view&id=10bvng2JbAYb814xH4GnlKeachBwIRWih",
+        //SEVENTEEN
+        "Attacca" to "https://drive.google.com/uc?export=view&id=1MzzoSxjPyZLTZLut_8RmFzM7F_DNXTb9",
+        //TXT
+        "minisode 1: Blue Hour" to "https://drive.google.com/uc?export=view&id=1KqW5eKoXSMZDOzB-i0XdxOeQ0BGsPL1C",
+        "minisode 2: Thursday's Child" to "https://drive.google.com/uc?export=view&id=1u8hCWzWbSUWlnPJk2QRar1-HqMD3tb_r",
+        //tripleS
+        "ASSEMBLE24" to "https://drive.google.com/uc?export=view&id=1UlUB5mjMUjn_pNiil6LJOXZGZHwip8Dd",
+        "ASSEMBLE25" to "https://drive.google.com/uc?export=view&id=1epgqmQzRD8CEK-VJlF59xp9eiK6ivKNT",
+        //UNIS
+        "CURIOUS" to "https://drive.google.com/uc?export=view&id=1tXxTGvRZ5mzg3qKaD_mDWLRaOnfCVl9D",
+        //VIVIZ
+        "VERSUS" to "https://drive.google.com/uc?export=view&id=1e4M0xzgW-TfVAou2moJj7eK5UrylBx7g",
+        "Beam Of Prism" to "https://drive.google.com/uc?export=view&id=1IwdJ5k0AFC_6npL9SiTAVfZqOU0lhskb",
+        //WJSN
+        "Sequence" to "https://drive.google.com/uc?export=view&id=10GVyXCSQOw5TZi-AVgQFaxFpN6CBIymi",
+        //xikers
+        "HOW TO PLAY" to "https://drive.google.com/uc?export=view&id=1l47_Us08d7xgOsLc1GPG_1690ul8mxzJ",
+        //YENA
+        "SMARTPHONE" to "https://drive.google.com/uc?export=view&id=1nQbIOw0E7rhS92nFXyz69FnnjKiII59v",
+        "SMiLEY" to "https://drive.google.com/uc?export=view&id=1-6VmlPH4ZZlzpd8yOQnNOrmu9IJSxZz9",
+        //ZB1
+        "MELTING POINT" to "https://drive.google.com/uc?export=view&id=1H6pksezrtGIw46V1AfRryR9imlPaftmb",
+        "YOUTH IN THE SHADE" to "https://drive.google.com/uc?export=view&id=1wzo-ytVQKvJAG7FIMQgOakWIMym3ppkt",
+    )
+
+    // ... 原本的 albumTemplateData 結束處
+
+    // 1. 定義資料結構 (移到 object 外面)
+    data class IdolDetail(
+        val birth: String = "未設定",
+        val mbti: String = "未知",
+        val position: String = "成員",
+        val bio: String = ""
+    )
+
+
+    val idolDetails = mapOf(
+        // --- ATEEZ ---
+        "ATEEZ|Seonghwa" to IdolDetail(
+            birth = "1998.04.03",
+            mbti = "ENFJ",
+            position = "領唱、門面、大哥",
+            bio = "ATEEZ 的成員，以優雅的視覺效果和穩定的舞台表現著稱。"
+        ),
+        "ATEEZ|Hongjoong" to IdolDetail(
+            birth = "1998.11.07",
+            mbti = "INFP",
+            position = "隊長、主 Rapper",
+            bio = "ATEEZ 的全能隊長，負責歌曲創作與製作。"
+        ),
+        "ATEEZ|Yunho" to IdolDetail(
+            birth = "1999.03.23",
+            mbti = "ENFJ",
+            position = "主舞、副唱",
+            bio = "ATEEZ 的活力擔當，擁有高挑身材與強大且流暢的舞蹈實力。"
+        ),
+        "ATEEZ|Yeosang" to IdolDetail(
+            birth = "1999.06.15",
+            mbti = "ISFJ",
+            position = "副唱、門面",
+            bio = "ATEEZ 的成員，擁有深沉迷人的嗓音與出眾的雕刻般外貌。"
+        ),
+        "ATEEZ|San" to IdolDetail(
+            birth = "1999.07.10",
+            mbti = "INFP",
+            position = "領唱、主舞",
+            bio = "ATEEZ 的舞台匠人，以極具感染力的表情演技和震撼的舞台魅力聞名。"
+        ),
+        "ATEEZ|Mingi" to IdolDetail(
+            birth = "1999.08.09",
+            mbti = "ENTP",
+            position = "主 Rapper、主舞",
+            bio = "ATEEZ 的低音 Rapper 與編舞參與者，擁有強烈的舞台氣場與獨特個人風格。"
+        ),
+        "ATEEZ|Wooyoung" to IdolDetail(
+            birth = "1999.11.26",
+            mbti = "ESFJ",
+            position = "主舞、副唱",
+            bio = "ATEEZ 的表演核心之一，以靈活的舞蹈線條與綜藝感見長。"
+        ),
+        "ATEEZ|Jongho" to IdolDetail(
+            birth = "2000.10.12",
+            mbti = "ISFP",
+            position = "主唱、忙內",
+            bio = "ATEEZ 的黃金主唱與老么，擁有高亢嘹亮且極具穿透力的震撼高音。"
+        ),
+
+        // --- aespa ---
+        "aespa|Karina" to IdolDetail(
+            birth = "2000.04.11",
+            mbti = "ENFP",
+            position = "隊長、主舞、主 Rapper、副唱",
+            bio = "aespa 的隊長與核心擔當，擁有強烈的舞台氣場與精緻外貌。"
+        ),
+        "aespa|Giselle" to IdolDetail(
+            birth = "2000.10.30",
+            mbti = "ENFP",
+            position = "主 Rapper、副唱",
+            bio = "aespa 的 Rapper，擅長多國語言，擁有獨特的音色與音樂才華。"
+        ),
+        "aespa|Winter" to IdolDetail(
+            birth = "2001.01.01",
+            mbti = "ISFP",
+            position = "領唱、領舞",
+            bio = "aespa 的成員，擁有清澈透亮的歌聲與出色的舞蹈實力。"
+        ),
+        "aespa|Ningning" to IdolDetail(
+            birth = "2002.10.23",
+            mbti = "INFP",
+            position = "主唱、忙內",
+            bio = "aespa 的主唱，擁有高亢且極具爆發力的宏亮嗓音。"
+        ),
+
+        // --- BABYMONSTER ---
+        "BABYMONSTER|Ruka" to IdolDetail(
+            birth = "2002.03.20",
+            mbti = "ISFP",
+            position = "主舞、Rapper",
+            bio = "BABYMONSTER 的日本籍成員，以俐落的舞蹈實力與強悍饒舌著稱。"
+        ),
+        "BABYMONSTER|Pharita" to IdolDetail(
+            birth = "2005.08.26",
+            mbti = "INTP",
+            position = "主唱、副 Rapper",
+            bio = "BABYMONSTER 的泰國籍成員，擁有甜美的外貌與溫柔清亮的嗓音。"
+        ),
+        "BABYMONSTER|Asa" to IdolDetail(
+            birth = "2006.04.17",
+            mbti = "ENTP",
+            position = "主 Rapper、主舞",
+            bio = "BABYMONSTER 的日本籍成員，詞曲創作與快嘴饒舌實力兼備。"
+        ),
+        "BABYMONSTER|Ahyeon" to IdolDetail(
+            birth = "2007.04.11",
+            mbti = "ISTJ",
+            position = "主唱、主 Rapper、中心",
+            bio = "BABYMONSTER 的全能ACE，歌唱、饒舌與舞蹈實力皆頂尖。"
+        ),
+        "BABYMONSTER|Rami" to IdolDetail(
+            birth = "2007.10.17",
+            mbti = "ISFP",
+            position = "主唱",
+            bio = "BABYMONSTER 的實力派主唱，擁有極具磁性與厚度的情感嗓音。"
+        ),
+        "BABYMONSTER|Rora" to IdolDetail(
+            birth = "2008.08.14",
+            mbti = "ESFP",
+            position = "副唱",
+            bio = "BABYMONSTER 的成員，音色獨特迷人，舞台表現力豐富。"
+        ),
+        "BABYMONSTER|Chiquita" to IdolDetail(
+            birth = "2009.02.17",
+            mbti = "INFP",
+            position = "副唱、忙內",
+            bio = "BABYMONSTER 的泰國籍老么，擁有極高的舞台潛力和可愛魅力。"
+        ),
+
+        // --- BLACKPINK ---
+        "BABYMONSTER|Jisoo" to IdolDetail(
+            birth = "1995.01.03",
+            mbti = "ISTP",
+            position = "領唱、門面",
+            bio = "BLACKPINK 的大姊與門面，擁有獨特的低沉磁性嗓音與穩健演技。"
+        ),
+        "BABYMONSTER|Jennie" to IdolDetail(
+            birth = "1996.01.16",
+            mbti = "INFP",
+            position = "主 Rapper、領唱",
+            bio = "BLACKPINK 的時尚指標與全能核心，兼具強大饒舌與獨特甜美歌聲。"
+        ),
+        "BABYMONSTER|Rosé" to IdolDetail(
+            birth = "1997.02.11",
+            mbti = "ENFP",
+            position = "主唱、領舞",
+            bio = "BLACKPINK 的主唱，擁有極具辨識度的空靈嗓音與精湛吉他才華。"
+        ),
+        "BABYMONSTER|Lisa" to IdolDetail(
+            birth = "1997.03.27",
+            mbti = "ESFJ",
+            position = "主舞、主 Rapper、副唱、忙內",
+            bio = "BLACKPINK 的泰國籍成員，以世界級的頂尖舞蹈實力與舞台魅力聞名。"
+        ),
+
+        // --- BOYNEXTDOOR ---
+        "BOYNEXTDOOR|Sungho" to IdolDetail(
+            birth = "2003.09.04",
+            mbti = "ESFJ",
+            position = "主唱",
+            bio = "BOYNEXTDOOR 的大哥與主唱，擁有清澈高亢的嗓音與穩健唱功。"
+        ),
+        "BOYNEXTDOOR|Riwoo" to IdolDetail(
+            birth = "2003.10.22",
+            mbti = "ISFP",
+            position = "主舞、主唱",
+            bio = "BOYNEXTDOOR 的舞蹈核心，對編舞和節奏有極高敏銳度。"
+        ),
+        "BOYNEXTDOOR|Jaehyun" to IdolDetail(
+            birth = "2003.12.04",
+            mbti = "ENFP",
+            position = "隊長、主 Rapper",
+            bio = "BOYNEXTDOOR 的活力隊長，積極參與作詞作曲，充滿領導魅力。"
+        ),
+        "BOYNEXTDOOR|Taesan" to IdolDetail(
+            birth = "2004.08.10",
+            mbti = "INTJ",
+            position = "主唱、主 Rapper",
+            bio = "BOYNEXTDOOR 的音樂才子，具備深厚的詞曲創作與製作能力。"
+        ),
+        "BOYNEXTDOOR|Leehan" to IdolDetail(
+            birth = "2004.10.20",
+            mbti = "ESFJ",
+            position = "副唱",
+            bio = "BOYNEXTDOOR 的成員，擁有溫柔斯文的外貌與細膩文藝氣質，散發自然清新的魅力。"
+        ),
+        "BOYNEXTDOOR|Woonhak" to IdolDetail(
+            birth = "2006.11.29",
+            mbti = "ENFP",
+            position = "副唱、忙內",
+            bio = "BOYNEXTDOOR 的可愛老么，充滿活力與開朗的大型犬魅力。"
+        ),
+
+        // --- 夫碩順 (BSS) ---
+        "BSS|Hoshi" to IdolDetail(
+            birth = "1996.06.15",
+            mbti = "INFP",
+            position = "隊長 (BSS)、主舞、領唱",
+            bio = "SEVENTEEN 演出總監與 BSS 隊長，以老虎精神與爆發力十足的舞台聞名。"
+        ),
+        "BSS|DK" to IdolDetail(
+            birth = "1997.02.18",
+            mbti = "INFP",
+            position = "主唱 (BSS)",
+            bio = "SEVENTEEN 與 BSS 的黃金主唱，擁有穿透力極強的宏亮嗓音與綜藝魂。"
+        ),
+        "BSS|Seungkwan" to IdolDetail(
+            birth = "1998.01.16",
+            mbti = "ENFP",
+            position = "副唱 (BSS)、忙內 (BSS)",
+            bio = "SEVENTEEN 與 BSS 的主唱兼綜藝擔當，以情感豐富的歌聲與幽默口才著稱。"
+        ),
+
+        // --- BTS ---
+        "BTS|Jin" to IdolDetail(
+            birth = "1992.12.04",
+            mbti = "INTP",
+            position = "副唱、門面",
+            bio = "BTS 的大哥與世界美男，擁有深情動人的抒情歌聲。"
+        ),
+        "BTS|Suga" to IdolDetail(
+            birth = "1993.03.09",
+            mbti = "ISTP",
+            position = "主 Rapper",
+            bio = "BTS 的王牌製作人與 Rapper，擅長用音樂傳達深刻的社會與個人故事。"
+        ),
+        "BTS|J-Hope" to IdolDetail(
+            birth = "1994.02.18",
+            mbti = "INFJ",
+            position = "主舞、主 Rapper、副唱",
+            bio = "BTS 的希望與舞蹈隊長，擁有精湛舞技與明朗強大的舞台感染力。"
+        ),
+        "BTS|RM" to IdolDetail(
+            birth = "1994.09.12",
+            mbti = "ENFP",
+            position = "隊長、主 Rapper",
+            bio = "BTS 的思想領袖與全能隊長，領導團隊走向國際的靈魂人物。"
+        ),
+        "BTS|Jimin" to IdolDetail(
+            birth = "1995.10.13",
+            mbti = "ESTP",
+            position = "主舞、領唱",
+            bio = "BTS 的現代舞擔當，擁有如藝術品般的舞台線條與溫柔細膩嗓音。"
+        ),
+        "BTS|V" to IdolDetail(
+            birth = "1995.12.30",
+            mbti = "INFP",
+            position = "領唱、領舞、門面",
+            bio = "BTS 的成員，擁有極具特色的磁性低音砲與獨一無二的藝術家氣質。"
+        ),
+        "BTS|JungKook" to IdolDetail(
+            birth = "1997.09.01",
+            mbti = "INTP",
+            position = "主唱、主舞、領 Rapper、忙內",
+            bio = "BTS 的黃金忙內，歌唱、舞蹈、創作與運動無所不能的超級巨星。"
+        ),
+
+        // --- CORTIS ---
+        "CORTIS|Seonghyeon" to IdolDetail(
+            birth = "2009.01.13",
+            mbti = "ENFP",
+            position = "隊長、主唱",
+            bio = "CORTIS 的隊長，引領團隊兼具實力與獨特音樂色彩。"
+        ),
+        "CORTIS|Martin" to IdolDetail(
+            birth = "2008.03.20",
+            mbti = "INFP",
+            position = "主 Rapper",
+            bio = "CORTIS 的饒舌擔當，擁有強烈節奏感與個人表演風格。"
+        ),
+        "CORTIS|Keonho" to IdolDetail(
+            birth = "2009.02.14",
+            mbti = "ISFJ",
+            position = "主舞",
+            bio = "CORTIS 的舞蹈核心，展現流暢而富有張力的肢體動作。"
+        ),
+        "CORTIS|Juhoon" to IdolDetail(
+            birth = "2008.01.03",
+            mbti = "ENTP",
+            position = "副唱",
+            bio = "CORTIS 的成員，擁有迷人清爽的嗓音與多變魅力。"
+        ),
+        "CORTIS|James" to IdolDetail(
+            birth = "2005.10.14",
+            mbti = "ENFJ",
+            position = "副唱、忙內",
+            bio = "CORTIS 的老么成員，為團隊注入無限活力與清新氛圍。"
+        ),
+
+        // --- CRAVITY ---
+        "CRAVITY|Serim" to IdolDetail(
+            birth = "1999.03.03",
+            mbti = "ENFJ",
+            position = "隊長、主 Rapper、主舞",
+            bio = "CRAVITY 的溫柔隊長，兼具安定感與出色的饒舌表現。"
+        ),
+        "CRAVITY|Allen" to IdolDetail(
+            birth = "1999.04.26",
+            mbti = "ISFJ",
+            position = "主 Rapper、主舞",
+            bio = "CRAVITY 的美籍台裔成員，精通多國語言，經常參與歌曲作詞編舞。"
+        ),
+        "CRAVITY|Jungmo" to IdolDetail(
+            birth = "2000.02.05",
+            mbti = "INFP",
+            position = "主唱",
+            bio = "CRAVITY 的主唱，擁有溫潤乾淨的嗓音與貴公子般的視覺外貌。"
+        ),
+        "CRAVITY|Woobin" to IdolDetail(
+            birth = "2000.10.16",
+            mbti = "ISFP",
+            position = "主唱",
+            bio = "CRAVITY 的實力派主唱，具備出色的創作才華與高音爆發力。"
+        ),
+        "CRAVITY|Wonjin" to IdolDetail(
+            birth = "2001.03.22",
+            mbti = "ENFP",
+            position = "領唱、主舞",
+            bio = "CRAVITY 的成員，童星出身，擁有甜美開朗的笑容與穩健實力。"
+        ),
+        "CRAVITY|Minhee" to IdolDetail(
+            birth = "2002.09.17",
+            mbti = "ISFP",
+            position = "副唱、門面",
+            bio = "CRAVITY 的高挑成員，擁有清爽吸引人的磁性音色與綜藝感。"
+        ),
+        "CRAVITY|Hyeongjun" to IdolDetail(
+            birth = "2002.11.30",
+            mbti = "ENFP",
+            position = "主舞、副唱",
+            bio = "CRAVITY 的可愛擔當，以精湛靈巧的舞蹈線條與活潑個性深受喜愛。"
+        ),
+        "CRAVITY|Taeyoung" to IdolDetail(
+            birth = "2003.01.27",
+            mbti = "ENFP",
+            position = "副唱、副 Rapper",
+            bio = "CRAVITY 的成員，充滿能量與活力，擁有清亮爽朗的歌聲。"
+        ),
+        "CRAVITY|Seongmin" to IdolDetail(
+            birth = "2003.08.01",
+            mbti = "ISFP",
+            position = "副唱、忙內",
+            bio = "CRAVITY 的老么，擁有精緻秀氣的外貌與溫柔軟萌的性格。"
+        ),
+
+        // --- ENHYPEN ---
+        "ENHYPEN|Jay" to IdolDetail(
+            birth = "2002.04.20",
+            mbti = "ENTP",
+            position = "主 Rapper、領唱",
+            bio = "ENHYPEN 的熱情擔當，擅長吉他與搖滾曲風，個性直率且照顧成員。"
+        ),
+        "ENHYPEN|Jake" to IdolDetail(
+            birth = "2002.11.15",
+            mbti = "ISTJ",
+            position = "副唱、副 Rapper",
+            bio = "ENHYPEN 的澳籍成員，擁有磁性低沉的英文腔調與溫和紳士的特質。"
+        ),
+        "ENHYPEN|Sunghoon" to IdolDetail(
+            birth = "2002.12.08",
+            mbti = "ISTJ",
+            position = "副唱、門面",
+            bio = "前花式滑冰國家代表選手，擁有雕刻般優雅外貌與冰山美男魅力。"
+        ),
+        "ENHYPEN|Sunoo" to IdolDetail(
+            birth = "2003.06.24",
+            mbti = "ENFP",
+            position = "副唱",
+            bio = "ENHYPEN 的表情達人，擁有天生偶像的可愛甜美魅力與豐富綜藝感。"
+        ),
+        "ENHYPEN|Jungwon" to IdolDetail(
+            birth = "2004.02.09",
+            mbti = "ISTJ",
+            position = "隊長、主舞、領唱",
+            bio = "ENHYPEN 穩健成熟的隊長，擁有貓咪般的獨特外貌與穩定細膩的唱功。"
+        ),
+        "ENHYPEN|Ni-ki" to IdolDetail(
+            birth = "2005.12.09",
+            mbti = "ENFJ",
+            position = "主舞、副唱、忙內",
+            bio = "ENHYPEN 的日本籍老么，頂尖的舞蹈天才，舞台表現力極具震撼力。"
+        ),
+
+        // --- 權恩妃 (EUNBI) ---
+        "Eunbi|Eunbi" to IdolDetail(
+            birth = "1995.09.27",
+            mbti = "ENFJ",
+            position = "Solo 歌手、前隊長",
+            bio = "全能的女歌手與前 IZ*ONE 隊長，以女王級的舞台掌控力與清涼唱腔聞名。"
+        ),
+
+        // --- EXO ---
+        "EXO|Xiumin" to IdolDetail(
+            birth = "1990.03.26",
+            mbti = "ISFJ",
+            position = "副唱、副 Rapper",
+            bio = "EXO 的大哥，擁有童顏外表與穩定精湛的強大實力和舞蹈技巧。"
+        ),
+        "EXO|Suho" to IdolDetail(
+            birth = "1991.05.22",
+            mbti = "ENFJ",
+            position = "隊長、主唱",
+            bio = "EXO 溫柔堅定的隊長，擁有名品高音與溫暖動人的抒情歌聲。"
+        ),
+        "EXO|Lay" to IdolDetail(
+            birth = "1991.10.07",
+            mbti = "ENFP",
+            position = "主舞、主唱",
+            bio = "EXO 的中國籍成員，頂尖的編舞家與音樂製作人，才華洋溢。"
+        ),
+        "EXO|Baekhyun" to IdolDetail(
+            birth = "1992.05.06",
+            mbti = "ISFP",
+            position = "主唱",
+            bio = "EXO 的傳奇主唱，擁有天生神級的磁性蜜嗓與無可挑剔的現場演唱實力。"
+        ),
+        "EXO|Chen" to IdolDetail(
+            birth = "1992.09.21",
+            mbti = "ISTP",
+            position = "主唱",
+            bio = "EXO 的三大主唱之一，擁有穿透力十足、高亢且情感濃郁的頂級高音。"
+        ),
+        "EXO|Chanyeol" to IdolDetail(
+            birth = "1992.11.27",
+            mbti = "ENFJ",
+            position = "主 Rapper、副唱",
+            bio = "EXO 的低音 Rapper 與多樂器才子，充滿陽光活力的全能大男孩。"
+        ),
+        "EXO|D.O." to IdolDetail(
+            birth = "1993.01.12",
+            mbti = "ENFJ",
+            position = "主唱",
+            bio = "EXO 的實力派主唱與演員，擁有溫潤厚實的靈魂磁性嗓音與細膩唱功。"
+        ),
+        "EXO|Kai" to IdolDetail(
+            birth = "1994.01.14",
+            mbti = "INFJ",
+            position = "主舞、主 Rapper、副唱",
+            bio = "EXO 的世界級舞蹈天花板，以性感流暢的舞蹈線條與強大藝術表現力著稱。"
+        ),
+        "EXO|Sehun" to IdolDetail(
+            birth = "1994.04.12",
+            mbti = "INFP",
+            position = "主 Rapper、領舞、忙內",
+            bio = "EXO 的貴氣老么，擁有高挑精緻的外貌與不斷進步的舞蹈與饒舌實力。"
+        ),
+        // --- Fromis_9 ---
+        "fromis_9|Hayoung" to IdolDetail(
+            birth = "1997.09.29",
+            mbti = "INFP", // 註：依常見資料或可省略/補上
+            position = "副唱、主舞",
+            bio = "fromis_9 的成員，擁有出色的舞蹈實力與清甜歌聲。"
+        ),
+        "fromis_9|Jiwon" to IdolDetail(
+            birth = "1998.03.20",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "fromis_9 的實力派主唱，擁有穿透力十足的高亢嗓音。"
+        ),
+        "fromis_9|Chaeyoung" to IdolDetail(
+            birth = "2000.05.14",
+            mbti = "ISFP",
+            position = "副唱、領舞、門面",
+            bio = "fromis_9 的成員，兼具綜藝感與亮眼外貌。"
+        ),
+        "fromis_9|Nagyung" to IdolDetail(
+            birth = "2000.06.01", // 或依官方資料
+            mbti = "INTP",
+            position = "副唱、視覺",
+            bio = "fromis_9 的門面擔當，擁有精緻精靈般的外貌與獨特魅力。"
+        ),
+        "fromis_9|Jiheon" to IdolDetail(
+            birth = "2003.04.17",
+            mbti = "ISFJ",
+            position = "副唱、忙內",
+            bio = "fromis_9 的可愛老么，散發清純活潑的少女氣息。"
+        ),
+
+// --- G-DRAGON (權志龍) ---
+        "G-DRAGON|G-Dragon" to IdolDetail(
+            birth = "1988.08.18",
+            mbti = "INFJ", // 權志龍曾公開為 INTJ/INFJ
+            position = "Solo 歌手、BIGBANG 隊長",
+            bio = "南韓傳奇音樂製作人與時尚潮流指標，BIGBANG 的靈魂隊長。"
+        ),
+
+// --- GFRIEND ---
+        "GFRIEND|Sowon" to IdolDetail(
+            birth = "1995.12.07",
+            mbti = "INFP",
+            position = "隊長、副唱、門面",
+            bio = "GFRIEND 的高挑隊長，擁有溫柔照顧成員的暖心特質。"
+        ),
+        "GFRIEND|Yerin" to IdolDetail(
+            birth = "1996.08.19",
+            mbti = "ENFJ",
+            position = "領唱、副舞",
+            bio = "GFRIEND 的活力維生素，以招牌笑眼與綜藝感聞名。"
+        ),
+        "GFRIEND|Eunha" to IdolDetail(
+            birth = "1997.05.30",
+            mbti = "ISTP",
+            position = "主唱",
+            bio = "GFRIEND 的主唱，擁有甜美清爽且極具辨識度的蜜嗓。"
+        ),
+        "GFRIEND|Yuju" to IdolDetail(
+            birth = "1997.10.04",
+            mbti = "ENFJ",
+            position = "主唱",
+            bio = "GFRIEND 的王牌主唱，擁有頂級的高音爆發力與穩健唱功。"
+        ),
+        "GFRIEND|SinB" to IdolDetail(
+            birth = "1998.06.03",
+            mbti = "ISFP",
+            position = "主舞、領唱",
+            bio = "GFRIEND 的舞蹈核心，刀群舞實力強悍且性格率真。"
+        ),
+        "GFRIEND|Umji" to IdolDetail(
+            birth = "1998.08.19",
+            mbti = "INFP",
+            position = "副唱、忙內",
+            bio = "GFRIEND 的可愛老么，擁有越發成熟的音樂才華與甜美歌聲。"
+        ),
+
+// --- 少女時代 (Girls' Generation) ---
+        "Girls' Generation|Taeyeon" to IdolDetail(
+            birth = "1989.03.09",
+            mbti = "INFJ",
+            position = "隊長、主唱",
+            bio = "少女時代的實力主唱與隊長，擁有神級的歌唱技巧與情感渲染力。"
+        ),
+        "Girls' Generation|Sunny" to IdolDetail(
+            birth = "1989.05.15",
+            mbti = "ISTJ",
+            position = "副唱",
+            bio = "少女時代的活力來源，擁有甜美撒嬌魅力與清晰口條。"
+        ),
+        "Girls' Generation|Tiffany" to IdolDetail(
+            birth = "1989.08.01",
+            mbti = "ENTJ",
+            position = "領唱",
+            bio = "少女時代的笑眼擔當，擁有充滿磁性的歐美腔調嗓音與時尚品味。"
+        ),
+        "Girls' Generation|Hyoyeon" to IdolDetail(
+            birth = "1989.09.22",
+            mbti = "ISTJ",
+            position = "主舞、主 Rapper",
+            bio = "少女時代的舞蹈機器，擁有頂尖的街舞實力與率性魅力。"
+        ),
+        "Girls' Generation|Yuri" to IdolDetail(
+            birth = "1989.12.05",
+            mbti = "ENFP",
+            position = "主舞、副唱、副 Rapper",
+            bio = "少女時代的黑珍珠，兼具健康性感美與優秀的演技表現。"
+        ),
+        "Girls' Generation|Sooyoung" to IdolDetail(
+            birth = "1990.02.10",
+            mbti = "ESFJ",
+            position = "主 Rapper、領舞",
+            bio = "少女時代的高挑長腿代表，具備出色的口才與活躍的演員生涯。"
+        ),
+        "Girls' Generation|Yoona" to IdolDetail(
+            birth = "1990.05.30",
+            mbti = "ISTP",
+            position = "領舞、副唱、門面",
+            bio = "少女時代的中心與國民理想型，以清純美貌與優秀演員身分聞名。"
+        ),
+        "Girls' Generation|Seohyun" to IdolDetail(
+            birth = "1991.06.28",
+            mbti = "ESTJ",
+            position = "領唱、忙內",
+            bio = "少女時代自律正直的老么，歌聲溫柔甜美，積極發展戲劇活動。"
+        ),
+
+        // --- GOT7 ---
+        "GOT7|Jay B" to IdolDetail(
+            birth = "1994.01.06",
+            mbti = "INFJ",
+            position = "隊長、主唱、領舞",
+            bio = "GOT7 的 R&B 靈魂隊長，具備出色的詞曲創作與製作能力。"
+        ),
+        "GOT7|Mark" to IdolDetail(
+            birth = "1993.09.04",
+            mbti = "INFJ",
+            position = "主 Rapper、副唱、門面",
+            bio = "GOT7 的美籍臺裔成員，以驚人的武術特技與帥氣外貌著稱。"
+        ),
+        "GOT7|Jackson" to IdolDetail(
+            birth = "1994.03.28",
+            mbti = "ENFJ",
+            position = "主 Rapper、主舞",
+            bio = "GOT7 的王牌綜藝與舞台擔當，個性熱情且充滿國際影響力。"
+        ),
+        "GOT7|Jinyoung" to IdolDetail(
+            birth = "1994.09.22",
+            mbti = "ISFJ",
+            position = "副唱、中心",
+            bio = "GOT7 的溫柔演員兼歌手，擁有細膩的歌聲與扎實演技。"
+        ),
+        "GOT7|Youngjae" to IdolDetail(
+            birth = "1996.09.17",
+            mbti = "ISFP",
+            position = "主唱",
+            bio = "GOT7 的陽光主唱，擁有高亢渾厚且極具渲染力的強大唱功。"
+        ),
+        "GOT7|BamBam" to IdolDetail(
+            birth = "1997.05.02",
+            mbti = "ENFP",
+            position = "領 Rapper、副唱",
+            bio = "GOT7 的泰國籍時尚寵兒，以獨特綜藝感與潮流觸覺見長。"
+        ),
+        "GOT7|Yugyeom" to IdolDetail(
+            birth = "1997.11.17",
+            mbti = "INFJ",
+            position = "主舞、副唱、忙內",
+            bio = "GOT7 的舞蹈機器與老么，擁有強大的街舞爆發力與性感磁性嗓音。"
+        ),
+
+        // --- Hearts2Hearts ---
+        "Hearts2Hearts|Jiwoo" to IdolDetail(
+            birth = "2006.09.07",
+            mbti = "ENFP",
+            position = "成員",
+            bio = "Hearts2Hearts 的成員，展現清新與音樂多樣性。"
+        ),
+        "Hearts2Hearts|Yuha" to IdolDetail(
+            birth = "2007.04.12",
+            mbti = "INFP",
+            position = "成員",
+            bio = "Hearts2Hearts 的成員，擁有獨特的個人魅力與歌聲。"
+        ),
+        "Hearts2Hearts|Juun" to IdolDetail(
+            birth = "2008.12.03",
+            mbti = "ISFJ",
+            position = "成員",
+            bio = "Hearts2Hearts 的成員，充滿舞台親和力。"
+        ),
+        "Hearts2Hearts|A-Na" to IdolDetail(
+            birth = "2008.12.20",
+            mbti = "ENFJ",
+            position = "成員",
+            bio = "Hearts2Hearts 的成員，帶來充滿活力的表演。"
+        ),
+        "Hearts2Hearts|Ian" to IdolDetail(
+            birth = "2009.10.09",
+            mbti = "ISTP",
+            position = "成員",
+            bio = "Hearts2Hearts 的成員，擁有亮眼的舞台表現。"
+        ),
+        "Hearts2Hearts|Ye-On" to IdolDetail(
+            birth = "2010.04.19",
+            mbti = "INTP",
+            position = "成員",
+            bio = "Hearts2Hearts 的成員，散發獨特的青春氣息。"
+        ),
+        "Hearts2Hearts|Carmen" to IdolDetail(
+            birth = "2006.03.28",
+            mbti = "ESFP",
+            position = "成員",
+            bio = "Hearts2Hearts 的印尼籍成員，擁有異國風情的高顏值與才華。"
+        ),
+        "Hearts2Hearts|Stella" to IdolDetail(
+            birth = "2007.06.18",
+            mbti = "ENFP",
+            position = "成員",
+            bio = "Hearts2Hearts 的韓加雙籍成員，展現國際化的自信魅力。"
+        ),
+
+        // --- i-dle ---
+        "I-DLE|Miyeon" to IdolDetail(
+            birth = "1997.01.31",
+            mbti = "ENFP",
+            position = "主唱、門面",
+            bio = "i-dle 的主唱與大姊，擁有如仙女般的外貌與清澈動人的蜜嗓。"
+        ),
+        "I-DLE|Minnie" to IdolDetail(
+            birth = "1997.10.23",
+            mbti = "ENFJ",
+            position = "主唱",
+            bio = "i-dle 的泰國籍成員，擁有夢幻神祕的獨特慵懶磁性嗓音與創作才華。"
+        ),
+        "I-DLE|Soyeon" to IdolDetail(
+            birth = "1998.08.26",
+            mbti = "INTP",
+            position = "隊長、主 Rapper、主唱",
+            bio = "i-dle 的天才創作隊長，詞曲製作與強悍饒舌實力頂尖的全能製作人。"
+        ),
+        "I-DLE|Yuqi" to IdolDetail(
+            birth = "1999.09.23",
+            mbti = "ENFJ",
+            position = "副唱、領舞",
+            bio = "i-dle 的中國籍成員，擁有極具辨識度的低沉磁性煙嗓與綜藝魅力。"
+        ),
+        "I-DLE|Shuhua" to IdolDetail(
+            birth = "2000.01.06",
+            mbti = "INFP",
+            position = "副唱、門面、忙內",
+            bio = "i-dle 的台灣籍老么，擁有清純脫俗的外貌與率真直爽的性格。"
+        ),
+
+// --- IDID ---
+        "IDID|Yonghoon" to IdolDetail(
+            birth = "2005.04.20",
+            mbti = "ENFP",
+            position = "成員",
+            bio = "STARSHIP 旗下男團 IDID 的成員，展現新星活力。"
+        ),
+        "IDID|Minjae" to IdolDetail(
+            birth = "2005.08.17",
+            mbti = "INFP",
+            position = "成員",
+            bio = "IDID 成員，具備穩定的歌唱與舞蹈基礎。"
+        ),
+        "IDID|Wonbin" to IdolDetail(
+            birth = "2006.04.19",
+            mbti = "ISFJ",
+            position = "成員",
+            bio = "IDID 成員，擁有清爽的舞台魅力。"
+        ),
+        "IDID|Yuchan" to IdolDetail(
+            birth = "2006.10.03",
+            mbti = "ENTP",
+            position = "成員",
+            bio = "IDID 成員，帶給粉絲耳目一新的表演。"
+        ),
+        "IDID|Seonghyun" to IdolDetail(
+            birth = "2007.10.05",
+            mbti = "ISTJ",
+            position = "成員",
+            bio = "IDID 成員，展現扎實的練習成果。"
+        ),
+        "IDID|Junhyeok" to IdolDetail(
+            birth = "2008.06.07",
+            mbti = "ENFJ",
+            position = "成員",
+            bio = "IDID 成員，充滿自信與熱情。"
+        ),
+        "IDID|Semin" to IdolDetail(
+            birth = "2008.10.10",
+            mbti = "INFP",
+            position = "成員、忙內",
+            bio = "IDID 的老么成員，充滿青春潛力。"
+        ),
+
+// --- ITZY ---
+        "ITZY|Yeji" to IdolDetail(
+            birth = "2000.05.26",
+            mbti = "ESTJ",
+            position = "隊長、主舞、主唱、領 Rapper",
+            bio = "ITZY 的全能隊長，以貓系高級臉與教科書級的頂尖舞技聞名。"
+        ),
+        "ITZY|Lia" to IdolDetail(
+            birth = "2000.07.21",
+            mbti = "ENFJ",
+            position = "主唱",
+            bio = "ITZY 的主唱，擁有如絲綢般溫柔細膩的爵士質感蜜嗓。"
+        ),
+        "ITZY|Ryujin" to IdolDetail(
+            birth = "2001.04.17",
+            mbti = "INTP",
+            position = "主 Rapper、主舞、中心",
+            bio = "ITZY 的帥氣中心，以獨特的酷帥魅力與標誌性編舞風靡全球。"
+        ),
+        "ITZY|Chaeryeong" to IdolDetail(
+            birth = "2001.06.05",
+            mbti = "ISFJ",
+            position = "主舞、主唱、領 Rapper",
+            bio = "ITZY 的舞蹈天才，肢體線條優雅流暢，舞台表情豐富細膩。"
+        ),
+        "ITZY|Yuna" to IdolDetail(
+            birth = "2003.12.09",
+            mbti = "ENFP",
+            position = "領唱、領舞、副 Rapper、門面、忙內",
+            bio = "ITZY 的耀眼老么與門面，擁有高挑身材與充滿魅力的明朗舞台風格。"
+        ),
+
+// --- IVE ---
+        "IVE|Gaeul" to IdolDetail(
+            birth = "2002.09.24",
+            mbti = "ISTJ",
+            position = "主 Rapper、領舞",
+            bio = "IVE 的大姊與 Rapper，以沉穩內斂的舞台表現與反轉魅力著稱。"
+        ),
+        "IVE|Yujin" to IdolDetail(
+            birth = "2003.09.01",
+            mbti = "ISTP",
+            position = "隊長、主唱",
+            bio = "IVE 的王牌隊長，擁有清亮宏亮的實力唱功與頂級的綜藝領導力。"
+        ),
+        "IVE|Rei" to IdolDetail(
+            birth = "2004.02.03",
+            mbti = "INFJ",
+            position = "主 Rapper、副唱",
+            bio = "IVE 的日本籍成員，擁有獨特的音色與鬼馬精靈般的可愛文青感。"
+        ),
+        "IVE|Wonyoung" to IdolDetail(
+            birth = "2004.08.31",
+            mbti = "ISFP",
+            position = "副唱、中心、門面",
+            bio = "IVE 的頂級中心與時尚標竿，擁有天生偶像的完美外貌與強大吸睛度。"
+        ),
+        "IVE|Liz" to IdolDetail(
+            birth = "2004.11.21",
+            mbti = "INFP",
+            position = "主唱",
+            bio = "IVE 的實力主唱，擁有清澈透亮且深具感染力的磁性好嗓音。"
+        ),
+        "IVE|Leeseo" to IdolDetail(
+            birth = "2007.02.21",
+            mbti = "ENFP",
+            position = "副唱、門面、忙內",
+            bio = "IVE 的可愛老么，充滿活力與自信大方的舞台表現力。"
+        ),
+
+// --- IZ*ONE ---
+        "IZ*ONE|Eunbi" to IdolDetail(
+            birth = "1995.09.27",
+            mbti = "ENFJ",
+            position = "隊長 (IZ*ONE)、主唱、主舞",
+            bio = "IZ*ONE 的可靠大姊與隊長，兼具性感霸氣的舞台女王氣場。"
+        ),
+        "IZ*ONE|Sakura" to IdolDetail(
+            birth = "1998.03.19",
+            mbti = "INFP",
+            position = "副唱、副 Rapper",
+            bio = "日籍成員，擁有極高的人氣與豐富的偶像經驗、精緻美貌。"
+        ),
+        "IZ*ONE|Hyewon" to IdolDetail(
+            birth = "1999.07.05",
+            mbti = "ESFP",
+            position = "副唱、副 Rapper",
+            bio = "IZ*ONE 的清純美少女，個性四次元且溫柔善良。"
+        ),
+        "IZ*ONE|Yena" to IdolDetail(
+            birth = "1999.09.29",
+            mbti = "ENFP",
+            position = "主唱、主舞、主 Rapper",
+            bio = "IZ*ONE 的活力微笑炸彈，歌唱、饒舌與綜藝感全能。"
+        ),
+        "IZ*ONE|Chaeyeon" to IdolDetail(
+            birth = "2000.01.11",
+            mbti = "ISFJ",
+            position = "主舞、主唱、主 Rapper",
+            bio = "羽毛般的頂級舞蹈天后，編舞與歌唱實力皆為頂尖水準。"
+        ),
+        "IZ*ONE|Chaewon" to IdolDetail(
+            birth = "2000.08.01",
+            mbti = "ISTP",
+            position = "領唱",
+            bio = "IZ*ONE 的精靈主唱，擁有乾淨甜美的嗓音與出色的表情管理。"
+        ),
+        "IZ*ONE|Minju" to IdolDetail(
+            birth = "2001.02.05",
+            mbti = "INFJ",
+            position = "副唱、門面",
+            bio = "IZ*ONE 的清純氣質門面，擁有溫柔優雅的特質。"
+        ),
+        "IZ*ONE|Nako" to IdolDetail(
+            birth = "2001.06.18",
+            mbti = "INFP",
+            position = "副唱",
+            bio = "日籍成員，擁有小巧可愛的身高與驚豔的高音歌唱實力。"
+        ),
+        "IZ*ONE|Hitomi" to IdolDetail(
+            birth = "2001.10.06",
+            mbti = "ENFJ",
+            position = "副唱、主舞",
+            bio = "日籍成員，以扎實甜美的舞蹈實力和可愛腮紅魅力著稱。"
+        ),
+        "IZ*ONE|Yuri" to IdolDetail(
+            birth = "2001.10.22",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "IZ*ONE 的強力主唱，擁有磁性沙啞又極具爆發力的獨特好聲音。"
+        ),
+
+// --- izna ---
+        "izna|Jeemin" to IdolDetail(
+            birth = "2005.05.10",
+            mbti = "INFP",
+            position = "中心、主唱",
+            bio = "izna 的實力核心與門面，擁有穩定的歌唱實力與清秀外貌。"
+        ),
+        "izna|Sarang" to IdolDetail(
+            birth = "2007.07.09",
+            mbti = "ENFP",
+            position = "主唱、領舞",
+            bio = "izna 的成員，具備甜美清爽的歌聲與出色的舞台表現。"
+        ),
+        "izna|Jungeun" to IdolDetail(
+            birth = "2007.08.04",
+            mbti = "ISTP",
+            position = "主唱",
+            bio = "izna 的實力派主唱，擁有極具穿透力與穩定度的聲線。"
+        ),
+        "izna|Saebi" to IdolDetail(
+            birth = "2008.01.22",
+            mbti = "ENFP",
+            position = "副唱、忙內",
+            bio = "izna 的高挑忙內，擁有強大的舞台氣場與全面實力。"
+        ),
+        "izna|Mai" to IdolDetail(
+            birth = "2004.10.28",
+            mbti = "ISFP",
+            position = "副唱",
+            bio = "izna 的日本籍成員，擁有溫柔獨特的嗓音與仙氣外貌。"
+        ),
+        "izna|Koko" to IdolDetail(
+            birth = "2006.11.14",
+            mbti = "ENFP",
+            position = "主舞、主 Rapper",
+            bio = "izna 的日本籍成員，擁有高挑修長的身材與帥氣俐落的饒舌和舞蹈。"
+        ),
+
+// --- Kep1er ---
+        "Kep1er|Yujin" to IdolDetail(
+            birth = "1996.08.12",
+            mbti = "ENFP",
+            position = "隊長、領唱、領舞",
+            bio = "Kep1er 的溫柔隊長與前 CLC 成員，擁有凍齡美貌與全能實力。"
+        ),
+        "Kep1er|Xiaoting" to IdolDetail(
+            birth = "1999.11.12",
+            mbti = "ISTJ",
+            position = "副唱、主舞",
+            bio = "Kep1er 的中國籍成員，國標舞出身，擁有極為優雅高貴的舞台儀態。"
+        ),
+        "Kep1er|Chaehyun" to IdolDetail(
+            birth = "2002.08.18",
+            mbti = "ISTP",
+            position = "主唱、中心",
+            bio = "Kep1er 的中心主唱，擁有乾淨透亮、實力堅強的甜美歌聲。"
+        ),
+        "Kep1er|Dayeon" to IdolDetail(
+            birth = "2003.03.02",
+            mbti = "ESTP",
+            position = "主舞、主 Rapper、主唱",
+            bio = "Kep1er 的編舞與全能王牌，擁有世界級的舞蹈編排與饒舌實力。"
+        ),
+        "Kep1er|Ezaki Hikaru " to IdolDetail(
+            birth = "2004.03.12",
+            mbti = "ESFJ",
+            position = "主 Rapper、主舞",
+            bio = "Kep1er 的日本籍成員，擁有低沉磁性、速度極快的爆發力饒舌與強大舞台魅力。"
+        ),
+        "Kep1er|Huening Bahiyyih" to IdolDetail(
+            birth = "2004.07.27",
+            mbti = "ISFJ",
+            position = "副唱",
+            bio = "Kep1er 的韓美混血成員，擁有深邃混血美貌與甜美溫柔的嗓音。"
+        ),
+
+// --- KickFlip ---
+        "KickFlip|Kyehoon" to IdolDetail(
+            birth = "2004.09.16",
+            mbti = "ENTJ",
+            position = "隊長、主唱",
+            bio = "JYP 新男團 KickFlip 的隊長，具備扎實長久練習生生涯的領導實力。"
+        ),
+        "KickFlip|Amaru" to IdolDetail(
+            birth = "2005.10.21",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "KickFlip 的日籍成員，透過選秀《LOUD》脫穎而出，擁有深厚感性歌喉。"
+        ),
+        "KickFlip|Keiju" to IdolDetail(
+            birth = "2006.10.04",
+            mbti = "ISFP",
+            position = "主舞",
+            bio = "KickFlip 的日籍成員，舞蹈天賦極高，舞台表情可愛靈動。"
+        ),
+        "KickFlip|Donghyeon" to IdolDetail(
+            birth = "2007.03.13",
+            mbti = "ENFJ",
+            position = "副唱",
+            bio = "KickFlip 成員，散發清新陽光的少年魅力。"
+        ),
+        "KickFlip|Donghwa" to IdolDetail(
+            birth = "2006.03.11",
+            mbti = "INFP",
+            position = "副唱",
+            bio = "KickFlip 成員，擁有溫和細膩的音色。"
+        ),
+        "KickFlip|Juwang" to IdolDetail(
+            birth = "2006.05.02",
+            mbti = "ISTJ",
+            position = "主 Rapper",
+            bio = "KickFlip 的饒舌擔當，節奏感與低音表現出色。"
+        ),
+        "KickFlip|Minje" to IdolDetail(
+            birth = "2006.05.12",
+            mbti = "ENFP",
+            position = "副唱、忙內",
+            bio = "KickFlip 的可愛老么，充滿無限活力。"
+        ),
+
+// --- KiiiKiii ---
+        "KiiiKiii|Leesol" to IdolDetail(
+            birth = "2005.09.18",
+            mbti = "ISFJ",
+            position = "成員",
+            bio = "STARSHIP 新女團 KiiiKiii 的成員，展現清新獨特個性。"
+        ),
+        "KiiiKiii|Sui" to IdolDetail(
+            birth = "2006.04.10",
+            mbti = "ENTP",
+            position = "主饒舌、副唱、門面",
+            bio = "KiiiKiii 的成員，兼具饒舌實力與亮眼外貌。"
+        ),
+        "KiiiKiii|Jiyu" to IdolDetail(
+            birth = "2006.05.14",
+            mbti = "ENFJ",
+            position = "隊長",
+            bio = "KiiiKiii 的可靠隊長，引領團隊獨特自由的音樂風格。"
+        ),
+        "KiiiKiii|Haum" to IdolDetail(
+            birth = "2006.11.14",
+            mbti = "INFJ",
+            position = "領饒舌、領舞、副唱",
+            bio = "KiiiKiii 的舞蹈與饒舌核心成員。"
+        ),
+        "KiiiKiii|Kya" to IdolDetail(
+            birth = "2010.12.18",
+            mbti = "ENFP",
+            position = "主舞、領唱、副饒舌",
+            bio = "KiiiKiii 的成員，充滿動感活力與舞蹈才華。"
+        ),
+
+// --- KISS OF LIFE ---
+        "KISS OF LIFE|Julie" to IdolDetail(
+            birth = "2000.03.29",
+            mbti = "ENFP",
+            position = "隊長、主 Rapper、主舞",
+            bio = "KISS OF LIFE 的韓美雙籍隊長，擁有強烈歐美風的饒舌功底與性感舞姿。"
+        ),
+        "KISS OF LIFE|Natty" to IdolDetail(
+            birth = "2002.05.30",
+            mbti = "INFJ",
+            position = "主舞、主 Rapper、副唱",
+            bio = "泰國籍成員，具備頂級的舞蹈實力和性感自信的個人 Solo 風格。"
+        ),
+        "KISS OF LIFE|Belle" to IdolDetail(
+            birth = "2004.03.20",
+            mbti = "ENFP",
+            position = "主唱、詞曲創作",
+            bio = "韓美雙籍成員，擁有天生頂級的 R&B 轉音技巧與優秀詞曲創作能力。"
+        ),
+        "KISS OF LIFE|Haneul" to IdolDetail(
+            birth = "2005.05.25",
+            mbti = "ISTP",
+            position = "主唱、忙內",
+            bio = "KISS OF LIFE 的實力派老么，擁有清亮乾淨且極具爆發力的好歌聲。"
+        ),
+        // --- LE SSERAFIM ---
+        "LE SSERAFIM|Sakura" to IdolDetail(
+            birth = "1998.03.19",
+            mbti = "INFP",
+            position = "副唱",
+            bio = "LE SSERAFIM 的日籍成員，擁有豐富的偶像經歷與高人氣。"
+        ),
+        "LE SSERAFIM|Kim Chaewon" to IdolDetail(
+            birth = "2000.08.01",
+            mbti = "ISTP",
+            position = "隊長、領唱",
+            bio = "LE SSERAFIM 的可靠隊長，擁有精靈般的短髮造型與穩定唱功。"
+        ),
+        "LE SSERAFIM|Huh Yunjin" to IdolDetail(
+            birth = "2001.10.08",
+            mbti = "INFJ",
+            position = "主唱",
+            bio = "LE SSERAFIM 的美籍成員，具備出色的詞曲創作與美聲爆發力。"
+        ),
+        "LE SSERAFIM|Kazuha" to IdolDetail(
+            birth = "2003.08.09",
+            mbti = "ENFP",
+            position = "副唱、副 Rapper",
+            bio = "LE SSERAFIM 的日籍成員，曾有多年專業芭蕾舞訓練背景。"
+        ),
+        "LE SSERAFIM|Hong Eunchae" to IdolDetail(
+            birth = "2006.11.10",
+            mbti = "ISFP",
+            position = "副唱、忙內",
+            bio = "LE SSERAFIM 的可愛老么，充滿活力與明朗的綜藝感。"
+        ),
+
+        // --- LIGHTSUM ---
+        "LIGHTSUM|Sangah" to IdolDetail(
+            birth = "2002.09.04",
+            mbti = "ENFP",
+            position = "主 Rapper、主舞",
+            bio = "LIGHTSUM 的成員，擁有出色的舞蹈實力與帥氣饒舌。"
+        ),
+        "LIGHTSUM|Chowon" to IdolDetail(
+            birth = "2002.09.16",
+            mbti = "INFP",
+            position = "主唱",
+            bio = "LIGHTSUM 的實力派主唱，擁有極具穿透力的宏亮嗓音。"
+        ),
+        "LIGHTSUM|Nayoung" to IdolDetail(
+            birth = "2002.11.30",
+            mbti = "ESFJ",
+            position = "主唱、領舞",
+            bio = "LIGHTSUM 的成員，擁有甜美的外貌與穩定歌唱實力。"
+        ),
+        "LIGHTSUM|Hina" to IdolDetail(
+            birth = "2003.04.07",
+            mbti = "INFP",
+            position = "副唱",
+            bio = "LIGHTSUM 的日籍成員，散發清新溫柔的魅力。"
+        ),
+        "LIGHTSUM|Juhyeon" to IdolDetail(
+            birth = "2004.04.08",
+            mbti = "ESFP",
+            position = "隊長、主舞、主唱",
+            bio = "LIGHTSUM 的全能隊長，從小就展現驚人的舞蹈天賦。"
+        ),
+        "LIGHTSUM|Yujeong" to IdolDetail(
+            birth = "2004.06.14",
+            mbti = "ISFJ",
+            position = "副唱、忙內",
+            bio = "LIGHTSUM 的可愛老么，擁有甜美清純的特質。"
+        ),
+
+        // --- LNGSHOT ---
+        "LNGSHOT|OHYUL" to IdolDetail(
+            birth = "2006.01.21",
+            mbti = "未知",
+            position = "隊長、Vocal",
+            bio = "LNGSHOT 的隊長與 Vocal 擔當。"
+        ),
+        "LNGSHOT|RYUL" to IdolDetail(
+            birth = "2006.09.18",
+            mbti = "未知",
+            position = "主 Rapper",
+            bio = "LNGSHOT 的主 Rapper 擔當。"
+        ),
+        "LNGSHOT|WOOJIN" to IdolDetail(
+            birth = "2008.03.08",
+            mbti = "未知",
+            position = "製作、主舞",
+            bio = "LNGSHOT 的製作與主舞擔當。"
+        ),
+        "LNGSHOT|LOUIS" to IdolDetail(
+            birth = "2010.05.01",
+            mbti = "未知",
+            position = "忙內、Vocal",
+            bio = "LNGSHOT 的韓法混血老么與 Vocal 擔當。"
+        ),
+        // --- MAMAMOO ---
+        "MAMAMOO|Solar" to IdolDetail(
+            birth = "1991.02.21",
+            mbti = "INTJ",
+            position = "隊長、主唱",
+            bio = "MAMAMOO 的活力隊長，擁有頂級的高音爆發力與百變魅力。"
+        ),
+        "MAMAMOO|Moonbyul" to IdolDetail(
+            birth = "1992.12.22",
+            mbti = "ESTP",
+            position = "主 Rapper、主舞",
+            bio = "MAMAMOO 的帥氣 Rapper 與編舞者，擁有獨特低沉磁性嗓音。"
+        ),
+        "MAMAMOO|Wheein" to IdolDetail(
+            birth = "1995.04.17",
+            mbti = "ISFP",
+            position = "主唱、主舞",
+            bio = "MAMAMOO 的蜜嗓主唱，歌聲靈動且具備極佳的 R&B 轉音技巧。"
+        ),
+        "MAMAMOO|Hwasa" to IdolDetail(
+            birth = "1995.07.23",
+            mbti = "INFP",
+            position = "主唱、主 Rapper、忙內",
+            bio = "MAMAMOO 的性感老么，擁有獨一無二的歐美唱腔與強大舞台氣場。"
+        ),
+
+        // --- MEOVV ---
+        "MEOVV|Sooin" to IdolDetail(
+            birth = "2005.04.12",
+            mbti = "未知",
+            position = "成員",
+            bio = "The Black Label 推出的新女團 MEOVV 成員。"
+        ),
+        "MEOVV|Gawon" to IdolDetail(
+            birth = "2005.04.27",
+            mbti = "未知",
+            position = "成員",
+            bio = "MEOVV 成員，擁有高䠷身材與出眾外貌。"
+        ),
+        "MEOVV|Anna" to IdolDetail(
+            birth = "2005.11.17",
+            mbti = "未知",
+            position = "成員",
+            bio = "MEOVV 的日籍成員，散發精緻清冷氣質。"
+        ),
+        "MEOVV|Narin" to IdolDetail(
+            birth = "2007.08.15",
+            mbti = "未知",
+            position = "成員",
+            bio = "MEOVV 成員，具備出色的舞蹈與饒舌潛力。"
+        ),
+        "MEOVV|Ella" to IdolDetail(
+            birth = "2008.12.01",
+            mbti = "未知",
+            position = "忙內",
+            bio = "MEOVV 的混血老么，擁有極高知名度與甜美外貌。"
+        ),
+
+        // --- MONSTA X ---
+        "MONSTA X|Shownu" to IdolDetail(
+            birth = "1992.06.18",
+            mbti = "ISFJ",
+            position = "隊長、主舞、主唱",
+            bio = "MONSTA X 的溫柔隊長與舞蹈核心，身材健碩且個性沉穩。"
+        ),
+        "MONSTA X|Minhyuk" to IdolDetail(
+            birth = "1993.11.03",
+            mbti = "ENFJ",
+            position = "副唱",
+            bio = "MONSTA X 的綜藝與氣氛擔當，擁有開朗活潑的親和力。"
+        ),
+        "MONSTA X|Kihyun" to IdolDetail(
+            birth = "1993.11.22",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "MONSTA X 的神級主唱，擁有穿透力極強的高亢清亮嗓音。"
+        ),
+        "MONSTA X|Hyungwon" to IdolDetail(
+            birth = "1994.01.15",
+            mbti = "INFP",
+            position = "副唱、主舞",
+            bio = "MONSTA X 的門面擔當，身兼 DJ 與詞曲創作者。"
+        ),
+        "MONSTA X|Joohoney" to IdolDetail(
+            birth = "1994.10.06",
+            mbti = "ENFP",
+            position = "主 Rapper、副唱",
+            bio = "MONSTA X 的王牌饒舌歌手，舞台上霸氣十足，私下卻有可愛反轉魅力。"
+        ),
+        "MONSTA X|I.M" to IdolDetail(
+            birth = "1996.01.26",
+            mbti = "INFP",
+            position = "主 Rapper、忙內",
+            bio = "MONSTA X 的低音 Rapper 與老么，擁有極具磁性的英文嗓音與個人音樂風格。"
+        ),
+
+        // --- N.Flying ---
+        "N.Flying|Lee Seung Hyub" to IdolDetail(
+            birth = "1992.10.31",
+            mbti = "ENFP",
+            position = "隊長、主唱、主 Rapper、吉他手",
+            bio = "N.Flying 的全能隊長，詞曲創作與才華洋溢的實力派音樂人。"
+        ),
+        "N.Flying|Cha Hun" to IdolDetail(
+            birth = "1994.07.12",
+            mbti = "ISTP",
+            position = "吉他手、副唱",
+            bio = "N.Flying 的吉他擔當，擁有精湛琴藝與溫和個性。"
+        ),
+        "N.Flying|Kim Jae Hyun" to IdolDetail(
+            birth = "1994.07.15",
+            mbti = "ESFJ",
+            position = "鼓手",
+            bio = "N.Flying 的活力鼓手，擁有開朗幽默的綜藝感與演員身分。"
+        ),
+        "N.Flying|Yoo Hwe Seung" to IdolDetail(
+            birth = "1995.02.28",
+            mbti = "ISFP",
+            position = "主唱",
+            bio = "N.Flying 的高音主唱，擁有震撼人心的鐵肺級宏亮歌喉。"
+        ),
+        "N.Flying|Seo Dong Sung" to IdolDetail(
+            birth = "1994.04.09",
+            mbti = "ISFP",
+            position = "貝斯手、副唱、忙內",
+            bio = "N.Flying 的貝斯手與老么，帶來溫暖穩定的樂器伴奏。"
+        ),
+
+        // --- NCT 127 ---
+        "NCT 127|Johnny" to IdolDetail(
+            birth = "1995.02.09",
+            mbti = "ENTP",
+            position = "副唱、副 Rapper",
+            bio = "NCT 127 的美籍成員，擁有高大修長身材與優秀的DJ及主持才華。"
+        ),
+        "NCT 127|Taeyong" to IdolDetail(
+            birth = "1995.07.05",
+            mbti = "INFP",
+            position = "隊長、主 Rapper、主舞",
+            bio = "NCT 127 的靈魂隊長，兼具頂尖的舞台饒舌、編舞與詞曲創作能力。"
+        ),
+        "NCT 127|Yuta" to IdolDetail(
+            birth = "1995.10.26",
+            mbti = "ISFP",
+            position = "主舞、副唱",
+            bio = "NCT 127 的日籍成員，擁有迷人搖滾嗓音與帥氣率性的舞台魅力。"
+        ),
+        "NCT 127|Doyoung" to IdolDetail(
+            birth = "1996.02.01",
+            mbti = "ISFJ",
+            position = "主唱",
+            bio = "NCT 127 的實力派主唱，擁有溫暖乾淨且極具情感共鳴的清亮嗓音。"
+        ),
+        "NCT 127|Jaehyun" to IdolDetail(
+            birth = "1997.02.14",
+            mbti = "ESTP",
+            position = "主唱、主舞",
+            bio = "NCT 127 的貴公子代表，擁有溫潤迷人的低音蜜嗓與貴氣外貌。"
+        ),
+        "NCT 127|Jungwoo" to IdolDetail(
+            birth = "1998.02.19",
+            mbti = "INFJ",
+            position = "主唱、主舞",
+            bio = "NCT 127 的成員，具備細膩柔和的歌聲與活潑幽默的綜藝感。"
+        ),
+        "NCT 127|Mark" to IdolDetail(
+            birth = "1999.08.02",
+            mbti = "INFJ",
+            position = "主 Rapper、主舞",
+            bio = "NCT 核心成員，跨足多個小分隊，擁有頂級快嘴饒舌與創作實力。"
+        ),
+        "NCT 127|Haechan" to IdolDetail(
+            birth = "2000.06.06",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "NCT 127 與 DREAM 的核心主唱，擁有辨識度極高且靈動的甜美音色。"
+        ),
+
+        // --- NCT 道在廷 (NCT DOJAEJUNG) ---
+        "NCT DOJAEJUNG|Doyoung" to IdolDetail(
+            birth = "1996.02.01",
+            mbti = "ISFJ",
+            position = "主唱",
+            bio = "NCT 小分隊道在廷的主唱，以細膩情感唱腔著稱。"
+        ),
+        "NCT DOJAEJUNG|Jaehyun" to IdolDetail(
+            birth = "1997.02.14",
+            mbti = "ESTP",
+            position = "主唱",
+            bio = "NCT 小分隊道在廷的主唱，展現 R&B 浪漫曲風。"
+        ),
+        "NCT DOJAEJUNG|Jungwoo" to IdolDetail(
+            birth = "1998.02.19",
+            mbti = "INFJ",
+            position = "主唱",
+            bio = "NCT 小分隊道在廷的主唱，帶來清新舒服的合聲。"
+        ),
+
+        // --- NCT DREAM ---
+        "NCT DREAM|Mark" to IdolDetail(
+            birth = "1999.08.02",
+            mbti = "INFJ",
+            position = "隊長、主 Rapper",
+            bio = "NCT DREAM 的元老隊長與王牌 Rapper。"
+        ),
+        "NCT DREAM|Renjun" to IdolDetail(
+            birth = "2000.03.23",
+            mbti = "ISFP",
+            position = "主唱",
+            bio = "NCT DREAM 的中國籍成員，擁有清澈純淨如童話般的動人歌聲。"
+        ),
+        "NCT DREAM|Jeno" to IdolDetail(
+            birth = "2000.04.23",
+            mbti = "ISFP",
+            position = "主舞、主 Rapper",
+            bio = "NCT DREAM 的成員，擁有招牌笑眼與強烈力量感的舞蹈風格。"
+        ),
+        "NCT DREAM|Haechan" to IdolDetail(
+            birth = "2000.06.06",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "NCT DREAM 不可或缺的黃金主唱。"
+        ),
+        "NCT DREAM|Jaemin" to IdolDetail(
+            birth = "2000.08.13",
+            mbti = "ISFJ",
+            position = "主舞、副 Rapper",
+            bio = "NCT DREAM 的成員，擁有精緻出眾的視覺外貌與溫柔個性。"
+        ),
+        "NCT DREAM|Chenle" to IdolDetail(
+            birth = "2001.11.22",
+            mbti = "INFP",
+            position = "主唱",
+            bio = "NCT DREAM 的中國籍主唱，擁有高亢嘹亮且極具質感的清脆嗓音。"
+        ),
+        "NCT DREAM|Jisung" to IdolDetail(
+            birth = "2002.02.05",
+            mbti = "INFJ",
+            position = "主舞、忙內",
+            bio = "NCT DREAM 的老么，擁有頂尖流暢的現代舞與街舞實力。"
+        ),
+
+        // --- NCT WISH ---
+        "NCT WISH|Sion" to IdolDetail(
+            birth = "2002.05.11",
+            mbti = "INTJ",
+            position = "隊長、主唱",
+            bio = "NCT WISH 的穩重隊長，帶領日本線分隊展現清新活力。"
+        ),
+        "NCT WISH|Riku" to IdolDetail(
+            birth = "2003.06.28",
+            mbti = "ISFP",
+            position = "主 Rapper、主舞",
+            bio = "NCT WISH 的日籍成員，擁有俐落敏捷的舞台表現。"
+        ),
+        "NCT WISH|Yushi" to IdolDetail(
+            birth = "2004.04.05",
+            mbti = "ISFJ",
+            position = "主唱、主舞",
+            bio = "NCT WISH 的日籍成員，擁有獨特的空靈神祕氣質與優美舞姿。"
+        ),
+        "NCT WISH|Jaehee" to IdolDetail(
+            birth = "2005.06.21",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "NCT WISH 的成員，擁有開朗笑容與清亮高亢的好歌聲。"
+        ),
+        "NCT WISH|Ryo" to IdolDetail(
+            birth = "2007.08.04",
+            mbti = "ENFP",
+            position = "副唱",
+            bio = "NCT WISH 的日籍成員，充滿陽光開朗的少年魅力。"
+        ),
+        "NCT WISH|Sakuya" to IdolDetail(
+            birth = "2007.11.18",
+            mbti = "ENFP",
+            position = "副唱、忙內",
+            bio = "NCT WISH 的日籍可愛老么，散發滿滿的淘氣活力。"
+        ),
+
+        // --- NMIXX ---
+        "NMIXX|Lily" to IdolDetail(
+            birth = "2002.10.17",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "NMIXX 的澳韓混血主唱，擁有頂級的震撼巨肺高音與豐富唱功。"
+        ),
+        "NMIXX|Haewon" to IdolDetail(
+            birth = "2003.02.25",
+            mbti = "ESTP",
+            position = "隊長、主唱",
+            bio = "NMIXX 的幽默隊長與實力派主唱，以穩健Live和超強綜藝梗聞名。"
+        ),
+        "NMIXX|Sullyoon" to IdolDetail(
+            birth = "2004.01.26",
+            mbti = "ISFP",
+            position = "主唱、領舞、門面",
+            bio = "NMIXX 的神顏門面，擁有精緻洋娃娃外貌與清甜甜美的歌聲。"
+        ),
+        "NMIXX|Bae" to IdolDetail(
+            birth = "2004.12.28",
+            mbti = "ENFP",
+            position = "領唱、領舞",
+            bio = "NMIXX 的成員，擁有獨特低沉磁性的迷人中低音音色。"
+        ),
+        "NMIXX|Jiwoo" to IdolDetail(
+            birth = "2005.04.13",
+            mbti = "ESFP",
+            position = "主 Rapper、主舞、主唱",
+            bio = "NMIXX 的全能ACE，爆發力十足的饒舌與舞蹈實力兼備。"
+        ),
+        "NMIXX|Kyujin" to IdolDetail(
+            birth = "2006.05.26",
+            mbti = "ESFJ",
+            position = "主舞、主 Rapper、主唱、忙內",
+            bio = "NMIXX 的實力派老么，擁有頂級敏捷的舞蹈線條與強大舞台張力。"
+        ),
+
+        // --- NEXZ ---
+        "NEXZ|Yu" to IdolDetail(
+            birth = "2005.04.27",
+            mbti = "未知",
+            position = "Main Dance、Vocal",
+            bio = "NEXZ 的成員，代表動物：🐈‍⬛ (JELLY-YU)。"
+        ),
+        "NEXZ|Tomoya" to IdolDetail(
+            birth = "2006.01.19",
+            mbti = "未知",
+            position = "Leader、Main Vocal、Main Dance、Rap",
+            bio = "NEXZ 的隊長，代表動物：🐧 (PPOMOYA)。"
+        ),
+        "NEXZ|Haru" to IdolDetail(
+            birth = "2006.01.23",
+            mbti = "未知",
+            position = "Main Dance、Rap",
+            bio = "NEXZ 的成員，代表動物：🐼 (HARUBEAR)。"
+        ),
+        "NEXZ|So Geon" to IdolDetail(
+            birth = "2006.09.13",
+            mbti = "未知",
+            position = "Vocal",
+            bio = "NEXZ 的成員，代表動物：🐾 (GEONSKY)。"
+        ),
+        "NEXZ|Seita" to IdolDetail(
+            birth = "2006.11.28",
+            mbti = "未知",
+            position = "Rap、Vocal",
+            bio = "NEXZ 的成員，代表動物：🦌 (SEIDEE)。"
+        ),
+        "NEXZ|Hyui" to IdolDetail(
+            birth = "2007.05.11",
+            mbti = "未知",
+            position = "Main Rap、Vocal、Dance",
+            bio = "NEXZ 的成員，代表動物：🐿️ (HYUROMI)。"
+        ),
+        "NEXZ|Yuki" to IdolDetail(
+            birth = "2007.09.20",
+            mbti = "未知",
+            position = "Main Vocal",
+            bio = "NEXZ 的日本籍忙內，散發清新自然的少年感，在舞台上展現穩定的表現力。代表動物：🦦 (YUTIE)。"
+        ),
+
+        // --- NiziU ---
+        "NiziU|Mako" to IdolDetail(
+            birth = "2001.04.04",
+            mbti = "ESFP",
+            position = "隊長、主舞、主唱",
+            bio = "NiziU 的日籍全能隊長，以近乎完美的舞蹈與領導力著稱。"
+        ),
+        "NiziU|Rio" to IdolDetail(
+            birth = "2002.02.04",
+            mbti = "ENFP",
+            position = "主舞、領唱",
+            bio = "NiziU 的日籍成員，擅長靈活俐落的街舞與表演。"
+        ),
+        "NiziU|Maya" to IdolDetail(
+            birth = "2002.04.08",
+            mbti = "ENFP",
+            position = "副唱、領舞",
+            bio = "NiziU 的日籍成員，擁有溫暖照顧人的母親般溫柔特質。"
+        ),
+        "NiziU|Riku" to IdolDetail(
+            birth = "2002.10.26",
+            mbti = "ISFP",
+            position = "領唱、主 Rapper",
+            bio = "NiziU 的日籍活力泉源，擁有獨特清爽的爆發力嗓音。"
+        ),
+        "NiziU|Ayaka" to IdolDetail(
+            birth = "2003.06.20",
+            mbti = "ENFJ",
+            position = "副唱、門面",
+            bio = "NiziU 的清純高挑門面，散發獨一無二的治癒系魅力。"
+        ),
+        "NiziU|Mayuka" to IdolDetail(
+            birth = "2003.11.13",
+            mbti = "ISFP",
+            position = "主 Rapper、副唱",
+            bio = "NiziU 的變色龍成員，每次舞台都能展現強烈的饒舌反轉魅力。"
+        ),
+        "NiziU|Rima" to IdolDetail(
+            birth = "2004.03.26",
+            mbti = "ENFP",
+            position = "主 Rapper、副唱",
+            bio = "NiziU 的日籍 Rapper，擁有精通英日韓三語的快速饒舌實力。"
+        ),
+        "NiziU|Miihi" to IdolDetail(
+            birth = "2004.08.12",
+            mbti = "ESFP",
+            position = "主唱、領舞",
+            bio = "NiziU 的聲樂天才少女，擁有偶像教科書般的表情管理與甜美歌聲。"
+        ),
+        "NiziU|Nina" to IdolDetail(
+            birth = "2005.02.27",
+            mbti = "INFP",
+            position = "主唱、忙內",
+            bio = "NiziU 的美日混血老么，擁有震懾全場的歐美風巨肺高音實力。"
+        ),
+
+        // --- NTX ---
+        "NTX|Hyeongjin" to IdolDetail(
+            birth = "2001.02.25",
+            mbti = "ENFP",
+            position = "隊長、主唱",
+            bio = "NTX 的隊長，帶領團隊展現多元音樂風格。"
+        ),
+        "NTX|Yunhyeok" to IdolDetail(
+            birth = "2001.08.12",
+            mbti = "ESTP",
+            position = "主 Rapper",
+            bio = "NTX 的饒舌擔當。"
+        ),
+        "NTX|Jaemin" to IdolDetail(
+            birth = "2002.06.01",
+            mbti = "INFP",
+            position = "副唱",
+            bio = "NTX 的成員。"
+        ),
+        "NTX|Changhun" to IdolDetail(
+            birth = "2002.05.02",
+            mbti = "INFJ",
+            position = "副唱",
+            bio = "NTX 的成員。"
+        ),
+        "NTX|Hojun" to IdolDetail(
+            birth = "2002.06.12",
+            mbti = "ENFJ",
+            position = "主舞",
+            bio = "NTX 的舞蹈擔當。"
+        ),
+        "NTX|Rawhyun" to IdolDetail(
+            birth = "2003.03.06",
+            mbti = "ENTP",
+            position = "主 Rapper、製作人",
+            bio = "NTX 的創作核心。"
+        ),
+        "NTX|Eunho" to IdolDetail(
+            birth = "2003.11.24",
+            mbti = "ISFP",
+            position = "副唱",
+            bio = "NTX 的成員。"
+        ),
+        "NTX|Gihyun" to IdolDetail(
+            birth = "2004.09.12",
+            mbti = "ISTJ",
+            position = "副唱、忙內",
+            bio = "NTX 的老么成員。"
+        ),
+
+        // --- ONE PACT ---
+        "ONE PACT|Yedam" to IdolDetail(
+            birth = "1998.01.19",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "ONE PACT 的實力派主唱。"
+        ),
+        "ONE PACT|Tag" to IdolDetail(
+            birth = "2002.09.30",
+            mbti = "INFP",
+            position = "主 Rapper、製作人",
+            bio = "ONE PACT 的創作與饒舌擔當。"
+        ),
+        "ONE PACT|Seongmin" to IdolDetail(
+            birth = "2003.12.31",
+            mbti = "ENFJ",
+            position = "主唱",
+            bio = "ONE PACT 的成員。"
+        ),
+        "ONE PACT|Jongwoo" to IdolDetail(
+            birth = "2000.06.12",
+            mbti = "ENTJ",
+            position = "隊長、主舞",
+            bio = "ONE PACT 的強悍隊長與舞蹈核心。"
+        ),
+        "ONE PACT|Jay" to IdolDetail(
+            birth = "2001.03.08",
+            mbti = "INFP",
+            position = "主唱",
+            bio = "美籍成員，擁有極其驚豔的搖滾與高音主唱實力。"
+        ),
+
+        // --- ONEUS ---
+        "ONEUS|Seoho" to IdolDetail(
+            birth = "1996.06.07",
+            mbti = "INTP",
+            position = "主唱",
+            bio = "ONEUS 的高音主唱，擁有強大爆發力與綜藝感。"
+        ),
+        "ONEUS|Leedo" to IdolDetail(
+            birth = "1997.07.26",
+            mbti = "ISFP",
+            position = "主 Rapper、主唱",
+            bio = "ONEUS 的低音砲 Rapper，兼具結實身材與溫柔反轉歌聲。"
+        ),
+        "ONEUS|Keonhee" to IdolDetail(
+            birth = "1998.06.27",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "ONEUS 的高挑主唱，擁有溫暖宏亮嗓音與幽默口條。"
+        ),
+        "ONEUS|Hwanwoong" to IdolDetail(
+            birth = "1998.08.26",
+            mbti = "ISFP",
+            position = "主舞、主唱",
+            bio = "ONEUS 的舞蹈機器，擁有頂尖流暢的舞台表演控制力。"
+        ),
+        "ONEUS|Xion" to IdolDetail(
+            birth = "2000.01.10",
+            mbti = "ENFJ",
+            position = "副唱、忙內",
+            bio = "ONEUS 的可愛老么，散發明朗開朗的治愈系氣息。"
+        ),
+
+        // --- ONF ---
+        "ONF|Hyojin" to IdolDetail(
+            birth = "1994.04.22",
+            mbti = "ESFJ",
+            position = "隊長 (ON Team)、主唱",
+            bio = "ONF 的核心主唱，以溫柔充滿感染力的聲線著稱。"
+        ),
+        "ONF|E-Tion" to IdolDetail(
+            birth = "1994.12.24",
+            mbti = "INFP",
+            position = "隊長 (OFF Team)、主唱",
+            bio = "ONF 的成員，對時尚與藝術有獨特品味。"
+        ),
+        "ONF|Seungjun" to IdolDetail(
+            birth = "1995.01.13",
+            mbti = "ENFP",
+            position = "副唱",
+            bio = "ONF 的成員，充滿正能量與領導力。"
+        ),
+        "ONF|Wyatt" to IdolDetail(
+            birth = "1995.01.23",
+            mbti = "ENFJ",
+            position = "主 Rapper、主舞",
+            bio = "ONF 的強悍低音 Rapper。"
+        ),
+        "ONF|Minkyun" to IdolDetail(
+            birth = "1995.11.16",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "ONF 的成員，擁有獨特清甜的辨識度音色。"
+        ),
+        "ONF|Yuto" to IdolDetail(
+            birth = "1999.03.16",
+            mbti = "ISFJ",
+            position = "主舞、副唱、忙內",
+            bio = "ONF 的日籍老么，舞蹈實力堅強。"
+        ),
+
+        // --- P1Harmony ---
+        "P1Harmony|Soul" to IdolDetail(
+            birth = "2005.02.01",
+            mbti = "INFP",
+            position = "主舞、主 Rapper",
+            bio = "P1Harmony 的日籍成員，擁有獨特自由的舞蹈風格與外貌。"
+        ),
+        "P1Harmony|Keeho" to IdolDetail(
+            birth = "2001.09.27",
+            mbti = "ENFP",
+            position = "隊長、主唱",
+            bio = "P1Harmony 的美籍幽默隊長，擁有一流的 R&B 唱腔與強大綜藝感。"
+        ),
+        "P1Harmony|Theo" to IdolDetail(
+            birth = "2001.07.01",
+            mbti = "ISTP",
+            position = "主唱",
+            bio = "P1Harmony 的主唱，音色溫柔且具備穩定高音。"
+        ),
+        "P1Harmony|Intak" to IdolDetail(
+            birth = "2003.08.31",
+            mbti = "ENFP",
+            position = "主 Rapper、主舞",
+            bio = "P1Harmony 的饒舌與舞蹈擔當，充滿自信的舞台爆發力。"
+        ),
+        "P1Harmony|Jiung" to IdolDetail(
+            birth = "2001.10.07",
+            mbti = "ISTP",
+            position = "主唱、主 Rapper",
+            bio = "P1Harmony 的全能成員，歌唱與創作表現優異。"
+        ),
+        "P1Harmony|Jongseob" to IdolDetail(
+            birth = "2005.11.19",
+            mbti = "INTJ",
+            position = "主 Rapper、忙內",
+            bio = "P1Harmony 的天才老么，小小年紀便展現成熟的詞曲創作與快嘴饒舌。"
+        ),
+
+        // --- PURPLE K!SS ---
+
+        "PURPLE K!SS|Goeun" to IdolDetail(
+            birth = "1999.09.03",
+            mbti = "ISFP",
+            position = "主唱、主舞",
+            bio = "PURPLE K!SS 的實力主唱，高音與唱功備受肯定。"
+        ),
+        "PURPLE K!SS|Dosie" to IdolDetail(
+            birth = "2000.02.11",
+            mbti = "ISFP",
+            position = "主舞、主唱",
+            bio = "PURPLE K!SS 的舞蹈核心。"
+        ),
+        "PURPLE K!SS|Ireh" to IdolDetail(
+            birth = "2002.04.30",
+            mbti = "INFJ",
+            position = "主舞、副唱",
+            bio = "PURPLE K!SS 的成員。"
+        ),
+        "PURPLE K!SS|Yuki" to IdolDetail(
+            birth = "2002.11.06",
+            mbti = "ISFP",
+            position = "主 Rapper、主舞",
+            bio = "PURPLE K!SS 的日籍 Rapper，低音炮饒舌極具特色。"
+        ),
+        "PURPLE K!SS|Chaein" to IdolDetail(
+            birth = "2002.12.05",
+            mbti = "ENFP",
+            position = "主唱、主舞",
+            bio = "PURPLE K!SS 的創作與歌唱才女。"
+        ),
+        "PURPLE K!SS|Swan" to IdolDetail(
+            birth = "2003.07.11",
+            mbti = "INFP",
+            position = "主唱、忙內",
+            bio = "PURPLE K!SS 的老么，擁有極具磁性與厚度的歐美靈魂嗓音。"
+        ),
+
+        // --- QWER ---
+        "QWER|Chodan" to IdolDetail(
+            birth = "1998.11.01",
+            mbti = "ISFP",
+            position = "隊長、鼓手、副唱",
+            bio = "知名樂團 QWER 的隊長與強力鼓手。"
+        ),
+        "QWER|Magenta" to IdolDetail(
+            birth = "1997.06.02",
+            mbti = "ISTP",
+            position = "貝斯手、副唱",
+            bio = "QWER 的貝斯手，具備獨特網路影響力與音樂熱情。"
+        ),
+        "QWER|Hina" to IdolDetail(
+            birth = "2001.01.30",
+            mbti = "INFP",
+            position = "吉他手、鍵盤手",
+            bio = "QWER 的吉他手，展現清新俏皮的樂團魅力。"
+        ),
+        "QWER|Siyeon" to IdolDetail(
+            birth = "2000.05.16",
+            mbti = "ENTP",
+            position = "主唱、吉他手、忙內",
+            bio = "QWER 的王牌主唱，擁有極具穿透力與清涼感的搖滾嗓音。"
+        ),
+
+        // --- Red Velvet ---
+        "Red Velvet|Irene" to IdolDetail(
+            birth = "1991.03.29",
+            mbti = "ISFJ",
+            position = "隊長、主 Rapper、主舞、門面",
+            bio = "Red Velvet 的仙女隊長，擁有精緻無瑕的傳奇美貌與穩重溫柔的領導力。"
+        ),
+        "Red Velvet|Seulgi" to IdolDetail(
+            birth = "1994.02.10",
+            mbti = "ISFP",
+            position = "主舞、主唱",
+            bio = "Red Velvet 的頂尖舞蹈機器，擁有完美的無缺點歌唱實力與酷帥魅力。"
+        ),
+        "Red Velvet|Wendy" to IdolDetail(
+            birth = "1994.02.21",
+            mbti = "ISFP",
+            position = "主唱",
+            bio = "Red Velvet 的傳奇神級主唱，擁有世界級的聲樂技巧與溫暖動人的歌聲。"
+        ),
+        "Red Velvet|Joy" to IdolDetail(
+            birth = "1996.09.03",
+            mbti = "INFP",
+            position = "主唱、領 Rapper",
+            bio = "Red Velvet 的果汁美少女，擁有高挑身材與甜美清涼的蜜嗓。"
+        ),
+        "Red Velvet|Yeri" to IdolDetail(
+            birth = "1999.03.05",
+            mbti = "INFP",
+            position = "副唱、副 Rapper、忙內",
+            bio = "Red Velvet 的可愛老么，充滿靈氣與廣泛交友的開朗性格。"
+        ),
+
+        // --- RIIZE ---
+        "RIIZE|Shotaro" to IdolDetail(
+            birth = "2000.11.25",
+            mbti = "ESFP",
+            position = "主舞",
+            bio = "RIIZE 的日籍成員，擁有世界級神級流暢度的頂尖街舞實力和溫暖笑容。"
+        ),
+        "RIIZE|Eunseok" to IdolDetail(
+            birth = "2001.03.19",
+            mbti = "ISTP",
+            position = "副唱",
+            bio = "RIIZE 的成員，擁有雕刻般高冷帥氣的外貌與獨特幽默感。"
+        ),
+        "RIIZE|Sungchan" to IdolDetail(
+            birth = "2001.09.13",
+            mbti = "ESTP",
+            position = "主 Rapper",
+            bio = "RIIZE 的高挑 Rapper，擁有陽光運動外型與溫柔親切的個性。"
+        ),
+        "RIIZE|Wonbin" to IdolDetail(
+            birth = "2002.03.02",
+            mbti = "INFJ",
+            position = "主唱、主舞",
+            bio = "RIIZE 的核心中心，兼具頂尖的吉他才華、歌唱與絕佳舞蹈實力。"
+        ),
+        "RIIZE|Seunghan" to IdolDetail(
+            birth = "2003.10.02",
+            mbti = "INFP",
+            position = "主唱、主舞",
+            bio = "RIIZE 的成員，擁有出色的歌唱與樂器多才多藝表現。"
+        ),
+        "RIIZE|Sohee" to IdolDetail(
+            birth = "2004.11.21",
+            mbti = "ISFP",
+            position = "主唱",
+            bio = "RIIZE 的靈魂主唱，擁有極具辨識度、R&B 轉音完美的磁性好聲音。"
+        ),
+        "RIIZE|Anton" to IdolDetail(
+            birth = "2004.03.21",
+            mbti = "INTP",
+            position = "副唱、忙內",
+            bio = "RIIZE 的美籍老么，音樂製作人之子，擅長大提琴與溫柔聲線。"
+        ),
+
+        // --- SAY MY NAME ---
+        "SAY MY NAME|HITOMI" to IdolDetail(
+            birth = "2001.10.06",
+            mbti = "未知",
+            position = "隊長",
+            bio = "SAY MY NAME 的隊長。"
+        ),
+        "SAY MY NAME|SHUIE" to IdolDetail(
+            birth = "2004.06.06",
+            mbti = "未知",
+            position = "成員",
+            bio = "SAY MY NAME 的成員。"
+        ),
+        "SAY MY NAME|MEI" to IdolDetail(
+            birth = "2005.09.27",
+            mbti = "未知",
+            position = "主舞、副唱",
+            bio = "SAY MY NAME 的主舞與副唱擔當。"
+        ),
+        "SAY MY NAME|KANNY" to IdolDetail(
+            birth = "2005.12.26",
+            mbti = "未知",
+            position = "主 Rap、副唱",
+            bio = "SAY MY NAME 的主 Rap 與副唱擔當。"
+        ),
+        "SAY MY NAME|SOHA" to IdolDetail(
+            birth = "2006.07.26",
+            mbti = "未知",
+            position = "主唱",
+            bio = "SAY MY NAME 的主唱擔當。"
+        ),
+        "SAY MY NAME|DOHEE" to IdolDetail(
+            birth = "2006.12.09",
+            mbti = "未知",
+            position = "領唱",
+            bio = "SAY MY NAME 的領唱擔當。"
+        ),
+        "SAY MY NAME|JUNHWI" to IdolDetail(
+            birth = "2007.06.11",
+            mbti = "未知",
+            position = "主舞、副 Rap",
+            bio = "SAY MY NAME 的主舞與副 Rap 擔當。"
+        ),
+        "SAY MY NAME|SEUNGJOO" to IdolDetail(
+            birth = "2010.09.24",
+            mbti = "未知",
+            position = "主唱、主舞",
+            bio = "SAY MY NAME 的主唱與主舞擔當。"
+        ),
+
+        // --- SEVENTEEN ---
+        "SEVENTEEN|S.Coups" to IdolDetail(
+            birth = "1995.08.08",
+            mbti = "INFP",
+            position = "總隊長、Hip-hop Team 隊長",
+            bio = "SEVENTEEN 的總隊長，兼具大哥的霸氣與溫暖照顧成員的責任感。"
+        ),
+        "SEVENTEEN|Jeonghan" to IdolDetail(
+            birth = "1995.10.04",
+            mbti = "ISFJ",
+            position = "副唱、Vocal Team",
+            bio = "SEVENTEEN 的天使成員，以聰明機智的綜藝頭腦與溫柔嗓音著稱。"
+        ),
+        "SEVENTEEN|Joshua" to IdolDetail(
+            birth = "1995.12.30",
+            mbti = "ENFJ",
+            position = "副唱、Vocal Team",
+            bio = "SEVENTEEN 的美籍紳士，擁有溫潤如玉的嗓音與甜美溫和個性。"
+        ),
+        "SEVENTEEN|Jun" to IdolDetail(
+            birth = "1996.06.10",
+            mbti = "INFP",
+            position = "副唱、Performance Team",
+            bio = "SEVENTEEN 的中國籍成員，童星出身，擁有精緻雕刻美貌與流暢舞姿。"
+        ),
+        "SEVENTEEN|Hoshi" to IdolDetail(
+            birth = "1996.06.15",
+            mbti = "INFP",
+            position = "Performance Team 隊長、主舞",
+            bio = "SEVENTEEN 的舞蹈總監，老虎權順榮，舞台上爆發力十足。"
+        ),
+        "SEVENTEEN|Wonwoo" to IdolDetail(
+            birth = "1996.07.17",
+            mbti = "INFJ",
+            position = "Hip-hop Team、副 Rapper",
+            bio = "SEVENTEEN 的低音磁性 Rapper，擁有深邃眼神與熱愛攝影的文藝氣息。"
+        ),
+        "SEVENTEEN|Woozi" to IdolDetail(
+            birth = "1996.11.22",
+            mbti = "INFJ",
+            position = "Vocal Team 隊長、主唱、製作人",
+            bio = "SEVENTEEN 的音樂核心與天才製作人，包辦無數傳奇暢銷歌曲。"
+        ),
+        "SEVENTEEN|The8" to IdolDetail(
+            birth = "1997.11.07",
+            mbti = "INFJ",
+            position = "Performance Team、副唱",
+            bio = "SEVENTEEN 的中國籍成員，精通現代舞、霹靂舞與獨特藝術品味。"
+        ),
+        "SEVENTEEN|Mingyu" to IdolDetail(
+            birth = "1997.04.06",
+            mbti = "ENFJ",
+            position = "Hip-hop Team、副 Rapper、門面",
+            bio = "SEVENTEEN 的高挑門面擔當，擅長各種家事料理與全能生活技能。"
+        ),
+        "SEVENTEEN|DK" to IdolDetail(
+            birth = "1997.02.18",
+            mbti = "INFP",
+            position = "main Vocal、Vocal Team",
+            bio = "SEVENTEEN 的黃金主唱，擁有極度宏亮穿透力的鐵肺高音與綜藝魂。"
+        ),
+        "SEVENTEEN|Seungkwan" to IdolDetail(
+            birth = "1998.01.16",
+            mbti = "ENFP",
+            position = "Vocal Team、主唱",
+            bio = "SEVENTEEN 的主唱兼綜藝大神的濟州島少年，情感豐富的動人歌喉。"
+        ),
+        "SEVENTEEN|Vernon" to IdolDetail(
+            birth = "1998.02.18",
+            mbti = "ENFP",
+            position = "Hip-hop Team、主 Rapper",
+            bio = "SEVENTEEN 的韓美混血成員，擁有如李奧納多般的精緻五官與獨特饒舌流派。"
+        ),
+        "SEVENTEEN|Dino" to IdolDetail(
+            birth = "1999.02.11",
+            mbti = "ENFJ",
+            position = "Performance Team、副唱、忙內",
+            bio = "SEVENTEEN 的舞蹈小天才與老么，對舞台表演有無比的熱情與實力。"
+        ),
+
+        // --- SF9 ---
+        "SF9|Youngbin" to IdolDetail(
+            birth = "1993.11.23",
+            mbti = "ESFJ",
+            position = "隊長、領 Rapper",
+            bio = "SF9 的前隊長與饒舌擔當。"
+        ),
+        "SF9|Inseong" to IdolDetail(
+            birth = "1993.07.12",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "SF9 的高學歷實力派主唱。"
+        ),
+        "SF9|Jaeyoon" to IdolDetail(
+            birth = "1994.08.22",
+            mbti = "ISTP",
+            position = "主唱",
+            bio = "SF9 的蜜嗓主唱。"
+        ),
+        "SF9|Dawon" to IdolDetail(
+            birth = "1995.07.24",
+            mbti = "INTP",
+            position = "副唱",
+            bio = "SF9 的綜藝與氣氛擔當。"
+        ),
+        "SF9|Zuho" to IdolDetail(
+            birth = "1996.07.04",
+            mbti = "ENFP",
+            position = "主 Rapper、製作人",
+            bio = "SF9 的音樂製作人與 Rapper。"
+        ),
+        "SF9|Yoo Taeyang" to IdolDetail(
+            birth = "1997.02.28",
+            mbti = "INFP",
+            position = "主舞、主唱",
+            bio = "SF9 的舞蹈核心。"
+        ),
+        "SF9|Hwiyoung" to IdolDetail(
+            birth = "1999.05.11",
+            mbti = "INFP",
+            position = "領 Rapper、副唱",
+            bio = "SF9 的成員。"
+        ),
+        "SF9|Chani" to IdolDetail(
+            birth = "2000.01.17",
+            mbti = "ENFP",
+            position = "主舞、副 Rapper、忙內",
+            bio = "SF9 的演員老么，童星出身。"
+        ),
+
+        // --- Super Junior ---
+        "Super Junior|Leeteuk" to IdolDetail(
+            birth = "1983.07.01",
+            mbti = "ENTJ",
+            position = "隊長、副唱",
+            bio = "Super Junior 的傳奇領袖與主持界泰斗。"
+        ),
+        "Super Junior|Heechul" to IdolDetail(
+            birth = "1983.07.10",
+            mbti = "INFP",
+            position = "副唱、副 Rapper",
+            bio = "Super Junior 的宇宙大明星，擁有獨一無二的綜藝神經與美貌。"
+        ),
+        "Super Junior|Yesung" to IdolDetail(
+            birth = "1984.08.24",
+            mbti = "INFJ",
+            position = "主唱",
+            bio = "Super Junior 的藝術家主唱，擁有極具特色的沙啞深情唱腔。"
+        ),
+        "Super Junior|Shindong" to IdolDetail(
+            birth = "1985.09.28",
+            mbti = "ISFP",
+            position = "主舞、主 Rapper",
+            bio = "Super Junior 的天才編舞與MV導演才子。"
+        ),
+        "Super Junior|Eunhyuk" to IdolDetail(
+            birth = "1986.04.04",
+            mbti = "ENTP",
+            position = "主舞、主 Rapper",
+            bio = "Super Junior 的寶石美男與舞蹈機器。"
+        ),
+        "Super Junior|Donghae" to IdolDetail(
+            birth = "1986.10.15",
+            mbti = "ENFJ",
+            position = "主舞、主唱、副 Rapper",
+            bio = "Super Junior 的創作才子，擁有深情眼神與動人創作。"
+        ),
+        "Super Junior|Siwon" to IdolDetail(
+            birth = "1987.04.07",
+            mbti = "ENTJ",
+            position = "副唱",
+            bio = "Super Junior 的紳士代表與知名演員企業家。"
+        ),
+        "Super Junior|Ryeowook" to IdolDetail(
+            birth = "1987.06.21",
+            mbti = "ISFP",
+            position = "主唱",
+            bio = "Super Junior 的天籟主唱，擁有清澈動人的甜美高音。"
+        ),
+        "Super Junior|Kyuhyun" to IdolDetail(
+            birth = "1988.02.04",
+            mbti = "ESFJ",
+            position = "主唱、忙內",
+            bio = "Super Junior 的毒舌老么與傳奇抒情主唱。"
+        ),
+
+        // --- STAYC ---
+        "STAYC|Sumin" to IdolDetail(
+            birth = "2001.03.13",
+            mbti = "ESTJ",
+            position = "隊長、副唱",
+            bio = "STAYC 的可靠隊長。"
+        ),
+        "STAYC|Sieun" to IdolDetail(
+            birth = "2001.08.01",
+            mbti = "ENFJ",
+            position = "主唱",
+            bio = "STAYC 的王牌主唱，童星出身，唱功極佳。"
+        ),
+        "STAYC|Isa" to IdolDetail(
+            birth = "2002.01.23",
+            mbti = "ENFJ",
+            position = "主唱",
+            bio = "STAYC 的蜜嗓主唱與時尚指標。"
+        ),
+        "STAYC|Seeun" to IdolDetail(
+            birth = "2003.06.14",
+            mbti = "ENFP",
+            position = "副唱",
+            bio = "STAYC 的清純美貌代表。"
+        ),
+        "STAYC|Yoon" to IdolDetail(
+            birth = "2004.04.14",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "STAYC 的搖滾特色嗓音擔當與高個子成員。"
+        ),
+        "STAYC|J" to IdolDetail(
+            birth = "2004.12.09",
+            mbti = "INFJ",
+            position = "副唱、副 Rapper、忙內",
+            bio = "STAYC 的低音砲老么。"
+        ),
+
+        // --- Stray Kids ---
+        "Stray Kids|Bang Chan" to IdolDetail(
+            birth = "1997.10.03",
+            mbti = "ENFJ",
+            position = "隊長、主 Rapper、主唱、製作人",
+            bio = "Stray Kids 的全能靈魂隊長與製作人 3RACHA 成員。"
+        ),
+        "Stray Kids|Lee Know" to IdolDetail(
+            birth = "1998.10.25",
+            mbti = "ESFJ",
+            position = "主舞、副唱",
+            bio = "Stray Kids 的舞蹈天花板，擁有四次元搞笑性格與頂級舞技。"
+        ),
+        "Stray Kids|Changbin" to IdolDetail(
+            birth = "1999.08.11",
+            mbti = "ESFP",
+            position = "主 Rapper、製作人",
+            bio = "Stray Kids 的超高速爆發力 Rapper 與實力派創作核心。"
+        ),
+        "Stray Kids|Hyunjin" to IdolDetail(
+            birth = "2000.03.20",
+            mbti = "ENFP",
+            position = "主舞、主 Rapper、門面",
+            bio = "Stray Kids 的舞台藝術家，擁有世界級吸引力的性感舞蹈線條。"
+        ),
+        "Stray Kids|Han" to IdolDetail(
+            birth = "2000.09.14",
+            mbti = "ISTP",
+            position = "主 Rapper、主唱、製作人",
+            bio = "Stray Kids 的全能ACE，高音主唱與神速饒舌皆完美駕馭。"
+        ),
+        "Stray Kids|Felix" to IdolDetail(
+            birth = "2000.09.15",
+            mbti = "ENFP",
+            position = "主舞、副 Rapper",
+            bio = "Stray Kids 的澳籍成員，擁有震撼全球的反轉超低音砲嗓音與天使美貌。"
+        ),
+        "Stray Kids|Seungmin" to IdolDetail(
+            birth = "2000.09.22",
+            mbti = "ISFJ",
+            position = "主唱",
+            bio = "Stray Kids 的溫暖蜂蜜主唱，歌聲乾淨深情且穩定度極高。"
+        ),
+        "Stray Kids|I.N" to IdolDetail(
+            birth = "2001.02.08",
+            mbti = "ISFJ",
+            position = "副唱、忙內",
+            bio = "Stray Kids 的可愛沙漠狐狸老么，歌唱實力不斷進步。"
+        ),
+
+        // --- TEMPEST ---
+        "TEMPEST|Hwarang" to IdolDetail(
+            birth = "2001.04.23",
+            mbti = "ENFP",
+            position = "主 Rapper、主舞",
+            bio = "TEMPEST 的饒舌與舞蹈核心。"
+        ),
+        "TEMPEST|LEW" to IdolDetail(
+            birth = "2001.04.05",
+            mbti = "ENFJ",
+            position = "隊長、主 Rapper",
+            bio = "TEMPEST 的溫柔隊長。"
+        ),
+        "TEMPEST|Hanbin" to IdolDetail(
+            birth = "1998.01.19",
+            mbti = "ESFP",
+            position = "主唱、主舞",
+            bio = "TEMPEST 的越南籍成員，擁有超高人氣與甜美笑容。"
+        ),
+        "TEMPEST|Hyeongseop" to IdolDetail(
+            birth = "1999.08.09",
+            mbti = "INFJ",
+            position = "副唱、主舞",
+            bio = "TEMPEST 的成員，擁有豐富選秀經驗與綜藝感。"
+        ),
+        "TEMPEST|Eunchan" to IdolDetail(
+            birth = "2001.02.27",
+            mbti = "ISTP",
+            position = "副唱",
+            bio = "TEMPEST 的高挑成員。"
+        ),
+        "TEMPEST|Taerae" to IdolDetail(
+            birth = "2002.05.09",
+            mbti = "ENTP",
+            position = "副唱",
+            bio = "TEMPEST 的成員。"
+        ),
+        "TEMPEST|Gyuchan" to IdolDetail(
+            birth = "2004.09.07",
+            mbti = "ENFP",
+            position = "副唱、忙內",
+            bio = "TEMPEST 的老么成員。"
+        ),
+
+        // --- TWICE ---
+        "TWICE|Nayeon" to IdolDetail(
+            birth = "1995.09.22",
+            mbti = "ISTP",
+            position = "主唱、領舞、中心",
+            bio = "TWICE 的活力兔寶寶中心，擁有清爽響亮的標誌性蜜嗓。"
+        ),
+        "TWICE|Jeongyeon" to IdolDetail(
+            birth = "1996.11.01",
+            mbti = "ISFJ",
+            position = "領唱",
+            bio = "TWICE 的實力派領唱，擁有溫柔沉穩的磁性嗓音與率性魅力。"
+        ),
+        "TWICE|Momo" to IdolDetail(
+            birth = "1996.11.09",
+            mbti = "INFP",
+            position = "主舞、主 Rapper",
+            bio = "TWICE 的日籍舞蹈機器，擁有世界級頂尖流暢的肢體爆發力。"
+        ),
+        "TWICE|Sana" to IdolDetail(
+            birth = "1996.12.29",
+            mbti = "ENFP",
+            position = "副唱",
+            bio = "TWICE 的日籍魅力女王，以無敵的撒嬌魅力與致命舞台表情征服粉絲。"
+        ),
+        "TWICE|Jihyo" to IdolDetail(
+            birth = "1997.02.01",
+            mbti = "ISFP",
+            position = "隊長、主唱",
+            bio = "TWICE 的鋼鐵堅強隊長與超級巨肺主唱，唱功與舞台統治力頂級。"
+        ),
+        "TWICE|Mina" to IdolDetail(
+            birth = "1997.03.24",
+            mbti = "ISFP",
+            position = "主舞、副唱",
+            bio = "TWICE 的日籍黑天鵝，擁有高貴優雅的芭蕾舞底子與溫柔嗓音。"
+        ),
+        "TWICE|Dahyun" to IdolDetail(
+            birth = "1998.05.28",
+            mbti = "ISFJ",
+            position = "主 Rapper、副唱",
+            bio = "TWICE 的豆腐多賢，擁有綜藝魂滿點的開朗性格與白皙外貌。"
+        ),
+        "TWICE|Chaeyoung" to IdolDetail(
+            birth = "1999.04.23",
+            mbti = "INFP",
+            position = "主 Rapper、副唱",
+            bio = "TWICE 的小老虎 Rapper，充滿藝術細胞與獨特個人創作風格。"
+        ),
+        "TWICE|Tzuyu" to IdolDetail(
+            birth = "1999.06.14",
+            mbti = "ISFP",
+            position = "副唱、領舞、門面、忙內",
+            bio = "TWICE的台灣籍世界第一美門面與高挑老么。"
+        ),
+
+        // --- TOMORROW X TOGETHER (TXT) ---
+        "TOMORROW X TOGETHER|Yeonjun" to IdolDetail(
+            birth = "1999.09.13",
+            mbti = "ENFP",
+            position = "主Rapper、主舞、主唱",
+            bio = "TXT的傳奇練習生與全能 ACE 大哥，舞蹈與饒舌實力頂尖。"
+        ),
+        "TOMORROW X TOGETHER|Soobin" to IdolDetail(
+            birth = "2000.12.05",
+            mbti = "ISFP",
+            position = "隊長、副唱",
+            bio = "TXT的高挑溫柔隊長，擁有大型犬般的暖心治癒特質。"
+        ),
+        "TOMORROW X TOGETHER|Beomgyu" to IdolDetail(
+            birth = "2001.03.13",
+            mbti = "ENFJ",
+            position = "副唱、副Rapper",
+            bio = "TXT的氣氛製造機，擁有精緻如漫畫般的俊美外貌與幽默感。"
+        ),
+        "TOMORROW X TOGETHER|Taehyun" to IdolDetail(
+            birth = "2002.02.05",
+            mbti = "ESTP",
+            position = "主唱",
+            bio = "TXT的實力主唱，擁有穩如CD的強大現場演唱功力與清晰邏輯。"
+        ),
+        "TOMORROW X TOGETHER|Huening Kai" to IdolDetail(
+            birth = "2002.08.14",
+            mbti = "ISTP",
+            position = "主唱、忙內",
+            bio = "TXT的美韓混血老么，多樂器才華與甜美宏亮的高音擔當。"
+        ),
+
+        // --- tripleS ---
+        "tripleS|Yooyeon" to IdolDetail(
+            birth = "2001.02.09",
+            mbti = "未知",
+            position = "副唱、門面、中心",
+            bio = "tripleS S5，代表圖案：🐰，代表色：歌劇紅 (Opera)。"
+        ),
+        "tripleS|Mayu" to IdolDetail(
+            birth = "2002.05.12",
+            mbti = "未知",
+            position = "領舞、領唱",
+            bio = "tripleS S16，代表圖案：🐰，代表色：鮮橘色 (Vivid Tangerine)。"
+        ),
+        "tripleS|Xinyu" to IdolDetail(
+            birth = "2002.05.25",
+            mbti = "未知",
+            position = "領舞、副饒舌",
+            bio = "tripleS S15，代表圖案：🦊，代表色：熔岩紅 (Lava Red)。"
+        ),
+        "tripleS|Nakyoung" to IdolDetail(
+            birth = "2002.10.13",
+            mbti = "未知",
+            position = "主饒舌、主舞、領唱",
+            bio = "tripleS S7，代表圖案：🐈‍⬛，代表色：軍校藍 (Cadet Blue)。"
+        ),
+        "tripleS|Sohyun" to IdolDetail(
+            birth = "2002.10.13",
+            mbti = "未知",
+            position = "領舞、副唱",
+            bio = "tripleS S14，代表圖案：🐺，代表色：埃及藍 (Egyptian Blue)。"
+        ),
+        "tripleS|Dahyun" to IdolDetail(
+            birth = "2003.01.08",
+            mbti = "未知",
+            position = "主唱",
+            bio = "tripleS S10，代表圖案：🍒，代表色：薰衣草玫瑰紅 (Lavender Rose)。"
+        ),
+        "tripleS|Nien" to IdolDetail(
+            birth = "2003.06.02",
+            mbti = "未知",
+            position = "副唱、副饒舌",
+            bio = "tripleS S13，代表圖案：🍓，代表色：霓虹胡蘿蔔橘 (Neon Carrot)。"
+        ),
+        "tripleS|Seoyeon" to IdolDetail(
+            birth = "2003.08.06",
+            mbti = "未知",
+            position = "領唱",
+            bio = "tripleS S1，代表圖案：🐶，代表色：道奇藍 (Dodger Blue)。"
+        ),
+        "tripleS|JiYeon" to IdolDetail(
+            birth = "2004.02.13",
+            mbti = "未知",
+            position = "主領舞",
+            bio = "tripleS S24，代表圖案：🦢，代表色：印度黃棕色 (Rajah)。"
+        ),
+        "tripleS|Kotone" to IdolDetail(
+            birth = "2004.03.10",
+            mbti = "未知",
+            position = "主饒舌、副唱",
+            bio = "tripleS S11，代表圖案：🐻，代表色：金黃色 (Golden Yellow)。"
+        ),
+        "tripleS|ChaeYeon" to IdolDetail(
+            birth = "2004.12.04",
+            mbti = "未知",
+            position = "領舞、副唱",
+            bio = "tripleS S4，代表圖案：🍑，代表色：亞特蘭蒂斯綠 (Atlantis)。"
+        ),
+        "tripleS|YuBin" to IdolDetail(
+            birth = "2005.02.03",
+            mbti = "未知",
+            position = "主領舞、領唱",
+            bio = "tripleS S8，代表圖案：🐯，代表色：迷霧玫瑰紅 (Misty Rose)。"
+        ),
+        "tripleS|Jiwoo" to IdolDetail(
+            birth = "2005.10.24",
+            mbti = "未知",
+            position = "主唱、副饒舌",
+            bio = "tripleS S3，代表圖案：🐻‍❄️，代表色：檸檬黃 (Lemon)。"
+        ),
+        "tripleS|Kaede" to IdolDetail(
+            birth = "2005.12.20",
+            mbti = "未知",
+            position = "主舞、主唱",
+            bio = "tripleS S9，代表圖案：🍁，代表色：陽光黃 (Sunglow)。"
+        ),
+        "tripleS|Shion" to IdolDetail(
+            birth = "2006.04.03",
+            mbti = "未知",
+            position = "主唱、副舞",
+            bio = "tripleS S20，代表圖案：🍞，代表色：紫紅 (Violet Red)。"
+        ),
+        "tripleS|Lynn" to IdolDetail(
+            birth = "2006.04.12",
+            mbti = "未知",
+            position = "主舞、副唱",
+            bio = "tripleS S17，代表圖案：🐬，代表色：珍珠紫 (Pearly Purple)。"
+        ),
+        "tripleS|Sullin" to IdolDetail(
+            birth = "2006.11.30",
+            mbti = "未知",
+            position = "副唱",
+            bio = "tripleS S22，代表圖案：🤿，代表色：月桂葉綠 (Bay Leaf)。"
+        ),
+        "tripleS|HyeRin" to IdolDetail(
+            birth = "2007.04.12",
+            mbti = "未知",
+            position = "主舞、副唱",
+            bio = "tripleS S2，代表圖案：🐱，代表色：電光紫 (Electric Purple)。"
+        ),
+        "tripleS|ChaeWon" to IdolDetail(
+            birth = "2007.05.02",
+            mbti = "未知",
+            position = "領舞",
+            bio = "tripleS S21，代表圖案：🎀，代表色：紫藤紫 (Wisteria)。"
+        ),
+        "tripleS|HaYeon" to IdolDetail(
+            birth = "2007.08.01",
+            mbti = "未知",
+            position = "領唱、領舞",
+            bio = "tripleS S19，代表圖案：🦔，代表色：中綠松石色 (Medium Turquoise)。"
+        ),
+        "tripleS|SooMin" to IdolDetail(
+            birth = "2007.10.03",
+            mbti = "未知",
+            position = "副唱",
+            bio = "tripleS S6，代表圖案：🐿️，代表色：淺紫紅 (Mauvelous)。"
+        ),
+        "tripleS|Yeonji" to IdolDetail(
+            birth = "2008.01.08",
+            mbti = "未知",
+            position = "副唱",
+            bio = "tripleS S12，代表圖案：🦆，代表色：皇家藍 (Royal Blue)。"
+        ),
+        "tripleS|Joobin" to IdolDetail(
+            birth = "2009.01.16",
+            mbti = "未知",
+            position = "副唱、門面",
+            bio = "tripleS S18，代表圖案：🐥，代表色：針葉綠 (Conifer)。"
+        ),
+        "tripleS|Seoah" to IdolDetail(
+            birth = "2010.06.11",
+            mbti = "未知",
+            position = "老么、領唱",
+            bio = "tripleS S23，代表圖案：☀️，代表色：帕滕斯藍 (Pattens Blue)。"
+        ),
+
+        // --- TWS ---
+        "TWS|Shinyu" to IdolDetail(
+            birth = "2003.11.07",
+            mbti = "INFP",
+            position = "隊長",
+            bio = "PLEDIS 旗下新男團 TWS 的溫柔隊長。"
+        ),
+        "TWS|Dohoon" to IdolDetail(
+            birth = "2005.01.30",
+            mbti = "ISTP",
+            position = "主 Rapper",
+            bio = "TWS 的饒舌擔當。"
+        ),
+        "TWS|Youngjae" to IdolDetail(
+            birth = "2005.05.31",
+            mbti = "ISFJ",
+            position = "主唱",
+            bio = "TWS 的實力主唱。"
+        ),
+        "TWS|Hanjin" to IdolDetail(
+            birth = "2006.01.05",
+            mbti = "ESFJ",
+            position = "副唱",
+            bio = "TWS 的中國籍成員，擁有清純帥氣外貌。"
+        ),
+        "TWS|Jihoon" to IdolDetail(
+            birth = "2006.03.28",
+            mbti = "ENFP",
+            position = "副唱",
+            bio = "TWS 的成員，擁有自然清新的舞台魅力，展現活潑親和的個人特色。"
+        ),
+        "TWS|Kyungmin" to IdolDetail(
+            birth = "2007.10.02",
+            mbti = "ISFP",
+            position = "副唱、忙內",
+            bio = "TWS 的可愛老么成員。"
+        ),
+
+        // --- UNIS ---
+        "UNIS|Hyeonju" to IdolDetail(
+            birth = "2001.11.03",
+            mbti = "ENFP",
+            position = "隊長、主唱",
+            bio = "選秀節目選出的女團 UNIS 隊長。"
+        ),
+        "UNIS|Nana" to IdolDetail(
+            birth = "2007.06.06",
+            mbti = "ESFP",
+            position = "主舞",
+            bio = "UNIS 的日籍舞蹈核心。"
+        ),
+        "UNIS|Gehlee" to IdolDetail(
+            birth = "2007.08.19",
+            mbti = "ENFP",
+            position = "副唱",
+            bio = "UNIS 的菲律賓籍人氣成員。"
+        ),
+        "UNIS|Kotoko" to IdolDetail(
+            birth = "2007.10.28",
+            mbti = "ENFP",
+            position = "副唱",
+            bio = "UNIS 的日籍可愛成員。"
+        ),
+        "UNIS|Elisia" to IdolDetail(
+            birth = "2009.04.18",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "UNIS 的菲韓混血實力派主唱。"
+        ),
+        "UNIS|Yoona" to IdolDetail(
+            birth = "2009.10.07",
+            mbti = "ISTJ",
+            position = "副唱",
+            bio = "UNIS 的成員。"
+        ),
+        "UNIS|Seowon" to IdolDetail(
+            birth = "2011.01.27",
+            mbti = "ENTP",
+            position = "主唱、忙內",
+            bio = "UNIS 的超強實力派小老么。"
+        ),
+        "UNIS|Yunha" to IdolDetail(
+            birth = "2009.02.28",
+            mbti = "ISTP",
+            position = "主唱",
+            bio = "UNIS 的成員。"
+        ),
+
+        // --- VERIVERY ---
+        "VERIVERY|Dongheon" to IdolDetail(
+            birth = "1995.08.04",
+            mbti = "ENFP",
+            position = "隊長、主 Rapper、主舞",
+            bio = "VERIVERY 的隊長。"
+        ),
+        "VERIVERY|Hoyoung" to IdolDetail(
+            birth = "1998.08.10",
+            mbti = "ISFJ",
+            position = "領舞、領 Rapper",
+            bio = "VERIVERY 的美籍成員。"
+        ),
+        "VERIVERY|Minchan" to IdolDetail(
+            birth = "1998.09.16",
+            mbti = "INFJ",
+            position = "主唱",
+            bio = "VERIVERY 的主唱。"
+        ),
+        "VERIVERY|Gyehyeon" to IdolDetail(
+            birth = "1999.05.14",
+            mbti = "ISTP",
+            position = "主唱",
+            bio = "VERIVERY 的實力主唱。"
+        ),
+        "VERIVERY|Yeonho" to IdolDetail(
+            birth = "2000.05.31",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "VERIVERY 的主唱擔當。"
+        ),
+        "VERIVERY|Yongseok" to IdolDetail(
+            birth = "2000.12.24",
+            mbti = "ISFP",
+            position = "主舞、副唱",
+            bio = "VERIVERY 的舞蹈成員。"
+        ),
+        "VERIVERY|Kangmin" to IdolDetail(
+            birth = "2003.01.25",
+            mbti = "ENFP",
+            position = "副唱、門面、忙內",
+            bio = "VERIVERY 的國民男友老么。"
+        ),
+
+        // --- VIVIZ ---
+        "VIVIZ|Eunha" to IdolDetail(
+            birth = "1997.05.30",
+            mbti = "ISTP",
+            position = "主唱",
+            bio = "VIVIZ 的主唱，前 GFRIEND 成員。"
+        ),
+        "VIVIZ|SinB" to IdolDetail(
+            birth = "1998.06.03",
+            mbti = "ISFP",
+            position = "主舞、主唱",
+            bio = "VIVIZ 的舞蹈核心，前 GFRIEND 成員。"
+        ),
+        "VIVIZ|Umji" to IdolDetail(
+            birth = "1998.08.19",
+            mbti = "INFP",
+            position = "副唱、忙內",
+            bio = "VIVIZ 的老么，前 GFRIEND 成員。"
+        ),
+
+        // --- Wanna One ---
+        "Wanna One|Kang Daniel" to IdolDetail(
+            birth = "1996.12.10",
+            mbti = "INFJ",
+            position = "中心、主舞、副 Rapper",
+            bio = "Wanna One 的國民中心與頂級 Solo 歌手。"
+        ),
+        "Wanna One|Jihoon" to IdolDetail(
+            birth = "1999.05.29",
+            mbti = "ISFP",
+            position = "副唱、副 Rapper",
+            bio = "製造『在我心中儲存』流行語的國民偶像與實力演員。"
+        ),
+        "Wanna One|Daehwi" to IdolDetail(
+            birth = "2001.01.29",
+            mbti = "ESFJ",
+            position = "主唱、製作人",
+            bio = "現AB6IX成員，天才創作與綜藝才華兼具。"
+        ),
+        "Wanna One|Jaehwan" to IdolDetail(
+            birth = "1996.05.27",
+            mbti = "INFP",
+            position = "主唱",
+            bio = "Wanna One 的神級純唱主唱。"
+        ),
+        "Wanna One|Seongwu" to IdolDetail(
+            birth = "1995.08.25",
+            mbti = "ENFP",
+            position = "主舞、主唱",
+            bio = "全能藝人，歌唱、舞蹈與演技表現俱佳。"
+        ),
+        "Wanna One|Woojin" to IdolDetail(
+            birth = "1999.11.02",
+            mbti = "ISFJ",
+            position = "主 Rapper、主舞",
+            bio = "AB6IX 成員，強悍饒舌與頂尖舞蹈實力。"
+        ),
+        "Wanna One|Kuanlin" to IdolDetail(
+            birth = "2001.09.23",
+            mbti = "ENFP",
+            position = "副 Rapper、忙內",
+            bio = "來自台灣的帥氣Rapper。"
+        ),
+        "Wanna One|Jisung" to IdolDetail(
+            birth = "1991.03.08",
+            mbti = "ENTP",
+            position = "隊長、副唱",
+            bio = "Wanna One 的溫暖大哥哥隊長。"
+        ),
+        "Wanna One|Minhyun" to IdolDetail(
+            birth = "1995.08.09",
+            mbti = "ESFJ",
+            position = "主唱",
+            bio = "擁有貴族般高雅外貌與溫柔蜜嗓的實力派偶像。"
+        ),
+        "Wanna One|Jinyoung" to IdolDetail(
+            birth = "2000.05.10",
+            mbti = "ENFP",
+            position = "副唱",
+            bio = "擁有小巧精緻巴掌臉與獨特舞台魅力的成員。"
+        ),
+        "Wanna One|Sungwoon" to IdolDetail(
+            birth = "1994.03.22",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "擁有驚人高音爆發力與廣泛人脈的實力主唱。"
+        ),
+
+        // --- 宇宙少女 (WJSN) ---
+        "WJSN|Seola" to IdolDetail(
+            birth = "1994.12.24",
+            mbti = "INFP",
+            position = "主唱",
+            bio = "宇宙少女的大姊與主唱，擁有性感貓系美貌與清亮聲線。"
+        ),
+        "WJSN|Bona" to IdolDetail(
+            birth = "1995.08.19",
+            mbti = "INFP",
+            position = "副唱、門面",
+            bio = "宇宙少女的知名演員門面，以《二十五，二十一》等劇展現精湛演技。"
+        ),
+        "WJSN|Exy" to IdolDetail(
+            birth = "1995.11.06",
+            mbti = "ENFP",
+            position = "隊長、主 Rapper",
+            bio = "宇宙少女的全能隊長與優秀詞曲創作者。"
+        ),
+        "WJSN|Soobin" to IdolDetail(
+            birth = "1996.09.14",
+            mbti = "ISFJ",
+            position = "主唱",
+            bio = "宇宙少女的甜美主唱。"
+        ),
+        "WJSN|Luda" to IdolDetail(
+            birth = "1997.03.06",
+            mbti = "ISFP",
+            position = "副唱",
+            bio = "宇宙少女的可愛綜藝擔當。"
+        ),
+        "WJSN|Eunseo" to IdolDetail(
+            birth = "1998.05.27",
+            mbti = "ISTP",
+            position = "副唱、副 Rapper",
+            bio = "宇宙少女的運動健將與爽朗個性代表。"
+        ),
+        "WJSN|Yeoreum" to IdolDetail(
+            birth = "1999.01.10",
+            mbti = "ISFJ",
+            position = "副唱、主舞",
+            bio = "宇宙少女的貓系精緻美貌成員。"
+        ),
+        "WJSN|Dayoung" to IdolDetail(
+            birth = "1999.05.14",
+            mbti = "ESTP",
+            position = "主唱",
+            bio = "宇宙少女的綜藝小天后與實力主唱。"
+        ),
+        "WJSN|Dawon" to IdolDetail(
+            birth = "1997.04.16",
+            mbti = "ISTP",
+            position = "主唱",
+            bio = "宇宙少女的療癒系空靈主唱。"
+        ),
+        "WJSN|Yeonjung" to IdolDetail(
+            birth = "1999.08.03",
+            mbti = "ENFP",
+            position = "主唱、忙內",
+            bio = "宇宙少女的王牌高音主唱與老么。"
+        ),
+
+        // --- 威神V (WayV) ---
+        "WayV|Kun" to IdolDetail(
+            birth = "1996.01.01",
+            mbti = "ESFJ",
+            position = "隊長、主唱",
+            bio = "威神V的溫柔隊長與編曲才子。"
+        ),
+        "WayV|Ten" to IdolDetail(
+            birth = "1996.02.27",
+            mbti = "INFJ",
+            position = "主舞、主唱、主 Rapper",
+            bio = "威神V的泰國籍藝術家，擁有世界級的當代舞蹈美學與Solo實力。"
+        ),
+        "WayV|Winwin" to IdolDetail(
+            birth = "1997.10.28",
+            mbti = "INFJ",
+            position = "副唱、主舞",
+            bio = "威神V的中國古典舞出身成員，兼具演員身分。"
+        ),
+        "WayV|Xiaojun" to IdolDetail(
+            birth = "1999.08.22",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "威神V的主唱，擁有極具磁性與穿透力的搖滾靈魂嗓音。"
+        ),
+        "WayV|Hendery" to IdolDetail(
+            birth = "1999.09.28",
+            mbti = "ENFP",
+            position = "主 Rapper、副唱",
+            bio = "威神V的搞笑擔當與帥氣 Rapper。"
+        ),
+        "WayV|Yangyang" to IdolDetail(
+            birth = "2000.10.10",
+            mbti = "ESTP",
+            position = "主 Rapper、主舞",
+            bio = "威神V的德籍台裔成員，擁有極佳的快嘴饒舌與語言天賦。"
+        ),
+
+        // --- XG ---
+        "XG|Jurin" to IdolDetail(
+            birth = "2002.06.19",
+            mbti = "ENFP",
+            position = "隊長、主 Rapper、主舞",
+            bio = "國際化嘻哈女團 XG 的日籍隊長，曾是專業滑雪選手。"
+        ),
+        "XG|Chisa" to IdolDetail(
+            birth = "2002.01.17",
+            mbti = "ESFJ",
+            position = "主唱",
+            bio = "XG 的主唱，擁有強大而穩定的靈魂唱腔。"
+        ),
+        "XG|Hinata" to IdolDetail(
+            birth = "2002.06.11",
+            mbti = "ISFP",
+            position = "副唱、副 Rapper",
+            bio = "XG 的日籍成員，散發神祕獨特氣質。"
+        ),
+        "XG|Harvey" to IdolDetail(
+            birth = "2002.12.18",
+            mbti = "ENFP",
+            position = "主 Rapper、副唱",
+            bio = "XG 的日澳混血 Rapper，擁有強烈時尚感與獨特音色。"
+        ),
+        "XG|Juria" to IdolDetail(
+            birth = "2004.11.28",
+            mbti = "ENFP",
+            position = "主唱",
+            bio = "XG 的主唱，童星歌手出身，高音技巧純熟。"
+        ),
+        "XG|Maya" to IdolDetail(
+            birth = "2005.08.10",
+            mbti = "ENFP",
+            position = "主 Rapper、副唱",
+            bio = "XG 的饒舌成員，表現力極佳。"
+        ),
+        "XG|Cocona" to IdolDetail(
+            birth = "2005.12.06",
+            mbti = "INFP",
+            position = "主 Rapper、忙內",
+            bio = "XG 的酷帥饒舌老么，以剃頭與低沉磁性嗓音震撼樂壇。"
+        ),
+
+        // --- xikers ---
+        "xikers|Minjae" to IdolDetail(
+            birth = "2003.04.10",
+            mbti = "INFP",
+            position = "隊長、主 Rapper",
+            bio = "ATEEZ 師弟團 xikers 的隊長與饒舌擔當。"
+        ),
+        "xikers|Junmin" to IdolDetail(
+            birth = "2003.05.24",
+            mbti = "ESFJ",
+            position = "主舞、副唱",
+            bio = "xikers 的舞蹈核心。"
+        ),
+        "xikers|Sumin" to IdolDetail(
+            birth = "2004.04.07",
+            mbti = "ENFP",
+            position = "主 Rapper",
+            bio = "xikers 的饒舌成員。"
+        ),
+        "xikers|Jinsik" to IdolDetail(
+            birth = "2004.07.30",
+            mbti = "ISFJ",
+            position = "主唱",
+            bio = "xikers 的主唱擔當。"
+        ),
+        "xikers|Hunter" to IdolDetail(
+            birth = "2005.10.05",
+            mbti = "ISTP",
+            position = "主舞、副唱",
+            bio = "xikers 的泰國籍成員。"
+        ),
+        "xikers|Seeun" to IdolDetail(
+            birth = "2005.08.17",
+            mbti = "ENFP",
+            position = "副唱",
+            bio = "xikers 的成員。"
+        ),
+        "xikers|Yujun" to IdolDetail(
+            birth = "2005.10.05",
+            mbti = "ISFP",
+            position = "副唱",
+            bio = "xikers 的成員。"
+        ),
+        "xikers|Yechan" to IdolDetail(
+            birth = "2005.10.21",
+            mbti = "ENFP",
+            position = "主 Rapper、忙內",
+            bio = "xikers 的創作才華老么。"
+        ),
+
+        // --- Xdinary Heroes ---
+        "Xdinary Heroes|Gun-il" to IdolDetail(
+            birth = "1998.07.24",
+            mbti = "ENFJ",
+            position = "隊長、鼓手",
+            bio = "JYP 旗下樂團 Xdinary Heroes 的隊長與鼓手。"
+        ),
+        "Xdinary Heroes|Jungsu" to IdolDetail(
+            birth = "2001.06.26",
+            mbti = "ISFP",
+            position = "主唱、鍵盤手",
+            bio = "Xdinary Heroes 的主唱與鍵盤手。"
+        ),
+        "Xdinary Heroes|Gaon" to IdolDetail(
+            birth = "2002.01.14",
+            mbti = "ENFP",
+            position = "吉他手、副唱",
+            bio = "Xdinary Heroes 的吉他手。"
+        ),
+        "Xdinary Heroes|O.de" to IdolDetail(
+            birth = "2002.06.11",
+            mbti = "ESFP",
+            position = "合成器手、副唱",
+            bio = "Xdinary Heroes 的電子合成器擔當。"
+        ),
+        "Xdinary Heroes|Jun Han" to IdolDetail(
+            birth = "2002.08.18",
+            mbti = "INTJ",
+            position = "吉他手",
+            bio = "Xdinary Heroes 的吉他手。"
+        ),
+        "Xdinary Heroes|Jooyeon" to IdolDetail(
+            birth = "2002.09.12",
+            mbti = "ENFP",
+            position = "主唱、貝斯手、忙內",
+            bio = "Xdinary Heroes 的主唱、貝斯手與老么。"
+        ),
+
+        // --- 崔叡娜 (YENA) ---
+        "崔叡娜|Yena" to IdolDetail(
+            birth = "1999.09.29",
+            mbti = "ENFP",
+            position = "Solo 歌手、前 IZ*ONE",
+            bio = "充滿活力與搞怪魅力的知名 Solo 女歌手，是前IZ*ONE的成員。"
+        ),
+
+        // --- YOUNG POSSE ---
+        "YOUNG POSSE|Sunhye" to IdolDetail(
+            birth = "2004.05.14",
+            mbti = "ENFP",
+            position = "隊長、主 Rapper",
+            bio = "嘻哈女團 YOUNG POSSE 的隊長。"
+        ),
+        "YOUNG POSSE|Notto" to IdolDetail(
+            birth = "2006.02.10",
+            mbti = "INFP",
+            position = "副唱、主舞",
+            bio = "YOUNG POSSE 的成員。"
+        ),
+        "YOUNG POSSE|Jiana" to IdolDetail(
+            birth = "2006.02.25",
+            mbti = "ISFP",
+            position = "主唱",
+            bio = "YOUNG POSSE 的實力主唱。"
+        ),
+        "YOUNG POSSE|Dian" to IdolDetail(
+            birth = "2006.11.09",
+            mbti = "ENFJ",
+            position = "主舞、副唱",
+            bio = "YOUNG POSSE 的舞蹈擔當。"
+        ),
+        "YOUNG POSSE|Jieun" to IdolDetail(
+            birth = "2009.03.05",
+            mbti = "ENFP",
+            position = "副唱、忙內",
+            bio = "YOUNG POSSE 的可愛老么。"
+        ),
+
+        // --- ZEROBASEONE (ZB1) ---
+        "ZEROBASEONE|Hanbin" to IdolDetail(
+            birth = "2001.06.13",
+            mbti = "ENFJ",
+            position = "隊長、主唱、主舞",
+            bio = "ZB1 的靈魂隊長，現代舞出身，以完美的人格魅力與頂級實力風靡全球。"
+        ),
+        "ZEROBASEONE|Jiwoong" to IdolDetail(
+            birth = "1998.12.14",
+            mbti = "ENFP",
+            position = "副唱、副 Rapper",
+            bio = "ZB1 的大哥與前演員，擁有成熟性感的成熟男人魅力。"
+        ),
+        "ZEROBASEONE|Zhang Hao" to IdolDetail(
+            birth = "2000.07.25",
+            mbti = "ISFP",
+            position = "主唱、主舞",
+            bio = "ZB1 的中國籍成員，選秀節目首位奪冠的外國籍練習生，小提琴與歌唱俱佳。"
+        ),
+        "ZEROBASEONE|Matthew" to IdolDetail(
+            birth = "2002.05.28",
+            mbti = "ENFJ",
+            position = "副唱",
+            bio = "ZB1 的加籍成員，擁有招牌溫暖陽光的燦爛微笑與小狗般親和力。"
+        ),
+        "ZEROBASEONE|Taerae" to IdolDetail(
+            birth = "2002.07.14",
+            mbti = "ENTP",
+            position = "主唱",
+            bio = "ZB1 的三大主唱之一，擁有一副宏亮清透且極具爆發力的鐵肺嗓音。"
+        ),
+        "ZEROBASEONE|Ricky" to IdolDetail(
+            birth = "2004.05.20",
+            mbti = "INFJ",
+            position = "副唱",
+            bio = "ZB1 的中國籍成員，擁有華麗貴氣的視覺外貌與獨特個性時尚。"
+        ),
+        "ZEROBASEONE|Gunwook" to IdolDetail(
+            birth = "2005.01.10",
+            mbti = "ENFJ",
+            position = "主 Rapper、主舞",
+            bio = "ZB1 的全能力量擔當，強悍的饒舌與舞蹈爆發力備受肯定。"
+        ),
+        "ZEROBASEONE|Gyuvin" to IdolDetail(
+            birth = "2004.08.30",
+            mbti = "ENFP",
+            position = "副唱、主舞",
+            bio = "ZB1 的高挑成員，擁有活潑開朗的綜藝魂與流暢舞姿。"
+        ),
+        "ZEROBASEONE|Yujin" to IdolDetail(
+            birth = "2007.03.20",
+            mbti = "ISFP",
+            position = "副唱、主舞、忙內",
+            bio = "ZB1 的超級人氣老么，現代舞底子深厚，舞台上帥氣台下軟萌。"
+        )
+
+    )
+
+} // 這是 KpopData 的最後一個大括號
+
+

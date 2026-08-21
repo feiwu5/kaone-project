@@ -596,6 +596,15 @@ fun UploadScreen(
             Spacer(Modifier.height(32.dp))
             Button(
                 onClick = {
+                    val fieldCheck = ProfanityFilter.checkFields(mapOf(
+                        "想換的小卡描述" to wishlist,
+                        "備註" to remarks
+                    ))
+                    if (fieldCheck != null) {
+                        Toast.makeText(context, "「$fieldCheck」包含違禁詞，請修正後再試", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
                     if (!isVerified) {
                         Toast.makeText(
                             context,

@@ -41,9 +41,9 @@ fun SignUpScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var nickname by remember { mutableStateOf("") }
-    
-    var idNumberInput by remember { mutableStateOf("") } 
-    var detectedIdByAI by remember { mutableStateOf("") } 
+
+    var idNumberInput by remember { mutableStateOf("") }
+    var detectedIdByAI by remember { mutableStateOf("") }
     var idHash by remember { mutableStateOf("") }
     var isVerifying by remember { mutableStateOf(false) }
     var verificationStatus by remember { mutableStateOf("未驗證") }
@@ -68,7 +68,8 @@ fun SignUpScreen(
                 verificationStatus = "核對失敗：輸入的號碼與證件不符"
             }
         } else if (detectedIdByAI.isNotEmpty()) {
-            verificationStatus = "已辨識證件，請填寫身分證字號"
+            // 將「請填寫」改為「請確認」，增加使用者體驗
+            verificationStatus = "已辨識證件，請確認身分證字號是否正確"
         }
     }
 
@@ -123,12 +124,12 @@ fun SignUpScreen(
                     )
                     ClarificationText()
                     Spacer(modifier = Modifier.height(12.dp))
-                    
+
                     if (isVerifying) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     } else {
                         Button(
-                            onClick = { 
+                            onClick = {
                                 cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                             },
                             colors = if (idHash.isNotEmpty()) ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)) else ButtonDefaults.buttonColors()
@@ -136,7 +137,7 @@ fun SignUpScreen(
                             Text(if (idHash.isEmpty()) "拍攝身份證核對" else "重新核對")
                         }
                     }
-                    
+
                     Text(
                         text = "狀態：$verificationStatus",
                         fontSize = 13.sp,
@@ -291,8 +292,11 @@ fun SignUpScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = { 
-                    if (idHash.isEmpty()) {
+                onClick = {
+                    val fieldCheck = ProfanityFilter.checkFields(mapOf("姓名" to name, "暱稱" to nickname))
+                    if (fieldCheck != null) {
+                        Toast.makeText(context, "「$fieldCheck」包含違禁詞，請修正後再試", Toast.LENGTH_SHORT).show()
+                    } else if (idHash.isEmpty()) {
                         Toast.makeText(context, "請先完成 AI 實名認證並核對身分證號碼", Toast.LENGTH_SHORT).show()
                     } else if (name.isEmpty() || nickname.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || selectedGender == null || selectedCity.isEmpty() || selectedDistrict.isEmpty()) {
                         Toast.makeText(context, "請填寫完後再送出資料！", Toast.LENGTH_SHORT).show()
@@ -331,9 +335,16 @@ fun SignUpScreen(
                         val image = InputImage.fromFilePath(context, uri)
                         IdCardValidator.scanIdCard(
                             image = image,
-                            onSuccess = { detectedId ->
+                            onSuccess = { detectedId, detectedName -> // 接收兩個參數
                                 detectedIdByAI = detectedId
+                                idNumberInput = detectedId // 自動填入身分證
+
+                                if (detectedName.isNotEmpty()) {
+                                    name = detectedName // ✨ 新增：自動填入姓名
+                                }
+
                                 isVerifying = false
+                                Toast.makeText(context, "已自動辨識身分資訊", Toast.LENGTH_SHORT).show()
                             },
                             onFailure = { e ->
                                 verificationStatus = e.message ?: "辨識失敗"

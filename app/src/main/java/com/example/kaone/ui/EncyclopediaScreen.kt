@@ -8,6 +8,9 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.CircleShape
@@ -21,11 +24,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +38,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.kaone.ml.IdolClassifier
 import kotlinx.coroutines.launch
@@ -48,6 +55,9 @@ fun EncyclopediaScreen(
     var selectedGroup by rememberSaveable { mutableStateOf<String?>(initialGroup) }
     var selectedMember by rememberSaveable { mutableStateOf<String?>(initialMember) }
 
+    // 全螢幕瀏覽狀態
+    var enlargedImageUrl by remember { mutableStateOf<String?>(null) }
+
     // 搜尋狀態
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
@@ -58,10 +68,11 @@ fun EncyclopediaScreen(
     val photoPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             val bitmap = if (Build.VERSION.SDK_INT < 28) {
+                @Suppress("DEPRECATION")
                 MediaStore.Images.Media.getBitmap(context.contentResolver, it)
             } else {
                 val source = ImageDecoder.createSource(context.contentResolver, it)
-                ImageDecoder.decodeBitmap(source) { decoder, _, _, -> decoder.isMutableRequired = true }
+                ImageDecoder.decodeBitmap(source) { decoder, _, _ -> decoder.isMutableRequired = true }
             }
             val result = classifier.classify(bitmap)
             if (result != null) {
@@ -78,21 +89,19 @@ fun EncyclopediaScreen(
     val memberGridState = rememberLazyGridState()
     val scope = rememberCoroutineScope()
 
-    // 搜尋過濾邏輯：直接在此實作以避免改動 KpopData.kt
+    // 搜尋過濾邏輯
     val searchResults = remember(searchQuery) {
         if (searchQuery.isBlank()) return@remember emptyList<EncyclopediaSearchResult>()
-        
+
         val query = searchQuery.trim().lowercase()
         val results = mutableListOf<EncyclopediaSearchResult>()
 
-        // 1. 搜尋團體
         KpopData.groupMembersData.keys.forEach { groupKey ->
             if (groupKey.lowercase().contains(query)) {
                 results.add(EncyclopediaSearchResult.Group(groupKey))
             }
         }
 
-        // 2. 搜尋成員
         KpopData.groupMembersData.forEach { (groupKey, members) ->
             members.forEach { memberKey ->
                 if (memberKey.lowercase().contains(query)) {
@@ -101,7 +110,6 @@ fun EncyclopediaScreen(
             }
         }
 
-        // 3. 搜尋專輯
         KpopData.groupAlbumData.forEach { (groupPureName, albums) ->
             val groupKey = KpopData.groupMembersData.keys.find { it.getCleanName() == groupPureName } ?: groupPureName
             albums.forEach { albumName ->
@@ -110,8 +118,8 @@ fun EncyclopediaScreen(
                 }
             }
         }
-        
-        results.distinctBy { 
+
+        results.distinctBy {
             when(it) {
                 is EncyclopediaSearchResult.Group -> "group_${it.groupKey}"
                 is EncyclopediaSearchResult.Member -> "member_${it.groupKey}_${it.memberKey}"
@@ -256,7 +264,8 @@ fun EncyclopediaScreen(
                             MemberGrid(
                                 state = memberGridState,
                                 groupName = currentGroup,
-                                onMemberSelected = { selectedMember = it }
+                                onMemberSelected = { selectedMember = it },
+                                onTemplateClick = { enlargedImageUrl = it }
                             )
                         }
                     }
@@ -271,6 +280,62 @@ fun EncyclopediaScreen(
                         }
                     }
                 }
+            }
+
+            // 全螢幕瀏覽對話框 (僅針對專輯圖鑑)
+            enlargedImageUrl?.let { url ->
+                ZoomableImageDialog(
+                    imageUrl = url,
+                    onDismiss = { enlargedImageUrl = null }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ZoomableImageDialog(imageUrl: String, onDismiss: () -> Unit) {
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    val state = rememberTransformableState { zoomChange, offsetChange, _ ->
+        scale *= zoomChange
+        offset += offsetChange
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.9f))
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { onDismiss() })
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer(
+                        scaleX = maxOf(1f, scale),
+                        scaleY = maxOf(1f, scale),
+                        translationX = offset.x,
+                        translationY = offset.y
+                    )
+                    .transformable(state = state),
+                contentScale = ContentScale.Fit
+            )
+
+            // 關閉按鈕
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.align(Alignment.TopEnd).padding(16.dp).background(Color.Black.copy(alpha = 0.3f), CircleShape)
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "關閉", tint = Color.White)
             }
         }
     }
@@ -287,7 +352,7 @@ fun GroupGrid(state: LazyGridState, onGroupSelected: (String) -> Unit) {
             .mapValues { it.value.sortedWith(String.CASE_INSENSITIVE_ORDER) }
             .toSortedMap()
     }
-    
+
     LazyVerticalGrid(
         state = state,
         columns = GridCells.Fixed(3),
@@ -322,7 +387,12 @@ fun GroupGrid(state: LazyGridState, onGroupSelected: (String) -> Unit) {
                     Surface(modifier = Modifier.size(90.dp), shape = CircleShape, color = Color.White, shadowElevation = 8.dp, border = BorderStroke(3.dp, MaterialTheme.colorScheme.primaryContainer)) {
                         Box(contentAlignment = Alignment.Center) {
                             if (groupImageUrl != null) {
-                                AsyncImage(model = groupImageUrl, contentDescription = groupName, modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
+                                AsyncImage(
+                                    model = groupImageUrl,
+                                    contentDescription = groupName,
+                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
                             } else {
                                 Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape, modifier = Modifier.size(70.dp)) {
                                     Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Groups, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(45.dp)) }
@@ -340,8 +410,16 @@ fun GroupGrid(state: LazyGridState, onGroupSelected: (String) -> Unit) {
 }
 
 @Composable
-fun MemberGrid(state: LazyGridState, groupName: String, onMemberSelected: (String) -> Unit) {
+fun MemberGrid(state: LazyGridState, groupName: String, onMemberSelected: (String) -> Unit, onTemplateClick: (String) -> Unit) {
+    // 取得成員資料
     val members = remember(groupName) { KpopData.groupMembersData[groupName] ?: emptyList() }
+
+    // 取得專輯資料 (過濾掉純名稱)
+    val pureGroupName = groupName.getCleanName()
+    val albums = remember(pureGroupName) {
+        KpopData.groupAlbumData[pureGroupName] ?: emptyList()
+    }
+
     LazyVerticalGrid(
         state = state,
         columns = GridCells.Fixed(3),
@@ -349,14 +427,40 @@ fun MemberGrid(state: LazyGridState, groupName: String, onMemberSelected: (Strin
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(28.dp)
     ) {
+        // --- 1. 成員部分標題 ---
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Text(
+                text = "團體成員",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Black,
+                color = Color(0xFF2E3440),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
+        // --- 2. 成員頭像列表 ---
         items(members) { member ->
             val name = member.getCleanName()
             val imageUrl = member.split("|").find { it.startsWith("http") }
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { onMemberSelected(member) }) {
-                Surface(modifier = Modifier.size(90.dp), shape = CircleShape, color = Color.White, shadowElevation = 8.dp, border = BorderStroke(3.dp, MaterialTheme.colorScheme.primaryContainer)) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { onMemberSelected(member) }
+            ) {
+                Surface(
+                    modifier = Modifier.size(90.dp),
+                    shape = CircleShape,
+                    color = Color.White,
+                    shadowElevation = 8.dp,
+                    border = BorderStroke(3.dp, MaterialTheme.colorScheme.primaryContainer)
+                ) {
                     Box(contentAlignment = Alignment.Center) {
                         if (imageUrl != null) {
-                            AsyncImage(model = imageUrl, contentDescription = name, modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
+                            AsyncImage(
+                                model = imageUrl,
+                                contentDescription = name,
+                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
                         } else {
                             Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape, modifier = Modifier.size(70.dp)) {
                                 Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(45.dp)) }
@@ -364,27 +468,90 @@ fun MemberGrid(state: LazyGridState, groupName: String, onMemberSelected: (Strin
                         }
                     }
                 }
-                Spacer(Modifier.height(12.dp))
-                Text(text = name, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, maxLines = 1, color = Color(0xFF2E3440))
+                Spacer(Modifier.height(8.dp))
+                Text(text = name, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            }
+        }
+
+        // --- 3. 分隔線 ---
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Column {
+                Spacer(Modifier.height(24.dp))
+                HorizontalDivider(thickness = 2.dp, color = Color.LightGray.copy(alpha = 0.5f))
+                Spacer(Modifier.height(24.dp))
+                Text(
+                    text = "專輯圖鑑庫",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF2E3440)
+                )
+            }
+        }
+
+        // --- 4. 專輯與大圖圖鑑列表 ---
+        albums.forEach { albumName ->
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+                    // 專輯名稱
+                    Text(
+                        text = "💿 $albumName",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // 顯示該專輯的所有小卡一張照片 (Template)
+                    val templateUrl = KpopData.albumTemplateData[albumName]
+                    if (templateUrl != null) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().wrapContentHeight().clickable { onTemplateClick(templateUrl) },
+                            shape = RoundedCornerShape(12.dp),
+                            shadowElevation = 4.dp
+                        ) {
+                            AsyncImage(
+                                model = templateUrl,
+                                contentDescription = "$albumName 圖鑑",
+                                modifier = Modifier.fillMaxWidth(),
+                                contentScale = ContentScale.FillWidth
+                            )
+                        }
+                    } else {
+                        // 如果還沒上傳圖鑑網址，顯示一個美觀的佔位區
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp)
+                                .background(Color.White, RoundedCornerShape(12.dp))
+                                .border(1.dp, Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Default.Image, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(40.dp))
+                                Text("圖鑑照片製作中...", color = Color.LightGray, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MemberChecklist(groupName: String, memberName: String) {
     val pureGroupName = groupName.getCleanName()
-    val albums = remember(pureGroupName) {
-        KpopData.groupAlbumData[pureGroupName]
-            ?: KpopData.groupAlbumData.entries.find { it.key.getCleanName() == pureGroupName }?.value
-            ?: emptyList()
-    }
     val scrollState = rememberScrollState()
-    
+
     // 清洗成員名稱
     val names = memberName.split("|").filter { it.isNotBlank() && !it.startsWith("http") }
     val imageUrl = memberName.split("|").find { it.startsWith("http") }
+    val englishName = names.firstOrNull() ?: ""
+
+    // 獲取成員詳情資料 (改用 團體|名字 組合，解決同名問題)
+    val detail = KpopData.idolDetails["$pureGroupName|$englishName"]
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(16.dp)) {
         Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.primary, shadowElevation = 8.dp) {
@@ -397,7 +564,12 @@ fun MemberChecklist(groupName: String, memberName: String) {
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         if (imageUrl != null) {
-                            AsyncImage(model = imageUrl, contentDescription = names.getOrNull(0) ?: "", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                            AsyncImage(
+                                model = imageUrl,
+                                contentDescription = englishName,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
                         } else {
                             Icon(Icons.Default.Stars, null, modifier = Modifier.size(70.dp), tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f))
                         }
@@ -405,64 +577,63 @@ fun MemberChecklist(groupName: String, memberName: String) {
                 }
                 Spacer(Modifier.width(20.dp))
                 Column {
-                    Text(text = (names.getOrNull(0) ?: "").uppercase(), fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color.White, letterSpacing = 1.sp)
+                    Text(text = englishName.uppercase(), fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color.White, letterSpacing = 1.sp)
                     if(names.size > 1) { Text(text = names[1], fontSize = 18.sp, color = Color.White.copy(alpha = 0.8f), fontWeight = FontWeight.Bold) }
                     Surface(color = Color.White.copy(alpha = 0.2f), shape = RoundedCornerShape(6.dp), modifier = Modifier.padding(top = 8.dp)) {
                         Text(text = pureGroupName, fontSize = 13.sp, color = Color.White, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
                     }
-                    Spacer(Modifier.height(16.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        StatusIndicator("HAVE", Color(0xFF81C784), textColor = Color.White)
-                        StatusIndicator("WANT", Color(0xFFFFB74D), textColor = Color.White)
-                        StatusIndicator("OTW", Color(0xFF64B5F6), textColor = Color.White)
-                    }
                 }
             }
         }
-        Spacer(Modifier.height(32.dp))
-        val albumList = albums.filter { !it.contains("日") && !it.contains("美") }
-        val specialList = albums.filter { it.contains("日") || it.contains("美") || it.contains("單曲") }
-        if (albumList.isNotEmpty()) { ChecklistSection(title = "CORE ALBUM COLLECTION", items = albumList, accentColor = Color(0xFFC62828)) }
-        Spacer(Modifier.height(32.dp))
-        if (specialList.isNotEmpty()) { ChecklistSection(title = "SPECIAL / LIMITED EDITION", items = specialList, accentColor = Color(0xFF283593)) }
-        Spacer(Modifier.height(60.dp))
-    }
-}
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun ChecklistSection(title: String, items: List<String>, accentColor: Color) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Surface(modifier = Modifier.fillMaxWidth(), color = accentColor, shape = RoundedCornerShape(8.dp), shadowElevation = 4.dp) {
-            Text(text = title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 12.dp), letterSpacing = 2.sp)
+        // 成員詳細資訊欄位
+        if (detail != null) {
+            Spacer(Modifier.height(24.dp))
+            IdolInfoSection(detail)
         }
-        Spacer(Modifier.height(20.dp))
-        FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(24.dp), maxItemsInEachRow = 4) {
-            items.forEach { albumName ->
-                Column(modifier = Modifier.width(78.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(0.65f)
-                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(10.dp))
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color.Black.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
-                    ) {
-                        Box(modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp).size(20.dp).clip(CircleShape).border(2.dp, accentColor.copy(alpha = 0.3f), CircleShape).background(Color.White.copy(alpha = 0.9f)))
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(text = albumName, fontSize = 11.sp, lineHeight = 14.sp, textAlign = TextAlign.Center, maxLines = 2, fontWeight = FontWeight.Bold, color = Color(0xFF3B4252))
-                }
-            }
-        }
+
+        Spacer(Modifier.height(40.dp))
     }
 }
 
 @Composable
-fun StatusIndicator(label: String, color: Color, textColor: Color = Color.DarkGray) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(color).border(1.5.dp, Color.White.copy(alpha = 0.6f), CircleShape))
-        Spacer(Modifier.width(6.6.dp))
-        Text(text = label, fontSize = 12.sp, fontWeight = FontWeight.Black, color = textColor)
+fun IdolInfoSection(detail: KpopData.IdolDetail) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White)
+            .padding(20.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            InfoChip(label = "生日", value = detail.birth)
+            InfoChip(label = "MBTI", value = detail.mbti)
+            InfoChip(label = "定位", value = detail.position)
+        }
+
+        if (detail.bio.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray.copy(alpha = 0.3f))
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = detail.bio,
+                fontSize = 13.sp,
+                color = Color.Gray,
+                lineHeight = 18.sp,
+                textAlign = TextAlign.Justify
+            )
+        }
+    }
+}
+
+@Composable
+fun InfoChip(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, fontSize = 11.sp, color = Color.LightGray, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(4.dp))
+        Text(value, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF3B4252))
     }
 }

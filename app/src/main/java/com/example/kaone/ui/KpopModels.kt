@@ -87,7 +87,8 @@ data class ChatMessage(
     val recipientName: String = "", 
     val recipientPhone: String = "", 
     val meetingDate: String = "",
-    val reviewedBy: List<String> = emptyList()
+    val reviewedBy: List<String> = emptyList(),
+    @get:PropertyName("isRead") @set:PropertyName("isRead") var isRead: Boolean = false
 )
 
 @Immutable

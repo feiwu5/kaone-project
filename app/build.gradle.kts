@@ -80,6 +80,7 @@ dependencies {
 
     // ML Kit 文字辨識 (繁體中文版)
     implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
+    implementation(libs.androidx.appcompat)
 
     // CameraX 核心庫
     val cameraVersion = "1.3.4"

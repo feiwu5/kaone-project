@@ -50,7 +50,7 @@ fun ReportDialog(
                     ) {
                         RadioButton(
                             selected = (selectedReason == reason),
-                            onClick = null 
+                            onClick = null
                         )
                         Text(
                             text = reason,
@@ -77,10 +77,16 @@ fun ReportDialog(
         },
         confirmButton = {
             val isConfirmEnabled = !isSubmitting && (selectedReason != "其他" || otherReason.isNotBlank())
-            
+
             Button(
                 enabled = isConfirmEnabled,
                 onClick = {
+                    // 1. 檢查使用者是否手寫了違禁詞
+                    if (selectedReason == "其他" && ProfanityFilter.containsProfanity(otherReason)) {
+                        Toast.makeText(context, "檢舉原因包含違禁詞，請修正", Toast.LENGTH_SHORT).show()
+                        return@Button // 攔截，不送出檢舉
+                    }
+
                     if (reporterId.isEmpty()) {
                         Toast.makeText(context, "請先登入後再進行檢舉", Toast.LENGTH_SHORT).show()
                         return@Button
@@ -99,14 +105,14 @@ fun ReportDialog(
                     db.collection("reports").add(reportData)
                         .addOnSuccessListener {
                             Toast.makeText(context, "感謝您的檢舉，我們將盡快處理", Toast.LENGTH_SHORT).show()
-                            
+
                             if (targetType == "user") {
                                 db.collection("users").document(targetId).get().addOnSuccessListener { userDoc ->
                                     val profileUrl = userDoc.getString("profileImageUrl") ?: ""
                                     sendNotification(
-                                        targetId, 
-                                        "report", 
-                                        "帳號檢舉通知", 
+                                        targetId,
+                                        "report",
+                                        "帳號檢舉通知",
                                         "您的帳號因「$finalReason」收到一則檢舉。管理員將審核您的個人檔案。",
                                         targetId,
                                         profileUrl
@@ -120,9 +126,9 @@ fun ReportDialog(
                                     val cardImageUrl = cardDoc.getString("imageUrl") ?: ""
                                     if (cardOwnerId.isNotEmpty()) {
                                         sendNotification(
-                                            cardOwnerId, 
-                                            "report", 
-                                            "內容檢舉通知", 
+                                            cardOwnerId,
+                                            "report",
+                                            "內容檢舉通知",
                                             "您發佈的《$cardName》因「$finalReason」收到一則檢舉。請遵守社區規範。",
                                             targetId,
                                             cardImageUrl

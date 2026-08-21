@@ -143,7 +143,7 @@ fun HomeScreen(
     var viewingAdmin by remember { mutableStateOf(false) }
     var viewingNotifications by remember { mutableStateOf(false) }
     var isAdmin by remember { mutableStateOf(false) }
-    var isVerified by remember { mutableStateOf(true) } // 預設為 true 避免畫面閃爍
+    var isVerified by remember { mutableStateOf(true) }
 
     var activeExploreView by rememberSaveable { mutableStateOf("menu") }
     var homeSelectedTab by rememberSaveable { mutableIntStateOf(0) }
@@ -156,15 +156,13 @@ fun HomeScreen(
 
     LaunchedEffect(userId) {
         if (!isGuest) {
-            // 使用 addSnapshotListener 這樣使用者一認證完，首頁紅框就會自動消失
             db.collection("users").document(userId).addSnapshotListener { snapshot, _ ->
                 if (snapshot != null && snapshot.exists()) {
                     isAdmin = snapshot.getBoolean("isAdmin") ?: false
-                    isVerified = snapshot.getBoolean("isVerified") ?: false // 更新實名狀態
+                    isVerified = snapshot.getBoolean("isVerified") ?: false
 
                     val loc = snapshot.getString("location") ?: ""
 
-                    // --- 全域自動修復舊卡片地點 ---
                     if (loc.isNotEmpty()) {
                         db.collection("cards")
                             .whereEqualTo("userId", userId)
@@ -228,7 +226,10 @@ fun HomeScreen(
         Scaffold(
             modifier = modifier,
             bottomBar = {
-                NavigationBar {
+                NavigationBar(
+                    windowInsets = WindowInsets(0, 0, 0, 0),
+                    modifier = Modifier.height(70.dp)
+                ) {
                     NavigationBarItem(selected = selectedBottomTab == 0, onClick = { selectedBottomTab = 0; viewingOtherUserId = null }, icon = { Icon(if (selectedBottomTab == 0) Icons.Default.Home else Icons.Outlined.Home, "首頁") }, label = { Text("首頁") })
                     NavigationBarItem(selected = selectedBottomTab == 1, onClick = { selectedBottomTab = 1; viewingOtherUserId = null }, icon = { Icon(if (selectedBottomTab == 1) Icons.Default.Explore else Icons.Outlined.Explore, "探索") }, label = { Text("探索") })
                     NavigationBarItem(selected = selectedBottomTab == 2, onClick = { selectedBottomTab = 2; viewingOtherUserId = null; editingCard = null }, icon = { Icon(Icons.Default.AddCircle, "上傳", modifier = Modifier.size(32.dp)) }, label = { Text("上傳") })
@@ -259,6 +260,8 @@ fun HomeScreen(
                         onStartChat = { roomId, card ->
                             if (isGuest) {
                                 Toast.makeText(context, "請先登入後再聊天", Toast.LENGTH_SHORT).show()
+                            } else if (!isVerified) {
+                                Toast.makeText(context, "為了交易安全，請先完成實名認證後再與卡友聊天！", Toast.LENGTH_LONG).show()
                             } else {
                                 targetChatRoomId = roomId; targetInquiryCard = card; selectedBottomTab = 3; viewingOtherUserId = null
                             }
@@ -272,17 +275,23 @@ fun HomeScreen(
                         0 -> MainDashboard(
                             userId = userId,
                             isAdmin = isAdmin,
-                            isVerified = isVerified, // 傳入剛剛監聽到的狀態
-                            onStartChat = { roomId, card -> targetChatRoomId = roomId; targetInquiryCard = card; selectedBottomTab = 3 },
+                            isVerified = isVerified,
+                            onStartChat = { roomId, card ->
+                                if (!isVerified) {
+                                    Toast.makeText(context, "為了交易安全，請先完成實名認證後再與卡友聊天！", Toast.LENGTH_LONG).show()
+                                } else {
+                                    targetChatRoomId = roomId; targetInquiryCard = card; selectedBottomTab = 3
+                                }
+                            },
                             onViewProfile = { viewingOtherUserId = it },
                             selectedTab = homeSelectedTab,
                             onTabChange = { homeSelectedTab = it },
                             onEditCard = { editingCard = it; selectedBottomTab = 2 },
                             unreadNotificationCount = unreadNotificationCount,
                             onNotificationClick = { viewingNotifications = true },
-                            onGoToProfile = { selectedBottomTab = 4 } // 點擊後跳轉至「個人」分頁去認證
+                            onGoToProfile = { selectedBottomTab = 4 }
                         )
-                        1 -> ExploreScreen(userId = userId, onViewProfile = { viewingOtherUserId = it }, activeView = activeExploreView, onActiveViewChange = { activeExploreView = it }, onStartChat = { roomId, card -> targetChatRoomId = roomId; targetInquiryCard = card; selectedBottomTab = 3 })
+                        1 -> ExploreScreen(userId = userId, isVerified = isVerified, onViewProfile = { viewingOtherUserId = it }, activeView = activeExploreView, onActiveViewChange = { activeExploreView = it }, onStartChat = { roomId, card -> targetChatRoomId = roomId; targetInquiryCard = card; selectedBottomTab = 3 })
                         2 -> if (isGuest) GuestModePlaceholder(onLogoutClick) else UploadScreen(
                             userId = userId,
                             existingCard = editingCard,
@@ -300,7 +309,13 @@ fun HomeScreen(
                         4 -> if (isGuest) GuestModePlaceholder(onLogoutClick) else ProfileScreen(
                             userId = userId,
                             onLogoutClick = onLogoutClick,
-                            onStartChat = { roomId, card -> targetChatRoomId = roomId; targetInquiryCard = card; selectedBottomTab = 3 },
+                            onStartChat = { roomId, card ->
+                                if (!isVerified) {
+                                    Toast.makeText(context, "為了交易安全，請先完成實名認證後再與卡友聊天！", Toast.LENGTH_LONG).show()
+                                } else {
+                                    targetChatRoomId = roomId; targetInquiryCard = card; selectedBottomTab = 3
+                                }
+                            },
                             isAdmin = isAdmin,
                             onAdminClick = { viewingAdmin = true },
                             onEditCard = { editingCard = it; selectedBottomTab = 2 }
@@ -313,7 +328,6 @@ fun HomeScreen(
     }
 }
 
-// 實名認證提醒 Banner
 @Composable
 fun VerificationReminderBanner(onVerifyClick: () -> Unit) {
     Surface(
@@ -321,7 +335,7 @@ fun VerificationReminderBanner(onVerifyClick: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable { onVerifyClick() },
-        color = Color(0xFFFFEBEE), // 淺紅色
+        color = Color(0xFFFFEBEE),
         shape = RoundedCornerShape(12.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFCDD2))
     ) {
@@ -341,7 +355,7 @@ fun VerificationReminderBanner(onVerifyClick: () -> Unit) {
 }
 
 @Composable
-fun ExploreScreen(userId: String, onViewProfile: (String) -> Unit, activeView: String, onActiveViewChange: (String) -> Unit, onStartChat: (String, KpopCard?) -> Unit) {
+fun ExploreScreen(userId: String, isVerified: Boolean, onViewProfile: (String) -> Unit, activeView: String, onActiveViewChange: (String) -> Unit, onStartChat: (String, KpopCard?) -> Unit) {
     var editingEvent by remember { mutableStateOf<KpopEvent?>(null) }
     var userLocation by remember { mutableStateOf("") }
     val db = FirebaseFirestore.getInstance()
@@ -363,10 +377,10 @@ fun ExploreScreen(userId: String, onViewProfile: (String) -> Unit, activeView: S
                 onActiveViewChange(it)
             }
         })
-        "events" -> ExploreEventsView(currentUserId = userId, onBack = { onActiveViewChange("menu") }, onAddClick = { editingEvent = null; onActiveViewChange("upload") }, onEditClick = { editingEvent = it; onActiveViewChange("upload") }, onViewProfile = onViewProfile, onStartChat = onStartChat)
+        "events" -> ExploreEventsView(currentUserId = userId, isVerified = isVerified, onBack = { onActiveViewChange("menu") }, onAddClick = { editingEvent = null; onActiveViewChange("upload") }, onEditClick = { editingEvent = it; onActiveViewChange("upload") }, onViewProfile = onViewProfile, onStartChat = onStartChat)
         "upload" -> if (userId.isEmpty()) GuestModePlaceholder { } else ExploreEventUploadView(userId = userId, existingEvent = editingEvent, onBack = { onActiveViewChange("events") }, onSuccess = { onActiveViewChange("events") })
-        "smartMatch" -> SmartMatchView(currentUserId = userId, onBack = { onActiveViewChange("menu") }, onStartChat = onStartChat, onViewProfile = onViewProfile)
-        "nearby" -> NearbyExchangeView(currentUserId = userId, initialLocation = userLocation, onBack = { onActiveViewChange("menu") }, onStartChat = onStartChat, onViewProfile = onViewProfile)
+        "smartMatch" -> SmartMatchView(currentUserId = userId, isVerified = isVerified, onBack = { onActiveViewChange("menu") }, onStartChat = onStartChat, onViewProfile = onViewProfile)
+        "nearby" -> NearbyExchangeView(currentUserId = userId, isVerified = isVerified, initialLocation = userLocation, onBack = { onActiveViewChange("menu") }, onStartChat = onStartChat, onViewProfile = onViewProfile)
         "trends" -> TrendingView(onBack = { onActiveViewChange("menu") })
         "encyclopedia" -> EncyclopediaScreen(onBack = { onActiveViewChange("menu") })
     }
@@ -448,10 +462,9 @@ fun ExploreMenuView(onNavigate: (String) -> Unit) {
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (String, KpopCard?) -> Unit, onViewProfile: (String) -> Unit) {
+fun SmartMatchView(currentUserId: String, isVerified: Boolean, onBack: () -> Unit, onStartChat: (String, KpopCard?) -> Unit, onViewProfile: (String) -> Unit) {
     val db = FirebaseFirestore.getInstance()
     var myCards by remember { mutableStateOf<List<KpopCard>>(emptyList()) }
     var allOtherCards by remember { mutableStateOf<List<KpopCard>>(emptyList()) }
@@ -523,7 +536,6 @@ fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (Stri
         isLoading = false
     }
 
-
     LaunchedEffect(selectedCard) {
         selectedCard?.let { card ->
             db.collection("reviews").whereEqualTo("revieweeId", card.userId).addSnapshotListener { s, _ ->
@@ -561,6 +573,7 @@ fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (Stri
                             onStartChat,
                             onViewProfile,
                             currentUserId,
+                            isVerified,
                             onCardClick = { selectedCard = it },
                             displayName = formatMatchMemberName(match.card.memberName)
                         )
@@ -619,7 +632,11 @@ fun SmartMatchView(currentUserId: String, onBack: () -> Unit, onStartChat: (Stri
                         Spacer(Modifier.height(60.dp))
                     }
                     Button(onClick = {
-                        scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card); selectedCard = null } }
+                        if (!isVerified) {
+                            Toast.makeText(context, "為了交易安全，請先完成實名認證後再與卡友聊天！", Toast.LENGTH_LONG).show()
+                        } else {
+                            scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card); selectedCard = null } }
+                        }
                     }, modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp).height(44.dp), shape = RoundedCornerShape(22.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF586795))) {
                         Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(16.dp))
                         Spacer(Modifier.width(6.6.dp)); Text("與他聊聊", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
@@ -636,11 +653,13 @@ fun MatchCardItem(
     onStartChat: (String, KpopCard?) -> Unit,
     onViewProfile: (String) -> Unit,
     currentUserId: String,
+    isVerified: Boolean,
     onCardClick: (KpopCard) -> Unit,
     displayName: String
 ) {
     val card = match.card
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onCardClick(card) },
@@ -699,7 +718,13 @@ fun MatchCardItem(
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { onViewProfile(card.userId) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp)) { Text("查看個人", fontSize = 13.sp) }
-                Button(onClick = { scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card) } } }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5C6BC0))) {
+                Button(onClick = {
+                    if (!isVerified) {
+                        Toast.makeText(context, "為了交易安全，請先完成實名認證後再與卡友聊天！", Toast.LENGTH_LONG).show()
+                    } else {
+                        scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card) } }
+                    }
+                }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5C6BC0))) {
                     Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp)); Text("立即聊聊", fontSize = 13.sp)
                 }
@@ -712,7 +737,7 @@ data class KpopMatchResult(val card: KpopCard, val score: Float, val reasons: Li
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NearbyExchangeView(currentUserId: String, initialLocation: String, onBack: () -> Unit, onStartChat: (String, KpopCard?) -> Unit, onViewProfile: (String) -> Unit) {
+fun NearbyExchangeView(currentUserId: String, isVerified: Boolean, initialLocation: String, onBack: () -> Unit, onStartChat: (String, KpopCard?) -> Unit, onViewProfile: (String) -> Unit) {
     val db = FirebaseFirestore.getInstance()
     val scope = rememberCoroutineScope()
     val locationParts = initialLocation.split(" ")
@@ -803,7 +828,7 @@ fun NearbyExchangeView(currentUserId: String, initialLocation: String, onBack: (
             } else {
                 LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     items(nearbyCards) { card ->
-                        NearbyCardItem(card, onStartChat, onViewProfile, { selectedCard = card }, currentUserId)
+                        NearbyCardItem(card, onStartChat, onViewProfile, { selectedCard = card }, currentUserId, isVerified)
                     }
                 }
             }
@@ -812,6 +837,7 @@ fun NearbyExchangeView(currentUserId: String, initialLocation: String, onBack: (
 
     if (selectedCard != null) {
         val card = selectedCard!!
+        val context = LocalContext.current
         Dialog(onDismissRequest = { selectedCard = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Card(modifier = Modifier
                 .fillMaxWidth(0.82f)
@@ -908,7 +934,11 @@ fun NearbyExchangeView(currentUserId: String, initialLocation: String, onBack: (
                     }
                     if (card.userId != currentUserId) {
                         Button(onClick = {
-                            scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card); selectedCard = null } }
+                            if (!isVerified) {
+                                Toast.makeText(context, "為了交易安全，請先完成實名認證後再發起聊天！", Toast.LENGTH_LONG).show()
+                            } else {
+                                scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card); selectedCard = null } }
+                            }
                         }, modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(12.dp)
@@ -936,8 +966,9 @@ fun NearbyExchangeView(currentUserId: String, initialLocation: String, onBack: (
 }
 
 @Composable
-fun NearbyCardItem(card: KpopCard, onStartChat: (String, KpopCard?) -> Unit, onViewProfile: (String) -> Unit, onCardClick: () -> Unit, currentUserId: String) {
+fun NearbyCardItem(card: KpopCard, onStartChat: (String, KpopCard?) -> Unit, onViewProfile: (String) -> Unit, onCardClick: () -> Unit, currentUserId: String, isVerified: Boolean) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), modifier = Modifier
         .fillMaxWidth()
         .clickable { onCardClick() }, colors = CardDefaults.cardColors(containerColor = Color.White)) {
@@ -969,7 +1000,13 @@ fun NearbyCardItem(card: KpopCard, onStartChat: (String, KpopCard?) -> Unit, onV
                         Text("查看主頁", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     Button(
-                        onClick = { scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card) } } },
+                        onClick = {
+                            if (!isVerified) {
+                                Toast.makeText(context, "為了交易安全，請先完成實名認證後再發起聊天！", Toast.LENGTH_LONG).show()
+                            } else {
+                                scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card) } }
+                            }
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(32.dp),
@@ -1021,7 +1058,7 @@ fun ExploreBentoCard(title: String, subtitle: String, icon: ImageVector, backgro
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExploreEventsView(currentUserId: String, onBack: () -> Unit, onAddClick: () -> Unit, onEditClick: (KpopEvent) -> Unit, onViewProfile: (String) -> Unit, onStartChat: (String, KpopCard?) -> Unit) {
+fun ExploreEventsView(currentUserId: String, isVerified: Boolean, onBack: () -> Unit, onAddClick: () -> Unit, onEditClick: (KpopEvent) -> Unit, onViewProfile: (String) -> Unit, onStartChat: (String, KpopCard?) -> Unit) {
     val db = FirebaseFirestore.getInstance()
     var events by remember { mutableStateOf<List<KpopEvent>>(emptyList()) }
     val isGuest = currentUserId.isEmpty()
@@ -1056,7 +1093,7 @@ fun ExploreEventsView(currentUserId: String, onBack: () -> Unit, onAddClick: () 
                 .padding(p)
                 .background(Color(0xFFFAFAFA)), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(events) { event ->
-                    EventPostItem(event = event, currentUserId = currentUserId, onEdit = { onEditClick(event) }, onDelete = { db.collection("events").document(event.id).delete() }, onViewProfile = onViewProfile, onStartChat = onStartChat)
+                    EventPostItem(event = event, currentUserId = currentUserId, isVerified = isVerified, onEdit = { onEditClick(event) }, onDelete = { db.collection("events").document(event.id).delete() }, onViewProfile = onViewProfile, onStartChat = onStartChat)
                 }
                 item { Spacer(Modifier.height(24.dp)) }
             }
@@ -1151,9 +1188,54 @@ fun ExploreEventUploadView(userId: String, existingEvent: KpopEvent? = null, onB
             }
         }
             Spacer(Modifier.height(12.dp)); OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("活動詳情描述") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
-            Spacer(Modifier.height(32.dp)); Button(onClick = { if (title.isBlank() || imageUrl.isEmpty()) { Toast.makeText(context, "請填寫名稱並上傳圖片", Toast.LENGTH_SHORT).show(); return@Button }; val eventData = mutableMapOf("title" to title, "type" to type, "groupName" to groupName, "location" to location, "startDate" to startDate, "endDate" to endDate, "description" to description, "imageUrl" to imageUrl, "userId" to userId, "createdAt" to (existingEvent?.createdAt ?: FieldValue.serverTimestamp())); val task = if (existingEvent == null) db.collection("events").add(eventData) else db.collection("events").document(existingEvent.id).set(eventData); task.addOnSuccessListener { Toast.makeText(context, if(existingEvent == null) "發佈成功！" else "更新成功！", Toast.LENGTH_SHORT).show(); onSuccess() } }, modifier = Modifier
-            .fillMaxWidth()
-            .height(50.dp), shape = RoundedCornerShape(12.dp), enabled = !isUploading) { Text(if(existingEvent == null) "確認發佈活動" else "儲存修改", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+            Spacer(Modifier.height(32.dp)); Button(
+            onClick = {
+                // 1. 先做原本的空白檢查
+                if (title.isBlank() || imageUrl.isEmpty()) {
+                    Toast.makeText(context, "請填寫名稱並上傳圖片", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+
+                // 2. 加入違禁詞檢查
+                val fieldCheck = ProfanityFilter.checkFields(mapOf(
+                    "活動名稱" to title,
+                    "所屬團體" to groupName,
+                    "地點" to location,
+                    "活動詳情" to description
+                ))
+
+                if (fieldCheck != null) {
+                    Toast.makeText(context, "「$fieldCheck」包含違禁詞，請修正", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+
+                // 3. 原本的資料處理邏輯...
+                val eventData = mutableMapOf(
+                    "title" to title,
+                    "type" to type,
+                    "groupName" to groupName,
+                    "location" to location,
+                    "startDate" to startDate,
+                    "endDate" to endDate,
+                    "description" to description,
+                    "imageUrl" to imageUrl,
+                    "userId" to userId,
+                    "createdAt" to (existingEvent?.createdAt ?: FieldValue.serverTimestamp())
+                )
+                val task = if (existingEvent == null) db.collection("events").add(eventData) else db.collection("events").document(existingEvent.id).set(eventData)
+                task.addOnSuccessListener {
+                    Toast.makeText(context, if(existingEvent == null) "發佈成功！" else "更新成功！", Toast.LENGTH_SHORT).show()
+                    onSuccess()
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            enabled = !isUploading
+        ) {
+            Text(if(existingEvent == null) "確認發佈活動" else "儲存修改", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        }
             Spacer(Modifier.height(40.dp))
         }
     }
@@ -1164,6 +1246,7 @@ fun ExploreEventUploadView(userId: String, existingEvent: KpopEvent? = null, onB
 fun EventPostItem(
     event: KpopEvent,
     currentUserId: String,
+    isVerified: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onViewProfile: (String) -> Unit,
@@ -1278,7 +1361,13 @@ fun EventPostItem(
                 }
                 Spacer(Modifier.weight(1f))
                 if (event.userId != currentUserId && currentUserId.isNotEmpty()) {
-                    IconButton(onClick = { scope.launch { findOrCreateChatRoom(currentUserId, event.userId, null) { roomId -> onStartChat(roomId, null) } } }) {
+                    IconButton(onClick = {
+                        if (!isVerified) {
+                            Toast.makeText(context, "為了交易安全，請先完成實名認證後再發起聊天！", Toast.LENGTH_LONG).show()
+                        } else {
+                            scope.launch { findOrCreateChatRoom(currentUserId, event.userId, null) { roomId -> onStartChat(roomId, null) } }
+                        }
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.Chat, null, tint = Color(0xFF586795))
                     }
                 }
@@ -1313,6 +1402,7 @@ fun KaOneCommentBottomSheet(eventId: String, currentUserId: String, onDismiss: (
     var currentUserNickname by remember { mutableStateOf("") }
     var currentUserAvatar by remember { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = LocalContext.current
 
     LaunchedEffect(currentUserId) {
         if (currentUserId.isNotEmpty()) {
@@ -1386,7 +1476,20 @@ fun KaOneCommentBottomSheet(eventId: String, currentUserId: String, onDismiss: (
                         Spacer(Modifier.width(8.dp))
                         IconButton(
                             onClick = {
-                                val data = mapOf("userId" to currentUserId, "userName" to currentUserNickname, "userProfileImage" to currentUserAvatar, "text" to newCommentText, "timestamp" to FieldValue.serverTimestamp())
+                                // 加入違禁詞檢查
+                                if (ProfanityFilter.containsProfanity(newCommentText)) {
+                                    Toast.makeText(context, "留言內容包含違禁詞，請修正", Toast.LENGTH_SHORT).show()
+                                    return@IconButton
+                                }
+
+                                // 原本的發送邏輯
+                                val data = mapOf(
+                                    "userId" to currentUserId,
+                                    "userName" to currentUserNickname,
+                                    "userProfileImage" to currentUserAvatar,
+                                    "text" to newCommentText,
+                                    "timestamp" to FieldValue.serverTimestamp()
+                                )
                                 db.collection("events").document(eventId).collection("comments").add(data)
                                 newCommentText = ""
                             },
@@ -1406,7 +1509,7 @@ fun KaOneCommentBottomSheet(eventId: String, currentUserId: String, onDismiss: (
 fun MainDashboard(
     userId: String,
     isAdmin: Boolean,
-    isVerified: Boolean, // <--- 已接收由 HomeScreen 傳入的實名狀態參數
+    isVerified: Boolean,
     onStartChat: (String, KpopCard?) -> Unit,
     onViewProfile: (String) -> Unit,
     selectedTab: Int,
@@ -1414,7 +1517,7 @@ fun MainDashboard(
     onEditCard: (KpopCard) -> Unit,
     unreadNotificationCount: Int = 0,
     onNotificationClick: () -> Unit = {},
-    onGoToProfile: () -> Unit // <--- 用來跳轉至個人頁面進行認證
+    onGoToProfile: () -> Unit
 ) {
     val db = FirebaseFirestore.getInstance(); val context = LocalContext.current; val scope = rememberCoroutineScope()
     var cardList by remember { mutableStateOf<List<KpopCard>>(emptyList()) }; var favoriteIds by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -1604,7 +1707,6 @@ fun MainDashboard(
             }
         }
 
-        // 如果登入了但還沒認證，就顯示紅框提醒 Banner
         if (userId.isNotEmpty() && !isVerified && !isSearchActive) {
             VerificationReminderBanner(onVerifyClick = onGoToProfile)
         }
@@ -1766,6 +1868,8 @@ fun MainDashboard(
                             Button(onClick = {
                                 if (isGuest) {
                                     Toast.makeText(context, "請先登入後再聊天", Toast.LENGTH_SHORT).show()
+                                } else if (!isVerified) {
+                                    Toast.makeText(context, "為了交易安全，請先完成實名認證後再與卡友聊天！", Toast.LENGTH_LONG).show()
                                 } else {
                                     scope.launch { findOrCreateChatRoom(userId, card.userId, card.id) { roomId -> onStartChat(roomId, card); selectedCard = null } }
                                 }
@@ -1987,7 +2091,6 @@ fun TrendingView(onBack: () -> Unit) {
                 item {
                     TrendingSection(title = "✨ 人氣搜尋成員 Top 10", items = topMembers, icon = Icons.Default.Stars, color = Color(0xFFEC407A))
                 }
-                item { Spacer(Modifier.height(40.dp)) }
             }
         }
     }

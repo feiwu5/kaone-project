@@ -287,7 +287,7 @@ fun ProfileScreen(
                         val image = InputImage.fromFilePath(context, uri)
                         IdCardValidator.scanIdCard(
                             image = image,
-                            onSuccess = { idNumber ->
+                            onSuccess = { idNumber, detectedName ->
                                 val newHash = IdCardValidator.hashIdNumber(idNumber)
                                 db.collection("users").whereEqualTo("idHash", newHash).get()
                                     .addOnSuccessListener { docs ->
@@ -295,9 +295,16 @@ fun ProfileScreen(
                                             Toast.makeText(context, "此身分證已被其他帳號綁定", Toast.LENGTH_LONG).show()
                                             isVerifyingId = false
                                         } else {
-                                            db.collection("users").document(currentUserId!!).update(mapOf("idHash" to newHash, "isVerified" to true))
+                                            db.collection("users").document(currentUserId!!).update(
+                                                mapOf(
+                                                    "idHash" to newHash,
+                                                    "isVerified" to true,
+                                                    "name" to detectedName
+                                                )
+                                            )
                                                 .addOnSuccessListener {
-                                                    Toast.makeText(context, "實名認證成功！ ✅", Toast.LENGTH_SHORT).show()
+                                                    name = detectedName // ✨ 自動填入姓名
+                                                    Toast.makeText(context, "實名認證成功！姓名：$detectedName ✅", Toast.LENGTH_SHORT).show()
                                                     isVerifyingId = false
                                                     currentUserVerified = true
                                                 }
@@ -399,7 +406,19 @@ fun ProfileScreen(
     if (showEdit) {
         var tFandoms by remember { mutableStateOf(fandoms) }; var tBio by remember { mutableStateOf(bio) }
         var tConcerts by remember { mutableStateOf(concerts) }; var tPreference by remember { mutableStateOf(preference) }
-        AlertDialog(onDismissRequest = { showEdit = false }, properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.padding(24.dp).fillMaxWidth(), shape = RoundedCornerShape(32.dp), containerColor = Color.White, title = { Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) { Text("編輯追星名片", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp); Spacer(Modifier.height(4.dp)); HorizontalDivider(Modifier.width(40.dp), 3.dp, MaterialTheme.colorScheme.primary.copy(0.3f)) } }, text = { Column(Modifier.verticalScroll(rememberScrollState()).fillMaxWidth()) { Spacer(Modifier.height(8.dp)); EditField(tFandoms, { tFandoms = it }, "追蹤團體", Icons.Default.Groups, placeholder = "例：BTS, NewJeans"); EditField(tBio, { tBio = it }, "追星歷程", Icons.Default.AutoAwesome, singleLine = false); EditField(tConcerts, { tConcerts = it }, "演唱會紀錄", Icons.Default.ConfirmationNumber); EditField(tPreference, { tPreference = it }, "小卡偏好", Icons.Default.Diamond) } }, confirmButton = { Button(onClick = { db.collection("users").document(userId).update(mapOf("fandoms" to tFandoms, "bio" to tBio, "concerts" to tConcerts, "preference" to tPreference)).addOnSuccessListener { Toast.makeText(context, "名片已更新 ✨", Toast.LENGTH_SHORT).show(); showEdit = false } }, Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) { Text("儲存變更", fontWeight = FontWeight.Bold) } }, dismissButton = { TextButton(onClick = { showEdit = false }, Modifier.fillMaxWidth()) { Text("取消修改", color = Color.Gray) } })
+        AlertDialog(onDismissRequest = { showEdit = false }, properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.padding(24.dp).fillMaxWidth(), shape = RoundedCornerShape(32.dp), containerColor = Color.White, title = { Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) { Text("編輯追星名片", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp); Spacer(Modifier.height(4.dp)); HorizontalDivider(Modifier.width(40.dp), 3.dp, MaterialTheme.colorScheme.primary.copy(0.3f)) } }, text = { Column(Modifier.verticalScroll(rememberScrollState()).fillMaxWidth()) { Spacer(Modifier.height(8.dp)); EditField(tFandoms, { tFandoms = it }, "追蹤團體", Icons.Default.Groups, placeholder = "例：BTS, NewJeans"); EditField(tBio, { tBio = it }, "追星歷程", Icons.Default.AutoAwesome, singleLine = false); EditField(tConcerts, { tConcerts = it }, "演唱會紀錄", Icons.Default.ConfirmationNumber); EditField(tPreference, { tPreference = it }, "小卡偏好", Icons.Default.Diamond) } }, confirmButton = { Button(onClick = {
+            val fieldCheck = ProfanityFilter.checkFields(mapOf(
+                "追蹤團體" to tFandoms,
+                "追星歷程" to tBio,
+                "演唱會紀錄" to tConcerts,
+                "小卡偏好" to tPreference
+            ))
+            if (fieldCheck != null) {
+                Toast.makeText(context, "「$fieldCheck」包含違禁詞，請修正後再試", Toast.LENGTH_SHORT).show()
+                return@Button
+            }
+            db.collection("users").document(userId).update(mapOf("fandoms" to tFandoms, "bio" to tBio, "concerts" to tConcerts, "preference" to tPreference)).addOnSuccessListener { Toast.makeText(context, "名片已更新 ✨", Toast.LENGTH_SHORT).show(); showEdit = false }
+        }, Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) { Text("儲存變更", fontWeight = FontWeight.Bold) } }, dismissButton = { TextButton(onClick = { showEdit = false }, Modifier.fillMaxWidth()) { Text("取消修改", color = Color.Gray) } })
     }
 
     if (showSettings) {
@@ -432,6 +451,11 @@ fun ProfileScreen(
             }
         }, confirmButton = {
             Button(onClick = {
+                if (ProfanityFilter.containsProfanity(tNickname)) {
+                    Toast.makeText(context, "暱稱包含違禁詞，請修改後再試", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+
                 val finalLocation = if (tDistrict.isNotEmpty()) "$tCity $tDistrict" else tCity
                 scope.launch {
                     db.collection("users").document(userId).update(mapOf("nickname" to tNickname, "location" to finalLocation, "profileImageUrl" to profileImageUrl)).await()
@@ -502,7 +526,15 @@ fun ReviewDetailsDialog(revieweeId: String, currentUserId: String, onDismiss: ()
     if (deletingReviewId != null) { AlertDialog(onDismissRequest = { deletingReviewId = null }, title = { Text("刪除評價") }, text = { Text("確定要刪除這筆評價嗎？此動作無法復原。") }, confirmButton = { TextButton(onClick = { db.collection("reviews").document(deletingReviewId!!).delete().addOnSuccessListener { Toast.makeText(context, "已刪除", Toast.LENGTH_SHORT).show(); deletingReviewId = null } }) { Text("確定刪除", color = Color.Red) } }, dismissButton = { TextButton(onClick = { deletingReviewId = null }) { Text("取消") } }) }
     if (editingReview != null) {
         var tRating by remember { mutableIntStateOf((editingReview!!["rating"] as? Long)?.toInt() ?: 0) }; var tComment by remember { mutableStateOf(editingReview!!["comment"] as? String ?: "") }
-        AlertDialog(onDismissRequest = { editingReview = null }, title = { Text("編輯評價", fontWeight = FontWeight.Bold) }, text = { Column { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) { for (i in 1..5) { Icon(imageVector = if (i <= tRating) Icons.Default.Star else Icons.Default.StarBorder, contentDescription = null, tint = if (i <= tRating) Color(0xFFFFD700) else Color.Gray, modifier = Modifier.size(32.dp).clickable { tRating = i }) } }; Spacer(Modifier.height(16.dp)); OutlinedTextField(value = tComment, onValueChange = { tComment = it }, label = { Text("修改評價內容...") }, modifier = Modifier.fillMaxWidth().height(100.dp)) } }, confirmButton = { Button(onClick = { db.collection("reviews").document(editingReview!!["id"] as String).update(mapOf("rating" to tRating, "comment" to tComment, "timestamp" to FieldValue.serverTimestamp())).addOnSuccessListener { Toast.makeText(context, "已更新", Toast.LENGTH_SHORT).show(); editingReview = null } }) { Text("儲存修改") } }, dismissButton = { TextButton(onClick = { editingReview = null }) { Text("取消") } })
+        AlertDialog(onDismissRequest = { editingReview = null }, title = { Text("編輯評價", fontWeight = FontWeight.Bold) }, text = { Column { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) { for (i in 1..5) { Icon(imageVector = if (i <= tRating) Icons.Default.Star else Icons.Default.StarBorder, contentDescription = null, tint = if (i <= tRating) Color(0xFFFFD700) else Color.Gray, modifier = Modifier.size(32.dp).clickable { tRating = i }) } }; Spacer(Modifier.height(16.dp)); OutlinedTextField(value = tComment, onValueChange = { tComment = it }, label = { Text("修改評價內容...") }, modifier = Modifier.fillMaxWidth().height(100.dp)) } }, confirmButton = {
+            Button(onClick = {
+                if (ProfanityFilter.containsProfanity(tComment)) {
+                    Toast.makeText(context, "評價包含違禁詞，請修改後再試", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+                db.collection("reviews").document(editingReview!!["id"] as String).update(mapOf("rating" to tRating, "comment" to tComment, "timestamp" to FieldValue.serverTimestamp())).addOnSuccessListener { Toast.makeText(context, "已更新", Toast.LENGTH_SHORT).show(); editingReview = null }
+            }) { Text("儲存修改") }
+        }, dismissButton = { TextButton(onClick = { editingReview = null }) { Text("取消") } })
     }
 }
 

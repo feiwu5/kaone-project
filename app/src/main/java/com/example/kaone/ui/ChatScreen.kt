@@ -1,9 +1,13 @@
 package com.example.kaone.ui
 
 import android.Manifest
+import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import android.widget.VideoView
+import android.widget.MediaController
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -29,9 +33,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.*
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
+import com.example.kaone.VerificationActivity
 import com.example.kaone.ui.theme.CloudinaryUploader
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.*
@@ -56,9 +62,9 @@ fun ChatList(userId: String, onRoomClick: (String, String) -> Unit) {
     var rooms by remember { mutableStateOf<List<ChatRoom>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
     var roomToDelete by remember { mutableStateOf<ChatRoom?>(null) }
-    
-    LaunchedEffect(userId) { 
-        db.collection("chatRooms").whereArrayContains("participantIds", userId).addSnapshotListener { s, _ -> 
+
+    LaunchedEffect(userId) {
+        db.collection("chatRooms").whereArrayContains("participantIds", userId).addSnapshotListener { s, _ ->
             s?.let { snapshot ->
                 val fetchedRooms = snapshot.documents.map { doc ->
                     val raw = doc.get("unreadCount") as? Map<*, *>
@@ -73,19 +79,19 @@ fun ChatList(userId: String, onRoomClick: (String, String) -> Unit) {
                         unreadCount = mapped
                     )
                 }
-                
+
                 fetchedRooms.forEach { room ->
                     val otherId = room.participantIds.firstOrNull { it != userId } ?: ""
                     if (otherId.isNotEmpty()) {
                         db.collection("users").document(otherId).get().addOnSuccessListener { userDoc ->
                             room.otherNickname = userDoc.getString("nickname") ?: "用戶"
-                            rooms = rooms.toList() 
+                            rooms = rooms.toList()
                         }
                     }
                 }
                 rooms = fetchedRooms.sortedByDescending { r -> r.lastMessageTime }
-            } 
-        } 
+            }
+        }
     }
 
     val filteredRooms = rooms.filter { room ->
@@ -111,7 +117,7 @@ fun ChatList(userId: String, onRoomClick: (String, String) -> Unit) {
     }
 
     Scaffold(
-        topBar = { 
+        topBar = {
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
                 TopAppBar(title = { Text("我的對話", fontWeight = FontWeight.Bold) })
                 Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Color(0xFFF1F3F4)).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
@@ -153,8 +159,8 @@ fun ChatList(userId: String, onRoomClick: (String, String) -> Unit) {
         }
     ) { p ->
         if (filteredRooms.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(p), Alignment.Center) { 
-                Text(if(searchQuery.isEmpty()) "尚無聊天紀錄" else "找不到相關聯絡人", color = Color.Gray) 
+            Box(Modifier.fillMaxSize().padding(p), Alignment.Center) {
+                Text(if(searchQuery.isEmpty()) "尚無聊天紀錄" else "找不到相關聯絡人", color = Color.Gray)
             }
         } else {
             LazyColumn(Modifier.fillMaxSize().padding(p)) {
@@ -173,18 +179,18 @@ fun ChatListItem(userId: String, room: ChatRoom, onRoomClick: (String, String) -
     val db = FirebaseFirestore.getInstance(); var otherName by remember { mutableStateOf(room.otherNickname) }; var otherImageUrl by remember { mutableStateOf("") }
     val otherId = room.participantIds.firstOrNull { it != userId } ?: ""
     val unread = room.unreadCount[userId] ?: 0
-    
-    LaunchedEffect(otherId) { 
-        if (otherId.isNotEmpty()) db.collection("users").document(otherId).get().addOnSuccessListener { 
+
+    LaunchedEffect(otherId) {
+        if (otherId.isNotEmpty()) db.collection("users").document(otherId).get().addOnSuccessListener {
             otherName = it.getString("nickname") ?: "用戶"
-            otherImageUrl = it.getString("profileImageUrl") ?: "" 
-        } 
+            otherImageUrl = it.getString("profileImageUrl") ?: ""
+        }
     }
-    
+
     Row(Modifier.fillMaxWidth().combinedClickable(onClick = { onRoomClick(room.id, otherName) }, onLongClick = onDelete).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(54.dp).clip(CircleShape).background(Color.LightGray)) { if (otherImageUrl.isNotEmpty()) AsyncImage(model = otherImageUrl, contentDescription = null, contentScale = ContentScale.Crop) }
         Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text(otherName, fontWeight = FontWeight.Bold, fontSize = 16.sp); Text(room.lastMessage, fontSize = 14.sp, color = if(unread > 0) Color.Black else Color.Gray, maxLines = 1, fontWeight = if(unread > 0) FontWeight.Medium else FontWeight.Normal) }
-        Column(horizontalAlignment = Alignment.End) { 
+        Column(horizontalAlignment = Alignment.End) {
             room.lastMessageTime?.let { Text(SimpleDateFormat("HH:mm", Locale.getDefault()).format(it.toDate()), fontSize = 12.sp, color = Color.LightGray) }
             if (unread > 0) {
                 Surface(color = Color.Red, shape = CircleShape, modifier = Modifier.padding(top = 4.dp)) {
@@ -199,7 +205,13 @@ fun ChatListItem(userId: String, room: ChatRoom, onRoomClick: (String, String) -
 @Composable
 fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, initialCard: KpopCard? = null, onViewProfile: (String) -> Unit, onBack: () -> Unit) {
     val db = FirebaseFirestore.getInstance(); var messages by remember { mutableStateOf<List<ChatMessage>>(emptyList()) }; var inputText by remember { mutableStateOf("") }
-    var inquiryCard by remember { mutableStateOf(initialCard) }; var showInquiry by remember { mutableStateOf(true) }; var previewImageUrl by remember { mutableStateOf<String?>(null) }
+    var inquiryCard by remember { mutableStateOf(initialCard) }
+
+    var showInquiry by rememberSaveable(roomId) { mutableStateOf(true) }
+    var lastInquiryCardId by rememberSaveable(roomId) { mutableStateOf("") }
+
+    var previewImageUrl by remember { mutableStateOf<String?>(null) }
+    var previewVideoUrl by remember { mutableStateOf<String?>(null) }
     val otherId = remember { mutableStateOf("") }; var otherImageUrl by remember { mutableStateOf("") }
     var otherUserName by remember { mutableStateOf(initialOtherUserName) }
     var showMyCardsDialog by remember { mutableStateOf(false) }; var showTradeFormDialog by remember { mutableStateOf(false) }
@@ -208,55 +220,107 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     var rName by remember { mutableStateOf("") }; var rPhone by remember { mutableStateOf("") }; var oMethod by remember { mutableStateOf("") }; var tNotes by remember { mutableStateOf("") }; var cMember by remember { mutableStateOf("") }
     var isUploading by remember { mutableStateOf(false) }; var isUploadingTrade by remember { mutableStateOf(false) }
     var reviewMsgId by remember { mutableStateOf<String?>(null) }
-    
+
     val datePickerState = rememberDatePickerState()
     var showDatePicker by remember { mutableStateOf(false) }
     val timePickerState = rememberTimePickerState()
     var showTimePicker by remember { mutableStateOf(false) }
 
-    // --- 修改處：從 Firestore 讀取背景顏色 ---
     var chatBgColor by rememberSaveable { mutableLongStateOf(0xFF8BA2B5L) }
-    
+
     var showMenu by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
-    
+
     val listState = rememberLazyListState(); val scope = rememberCoroutineScope(); val context = LocalContext.current
 
     LaunchedEffect(roomId) {
         db.collection("chatRooms").document(roomId).update("unreadCount.$userId", 0)
-        db.collection("chatRooms").document(roomId).get().addOnSuccessListener { d -> 
+
+        db.collection("chatRooms").document(roomId).get().addOnSuccessListener { d ->
             val oid = (d.get("participantIds") as? List<*>)?.mapNotNull { it.toString() }?.firstOrNull { it != userId } ?: ""
             otherId.value = oid
-            
-            // 讀取該聊天室的背景顏色設定
+
             val customBg = (d.get("backgrounds") as? Map<*, *>)?.get(userId) as? Long
             if (customBg != null) {
                 chatBgColor = customBg
             }
 
-            if (oid.isNotEmpty()) db.collection("users").document(oid).get().addOnSuccessListener { 
-                otherImageUrl = it.getString("profileImageUrl") ?: "" 
+            if (oid.isNotEmpty()) db.collection("users").document(oid).get().addOnSuccessListener {
+                otherImageUrl = it.getString("profileImageUrl") ?: ""
                 if (otherUserName.isEmpty() || otherUserName == "讀取中...") {
                     otherUserName = it.getString("nickname") ?: "用戶"
                 }
             }
         }
-        db.collection("chatRooms").document(roomId).addSnapshotListener { s, _ -> val cid = s?.getString("activeInquiryCardId") ?: ""; if (cid.isNotEmpty()) db.collection("cards").document(cid).get().addOnSuccessListener { d -> if (d.exists()) {
-            inquiryCard = d.toKpopCard()
-        } } }
-        db.collection("chatRooms").document(roomId).collection("messages").orderBy("timestamp", Query.Direction.ASCENDING).addSnapshotListener { snapshot, _ -> snapshot?.let { messages = it.documents.mapNotNull { d -> d.toObject(ChatMessage::class.java, DocumentSnapshot.ServerTimestampBehavior.ESTIMATE)?.copy(id = d.id) } } }
+
+        db.collection("chatRooms").document(roomId).addSnapshotListener { s, _ ->
+            val cid = s?.getString("activeInquiryCardId") ?: ""
+            if (cid.isNotEmpty()) {
+                if (cid != lastInquiryCardId) {
+                    showInquiry = true
+                    lastInquiryCardId = cid
+                }
+
+                db.collection("cards").document(cid).get().addOnSuccessListener { d ->
+                    if (d.exists()) {
+                        inquiryCard = d.toKpopCard()
+                    }
+                }
+            } else {
+                inquiryCard = null
+                showInquiry = false
+                lastInquiryCardId = ""
+            }
+        }
+
+        db.collection("chatRooms").document(roomId).collection("messages").orderBy("timestamp", Query.Direction.ASCENDING).addSnapshotListener { snapshot, _ ->
+            snapshot?.let {
+                messages = it.documents.mapNotNull { d -> d.toObject(ChatMessage::class.java, DocumentSnapshot.ServerTimestampBehavior.ESTIMATE)?.copy(id = d.id) }
+            }
+        }
     }
+
+    LaunchedEffect(roomId, messages.size) {
+        if (messages.isNotEmpty()) {
+            messages.filter { it.senderId != userId && !it.isRead }.forEach { msg ->
+                db.collection("chatRooms").document(roomId)
+                    .collection("messages").document(msg.id)
+                    .update("isRead", true)
+            }
+        }
+    }
+
     LaunchedEffect(messages.size) { if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1) }
 
     fun sendMsg(t: String, type: String = "text", url: String = "", extra: Map<String, Any>? = null) {
-        val data = mutableMapOf("senderId" to userId, "messageType" to type, "timestamp" to FieldValue.serverTimestamp()); if (t.isNotEmpty()) data["text"] = t; if (url.isNotEmpty()) data["mediaUrl"] = url; extra?.let { data.putAll(it) }
+        if (type == "text" && ProfanityFilter.containsProfanity(t)) {
+            Toast.makeText(context, "訊息包含違禁詞，請修改後再傳送", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val data = mutableMapOf(
+            "senderId" to userId,
+            "messageType" to type,
+            "timestamp" to FieldValue.serverTimestamp(),
+            "isRead" to false
+        )
+        if (t.isNotEmpty()) data["text"] = t
+        if (url.isNotEmpty()) data["mediaUrl"] = url
+        extra?.let { data.putAll(it) }
+
         db.collection("chatRooms").document(roomId).collection("messages").add(data)
         db.collection("chatRooms").document(roomId).update(mapOf(
-            "lastMessage" to (if(type=="text") t else if(type=="trade_proposal") "[交換提案]" else "[媒體]"), 
+            "lastMessage" to when(type) {
+                "text" -> t
+                "trade_proposal" -> "[交換提案]"
+                "video" -> "[影片]"
+                "video_request" -> "[要求對光影片]"
+                else -> "[媒體]"
+            },
             "lastMessageTime" to FieldValue.serverTimestamp(),
             "unreadCount.${otherId.value}" to FieldValue.increment(1)
         ))
-        
+
         val notifTitle: String
         val notifContent: String
         when (type) {
@@ -267,6 +331,14 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
             "image" -> {
                 notifTitle = otherUserName
                 notifContent = "傳送了一張圖片"
+            }
+            "video" -> {
+                notifTitle = otherUserName
+                notifContent = "傳送了一段影片"
+            }
+            "video_request" -> {
+                notifTitle = otherUserName
+                notifContent = "傳送了對光影片請求"
             }
             "card" -> {
                 notifTitle = otherUserName
@@ -280,7 +352,17 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
         sendNotification(otherId.value, "chat_silent", notifTitle, notifContent, roomId)
     }
 
-    val mediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { u -> u?.let { isUploading = true; CloudinaryUploader.uploadMedia(context, it, scope, onSuccess = { url -> sendMsg("", "image", url); isUploading = false }, onFailure = { isUploading = false }) } }
+    val mediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { u ->
+        u?.let { uri ->
+            isUploading = true
+            val isVideo = context.contentResolver.getType(uri)?.startsWith("video") == true
+            CloudinaryUploader.uploadMedia(context, uri, scope, onSuccess = { url ->
+                sendMsg("", if(isVideo) "video" else "image", url)
+                isUploading = false
+            }, onFailure = { isUploading = false })
+        }
+    }
+
     val tradeLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { u -> u?.let { isUploadingTrade = true; CloudinaryUploader.uploadMedia(context, it, scope, onSuccess = { url -> selectedOfferCard = KpopCard(id = "custom", imageUrl = url); showMyCardsDialog = false; showTradeFormDialog = true; isUploadingTrade = false }, onFailure = { isUploadingTrade = false }) } }
 
     var tempTradeCameraUri by remember { mutableStateOf<Uri?>(null) }
@@ -316,7 +398,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
             if (newStatus == "accepted") { if (msg.tradeTargetCardId.isNotEmpty()) db.collection("cards").document(msg.tradeTargetCardId).update("status", "trading"); if (msg.tradeOfferCardId != "custom" && msg.tradeOfferCardId.isNotEmpty()) db.collection("cards").document(msg.tradeOfferCardId).update("status", "trading") }
             else if (newStatus == "completed") { if (msg.tradeTargetCardId.isNotEmpty()) db.collection("cards").document(msg.tradeTargetCardId).update("status", "exchanged"); if (msg.tradeOfferCardId != "custom" && msg.tradeOfferCardId.isNotEmpty()) db.collection("cards").document(msg.tradeOfferCardId).update("status", "exchanged") }
             db.collection("chatRooms").document(roomId).update(mapOf("lastMessage" to lastMsgText, "lastMessageTime" to FieldValue.serverTimestamp(), "unreadCount.${otherId.value}" to FieldValue.increment(1)))
-            
+
             val statusTitle = when(newStatus) {
                 "accepted" -> "交換提案已接受"
                 "completed" -> "交換已順利完成"
@@ -346,11 +428,17 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     }
 
     Scaffold(
-        topBar = { 
+        topBar = {
             TopAppBar(
-                title = { Text(if(otherUserName.isEmpty()) "聊天" else otherUserName, fontWeight = FontWeight.Bold) }, 
+                title = { Text(if(otherUserName.isEmpty()) "聊天" else otherUserName, fontWeight = FontWeight.Bold) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
                 actions = {
+                    IconButton(onClick = {
+                        val intent = Intent(context, VerificationActivity::class.java)
+                        context.startActivity(intent)
+                    }) {
+                        Icon(Icons.Default.Verified, "辨識真偽", tint = MaterialTheme.colorScheme.primary)
+                    }
                     Box {
                         IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreVert, "選單") }
                         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
@@ -372,10 +460,9 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                             bgOptions.forEach { (name, color) ->
                                 DropdownMenuItem(
                                     text = { Text("  • $name") },
-                                    onClick = { 
+                                    onClick = {
                                         chatBgColor = color
                                         showMenu = false
-                                        // --- 修改處：儲存到 Firestore ---
                                         db.collection("chatRooms").document(roomId).update("backgrounds.$userId", color)
                                     }
                                 )
@@ -389,16 +476,151 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                         }
                     }
                 }
-            ) 
+            )
         },
-        bottomBar = { Surface(tonalElevation = 4.dp) { Column { if (isUploading || isUploadingTrade) LinearProgressIndicator(Modifier.fillMaxWidth()); Row(modifier = Modifier.padding(8.dp).fillMaxWidth().navigationBarsPadding(), verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = { mediaLauncher.launch("image/*") }) { Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary) }; OutlinedTextField(value = inputText, onValueChange = { inputText = it }, modifier = Modifier.weight(1f), placeholder = { Text("訊息") }, shape = RoundedCornerShape(24.dp), maxLines = 3); IconButton(onClick = { if (inputText.isNotBlank()) { val t = inputText.trim(); inputText = ""; sendMsg(t) } }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.White)) { Icon(Icons.AutoMirrored.Filled.Send, null) } } } } }
+        bottomBar = {
+            // 沒有任何 imePadding 或是推擠效果，保持原樣固定在底部
+            Surface(tonalElevation = 4.dp) {
+                Column(modifier = Modifier.padding(bottom = 6.dp)) {
+                    if (isUploading || isUploadingTrade) LinearProgressIndicator(Modifier.fillMaxWidth())
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 0.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AssistChip(
+                            onClick = { sendMsg("希望能看看這張小卡的對光影片，確認一下卡況和真偽，謝謝！", type = "video_request") },
+                            label = { Text("要求對光影片", fontSize = 11.sp) },
+                            leadingIcon = { Icon(Icons.Default.VideoCameraFront, null, Modifier.size(12.dp)) }
+                        )
+                        AssistChip(
+                            onClick = { context.startActivity(Intent(context, VerificationActivity::class.java)) },
+                            label = { Text("鑑定指南", fontSize = 11.sp) },
+                            leadingIcon = { Icon(Icons.Default.FactCheck, null, Modifier.size(14.dp)) }
+                        )
+                    }
+
+                    Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { mediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) }) {
+                            Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            border = BorderStroke(1.dp, Color.LightGray),
+                            color = Color.White
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                if (inputText.isEmpty()) {
+                                    Text("訊息", color = Color.Gray, fontSize = 14.sp)
+                                }
+                                BasicTextField(
+                                    value = inputText,
+                                    onValueChange = { inputText = it },
+                                    textStyle = TextStyle(fontSize = 14.sp, color = Color.Black),
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary)
+                                )
+                            }
+                        }
+                        IconButton(onClick = { if (inputText.isNotBlank()) { val t = inputText.trim(); inputText = ""; sendMsg(t) } }, colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.White)) {
+                            Icon(Icons.AutoMirrored.Filled.Send, null)
+                        }
+                    }
+                }
+            }
+        }
     ) { p ->
-        Column(Modifier.fillMaxSize().padding(p).background(Color(chatBgColor))) {
-            if (showInquiry && inquiryCard != null) Surface(modifier = Modifier.fillMaxWidth(), color = Color.White.copy(alpha = 0.9f)) { Column(Modifier.padding(12.dp)) { Row(verticalAlignment = Alignment.CenterVertically) { Text(text = "目前詢問商品", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.weight(1f)); IconButton(onClick = { showInquiry = false }, Modifier.size(20.dp)) { Icon(Icons.Default.Close, null, tint = Color.LightGray, modifier = Modifier.size(14.dp)) } }; Surface(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), color = Color.White, shape = RoundedCornerShape(8.dp), border = BorderStroke(0.5.dp, Color.LightGray)) { Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) { AsyncImage(model = inquiryCard!!.imageUrl, contentDescription = null, modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)).clickable { previewImageUrl = inquiryCard!!.imageUrl }, contentScale = ContentScale.Crop); Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text(text = inquiryCard!!.memberName.split(", ").joinToString(", ") { it.split("|").first() }, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1); Text(text = inquiryCard!!.groupName.split("|").first(), fontSize = 11.sp, color = Color.Gray) }; if (inquiryCard!!.userId != userId) { Button(onClick = { db.collection("cards").whereEqualTo("userId", userId).whereEqualTo("status", "available").get().addOnSuccessListener { myAvailableCards = it.documents.mapNotNull { d -> d.toKpopCard() }; showMyCardsDialog = true } }, shape = RoundedCornerShape(16.dp), modifier = Modifier.height(30.dp), contentPadding = PaddingValues(horizontal = 12.dp)) { Text("交換", fontSize = 11.sp) }; Spacer(Modifier.width(8.dp)) }; OutlinedButton(onClick = { sendMsg("", "card", "", mapOf("cardImage" to inquiryCard!!.imageUrl, "cardMember" to inquiryCard!!.memberName, "cardGroup" to inquiryCard!!.groupName)) }, shape = RoundedCornerShape(16.dp), modifier = Modifier.height(30.dp), contentPadding = PaddingValues(horizontal = 12.dp)) { Text("傳送", fontSize = 11.sp) } } } } }
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(p)
+                .background(Color(chatBgColor))
+            // 這裡沒有任何 imePadding，畫面完全不會被推擠！
+        ) {
+            val cardOwnerId = inquiryCard?.userId ?: ""
+            val isMeOwner = cardOwnerId == userId
+            val lastVideoRequest = messages.lastOrNull { it.messageType == "video_request" }
+            val isWaitingForVideo = lastVideoRequest != null && !messages.any {
+                it.messageType == "video" && it.senderId == cardOwnerId &&
+                        (it.timestamp?.seconds ?: 0L) >= (lastVideoRequest.timestamp?.seconds ?: 0L)
+            }
+
+            if (showInquiry && inquiryCard != null) Surface(modifier = Modifier.fillMaxWidth(), color = Color.White.copy(alpha = 0.9f)) {
+                Column(Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "目前詢問商品", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.weight(1f))
+                        IconButton(
+                            onClick = {
+                                showInquiry = false
+                                db.collection("chatRooms").document(roomId).update("activeInquiryCardId", "")
+                            },
+                            modifier = Modifier.size(20.dp)
+                        ) {
+                            Icon(Icons.Default.Close, null, tint = Color.LightGray, modifier = Modifier.size(14.dp))
+                        }
+                    }
+                    Surface(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), color = Color.White, shape = RoundedCornerShape(8.dp), border = BorderStroke(0.5.dp, Color.LightGray)) {
+                        Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            AsyncImage(model = inquiryCard!!.imageUrl, contentDescription = null, modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)).clickable { previewImageUrl = inquiryCard!!.imageUrl }, contentScale = ContentScale.Crop)
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(text = inquiryCard!!.memberName.split(", ").joinToString(", ") { it.split("|").first() }, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1)
+                                Text(text = inquiryCard!!.groupName.split("|").first(), fontSize = 11.sp, color = Color.Gray)
+                            }
+
+                            if (isMeOwner && isWaitingForVideo) {
+                                Button(
+                                    onClick = { mediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier.height(30.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp)
+                                ) { Text("上傳影片(必填)", fontSize = 11.sp) }
+
+                                Spacer(Modifier.width(4.dp))
+
+                                OutlinedButton(
+                                    onClick = {
+                                        db.collection("chatRooms").document(roomId).update("activeInquiryCardId", "")
+                                        sendMsg("抱歉，我目前無法提供對光影片，暫不考慮此次交換。", type = "text")
+                                    },
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier.height(30.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
+                                    contentPadding = PaddingValues(horizontal = 8.dp)
+                                ) { Text("拒絕", fontSize = 11.sp) }
+
+                            } else if (!isMeOwner) {
+                                Button(
+                                    onClick = { db.collection("cards").whereEqualTo("userId", userId).whereEqualTo("status", "available").get().addOnSuccessListener { myAvailableCards = it.documents.mapNotNull { d -> d.toKpopCard() }; showMyCardsDialog = true } },
+                                    enabled = !isWaitingForVideo,
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier.height(30.dp)
+                                ) { Text(text = if (isWaitingForVideo) "等待對方影片" else "交換", fontSize = 11.sp) }
+                            }
+
+                            if (!isWaitingForVideo || !isMeOwner) {
+                                Spacer(Modifier.width(8.dp))
+                                OutlinedButton(onClick = { sendMsg("", "card", "", mapOf("cardImage" to inquiryCard!!.imageUrl, "cardMember" to inquiryCard!!.memberName, "cardGroup" to inquiryCard!!.groupName)) }, shape = RoundedCornerShape(16.dp), modifier = Modifier.height(30.dp)) { Text("傳送", fontSize = 11.sp) }
+                            }
+                        }
+                    }
+                }
+            }
+
             LazyColumn(state = listState, modifier = Modifier.weight(1f).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 16.dp)) {
                 itemsIndexed(messages) { index, m ->
                     val isMe = m.senderId == userId; val timeStr = m.timestamp?.let { SimpleDateFormat("HH:mm", Locale.getDefault()).format(it.toDate()) } ?: ""
-                    
+
                     val showDate = if (index == 0) {
                         m.timestamp != null
                     } else {
@@ -431,21 +653,58 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                             Spacer(Modifier.width(8.dp))
                         }
                         Row(verticalAlignment = Alignment.Bottom) {
-                            if (isMe) Text(text = timeStr, fontSize = 10.sp, color = (if(chatBgColor == 0xFF263238L) Color.LightGray else Color.White).copy(alpha = 0.8f), modifier = Modifier.padding(end = 4.dp))
+                            if (isMe) {
+                                Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = 4.dp)) {
+                                    if (m.isRead) {
+                                        Text(
+                                            text = "已讀",
+                                            fontSize = 9.sp,
+                                            color = (if(chatBgColor == 0xFF263238L) Color.LightGray else Color.White).copy(alpha = 0.6f)
+                                        )
+                                    }
+                                    Text(
+                                        text = timeStr,
+                                        fontSize = 10.sp,
+                                        color = (if(chatBgColor == 0xFF263238L) Color.LightGray else Color.White).copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
                             when (m.messageType) {
-                                "trade_proposal" -> TradeProposalItem(userId, m, isMe, onAccept = { handleTradeAction(m, "accepted") }, onDecline = { handleTradeAction(m, "declined") }, onCancel = { handleTradeAction(m, "cancelled") }, onComplete = { handleTradeAction(m, "completed") }, onReview = { reviewMsgId = m.id })
+                                "trade_proposal" -> TradeProposalItem(
+                                    userId, m, isMe,
+                                    onAccept = {
+                                        if (isWaitingForVideo && !isMe) {
+                                            Toast.makeText(context, "請先上傳對光影片後才能接受提案", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            handleTradeAction(m, "accepted")
+                                        }
+                                    },
+                                    onDecline = { handleTradeAction(m, "declined") },
+                                    onCancel = { handleTradeAction(m, "cancelled") },
+                                    onComplete = { handleTradeAction(m, "completed") },
+                                    onReview = { reviewMsgId = m.id }
+                                )
                                 "card" -> Card(shape = RoundedCornerShape(12.dp), modifier = Modifier.width(200.dp).clickable { previewImageUrl = m.cardImage }, colors = CardDefaults.cardColors(containerColor = Color.White)) { Column { AsyncImage(model = m.cardImage, contentDescription = null, modifier = Modifier.fillMaxWidth().height(150.dp), contentScale = ContentScale.Crop); Column(Modifier.padding(12.dp)) { Text(text = m.cardMember.split(", ").joinToString(", ") { it.split("|").first() }, fontWeight = FontWeight.Bold, fontSize = 14.sp); Text(text = m.cardGroup.split("|").first(), fontSize = 12.sp, color = Color.Gray) } } }
+                                "video" -> Surface(
+                                    color = Color.Black,
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.size(200.dp).clickable { previewVideoUrl = m.mediaUrl }
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Default.PlayCircleFilled, null, tint = Color.White, modifier = Modifier.size(48.dp))
+                                    }
+                                }
                                 else -> Surface(
                                     color = if (isMe) Color(0xFF95EC69) else Color.White,
                                     shape = RoundedCornerShape(12.dp).copy(
                                         topStart = if (isMe) CornerSize(12.dp) else CornerSize(2.dp),
                                         topEnd = if (isMe) CornerSize(2.dp) else CornerSize(12.dp)
                                     )
-                                ) { 
-                                    when (m.messageType) { 
-                                        "text" -> Text(text = m.text, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), color = Color.Black, fontSize = 15.sp)
-                                        "image" -> AsyncImage(model = m.mediaUrl, contentDescription = null, modifier = Modifier.sizeIn(maxWidth = 200.dp, maxHeight = 300.dp).clip(RoundedCornerShape(8.dp)).clickable { previewImageUrl = m.mediaUrl }, contentScale = ContentScale.Crop) 
-                                    } 
+                                ) {
+                                    when (m.messageType) {
+                                        "text", "video_request" -> Text(text = m.text, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), color = Color.Black, fontSize = 15.sp)
+                                        "image" -> AsyncImage(model = m.mediaUrl, contentDescription = null, modifier = Modifier.sizeIn(maxWidth = 200.dp, maxHeight = 300.dp).clip(RoundedCornerShape(8.dp)).clickable { previewImageUrl = m.mediaUrl }, contentScale = ContentScale.Crop)
+                                    }
                                 }
                             }
                             if (!isMe) Text(text = timeStr, fontSize = 10.sp, color = (if(chatBgColor == 0xFF263238L) Color.LightGray else Color.White).copy(alpha = 0.8f), modifier = Modifier.padding(start = 4.dp))
@@ -456,18 +715,71 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
         }
     }
 
-    if (showMyCardsDialog) { 
+    if (previewVideoUrl != null) {
+        Dialog(onDismissRequest = { previewVideoUrl = null }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f)),
+                contentAlignment = Alignment.Center
+            ) {
+                AndroidView(
+                    factory = { ctx ->
+                        VideoView(ctx).apply {
+                            setVideoURI(Uri.parse(previewVideoUrl))
+                            val mc = MediaController(ctx)
+                            mc.setAnchorView(this)
+                            setMediaController(mc)
+
+                            setOnPreparedListener {
+                                it.isLooping = true
+                                start()
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(9f / 16f)
+                )
+
+                IconButton(
+                    onClick = { previewVideoUrl = null },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "關閉", tint = Color.White)
+                }
+            }
+        }
+    }
+
+    if (showMyCardsDialog) {
         AlertDialog(
-            onDismissRequest = { showMyCardsDialog = false }, 
-            title = { Text("選擇提案小卡", fontWeight = FontWeight.Bold) }, 
-            text = { 
-                LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.height(350.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { 
-                    item { Card(modifier = Modifier.height(130.dp).clickable { showTradeImageSourceDialog = true }, border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))) { Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { Icon(Icons.Default.AddAPhoto, null, tint = MaterialTheme.colorScheme.primary); Text(text = "上傳新圖片", fontSize = 12.sp) } } }
-                    items(myAvailableCards) { c -> Card(modifier = Modifier.clickable { selectedOfferCard = c; showMyCardsDialog = false; showTradeFormDialog = true }) { Column { AsyncImage(model = c.imageUrl, contentDescription = null, modifier = Modifier.fillMaxWidth().height(100.dp), contentScale = ContentScale.Crop); Text(text = c.memberName.split(", ").joinToString(", ") { it.split("|").first() }, fontSize = 12.sp, modifier = Modifier.padding(4.dp), maxLines = 1) } } } 
-                } 
-            }, 
+            onDismissRequest = { showMyCardsDialog = false },
+            title = { Text("選擇提案小卡", fontWeight = FontWeight.Bold) },
+            text = {
+                LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.height(350.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item {
+                        Card(
+                            modifier = Modifier.height(130.dp).clickable { showTradeImageSourceDialog = true },
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(Icons.Default.AddAPhoto, null, tint = MaterialTheme.colorScheme.primary)
+                                Text(text = "上傳新圖片", fontSize = 12.sp)
+                            }
+                        }
+                    }
+                    items(myAvailableCards) { c -> Card(modifier = Modifier.clickable { selectedOfferCard = c; showMyCardsDialog = false; showTradeFormDialog = true }) { Column { AsyncImage(model = c.imageUrl, contentDescription = null, modifier = Modifier.fillMaxWidth().height(100.dp), contentScale = ContentScale.Crop); Text(text = c.memberName.split(", ").joinToString(", ") { it.split("|").first() }, fontSize = 12.sp, modifier = Modifier.padding(4.dp), maxLines = 1) } } }
+                }
+            },
             confirmButton = { TextButton(onClick = { showMyCardsDialog = false }) { Text("取消") } }
-        ) 
+        )
     }
 
     if (showTradeImageSourceDialog) {
@@ -476,7 +788,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
             title = { Text("選取照片來源") },
             text = { Text("請選擇要從相簿選取，或是直接開啟相機拍照。") },
             confirmButton = {
-                TextButton(onClick = { 
+                TextButton(onClick = {
                     showTradeImageSourceDialog = false
                     cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                 }) {
@@ -488,7 +800,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                 }
             },
             dismissButton = {
-                TextButton(onClick = { 
+                TextButton(onClick = {
                     showTradeImageSourceDialog = false
                     tradeLauncher.launch("image/*")
                 }) {
@@ -501,18 +813,18 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
             }
         )
     }
-    
-    if (showTradeFormDialog && selectedOfferCard != null) { 
+
+    if (showTradeFormDialog && selectedOfferCard != null) {
         AlertDialog(
-            onDismissRequest = { showTradeFormDialog = false }, 
-            title = { Text("提案表", fontWeight = FontWeight.Bold) }, 
-            text = { 
-                Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) { 
-                    if (selectedOfferCard!!.id == "custom") OutlinedTextField(cMember, { cMember = it }, label = { Text("成員名") }, modifier = Modifier.fillMaxWidth()) 
+            onDismissRequest = { showTradeFormDialog = false },
+            title = { Text("提案表", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (selectedOfferCard!!.id == "custom") OutlinedTextField(cMember, { cMember = it }, label = { Text("成員名") }, modifier = Modifier.fillMaxWidth())
                     else Text(text = "卡片：${selectedOfferCard!!.memberName.split(", ").joinToString(", ") { it.split("|").first() }}", fontWeight = FontWeight.Bold)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("面交", "郵寄", "其他").forEach { m -> FilterChip(selected = tradeMethod == m, onClick = { tradeMethod = m }, label = { Text(m) }) } }
-                    when (tradeMethod) { 
-                        "面交" -> { 
+                    when (tradeMethod) {
+                        "面交" -> {
                             OutlinedTextField(mAddr, { mAddr = it }, label = { Text("地點") }, modifier = Modifier.fillMaxWidth())
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Box(modifier = Modifier.weight(1f)) {
@@ -526,7 +838,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                             }
                         }
                         "郵寄" -> { OutlinedTextField(sInfo, { sInfo = it }, label = { Text("地址/門市") }, modifier = Modifier.fillMaxWidth()); OutlinedTextField(rName, { rName = it }, label = { Text("姓名") }, modifier = Modifier.fillMaxWidth()); OutlinedTextField(rPhone, { rPhone = it }, label = { Text("電話") }, modifier = Modifier.fillMaxWidth()) }
-                        "其他" -> { 
+                        "其他" -> {
                             OutlinedTextField(oMethod, { oMethod = it }, label = { Text("方式") }, modifier = Modifier.fillMaxWidth())
                             OutlinedTextField(mAddr, { mAddr = it }, label = { Text("詳情") }, modifier = Modifier.fillMaxWidth())
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -539,24 +851,35 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                                     Box(modifier = Modifier.matchParentSize().clickable { showTimePicker = true })
                                 }
                             }
-                        } 
+                        }
                     }
-                    OutlinedTextField(tNotes, { tNotes = it }, label = { Text("備註") }, modifier = Modifier.fillMaxWidth()) 
-                } 
-            }, 
-            confirmButton = { 
-                Button(onClick = { 
+                    OutlinedTextField(tNotes, { tNotes = it }, label = { Text("備註") }, modifier = Modifier.fillMaxWidth())
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val fieldCheck = ProfanityFilter.checkFields(mapOf(
+                        "成員名" to cMember,
+                        "地點/地址" to mAddr,
+                        "收件姓名" to rName,
+                        "備註" to tNotes
+                    ))
+                    if (fieldCheck != null) {
+                        Toast.makeText(context, "「$fieldCheck」包含違禁詞，請修正後再試", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
                     val fn = if (selectedOfferCard!!.id == "custom") cMember else selectedOfferCard!!.memberName
                     val loc = when(tradeMethod) { "面交" -> "面交: $mAddr"; "郵寄" -> "郵寄: $sInfo"; else -> "$oMethod: $mAddr" }
                     val finalDateTime = if (mTime.isNotEmpty()) "$mDate $mTime" else mDate
                     if (fn.isBlank() || (tradeMethod == "面交" && mAddr.isBlank()) || (tradeMethod == "郵寄" && sInfo.isBlank())) { Toast.makeText(context, "請填寫完整資訊", Toast.LENGTH_SHORT).show(); return@Button }
                     sendMsg("", "trade_proposal", "", mapOf("tradeTargetCardId" to (inquiryCard?.id ?: ""), "tradeTargetImage" to (inquiryCard?.imageUrl ?: ""), "tradeOfferCardId" to selectedOfferCard!!.id, "tradeOfferImage" to selectedOfferCard!!.imageUrl, "tradeOfferMember" to fn, "meetingLocation" to loc, "meetingDate" to finalDateTime, "tradeNotes" to tNotes, "recipientName" to rName, "recipientPhone" to rPhone, "tradeStatus" to "pending"))
-                    showTradeFormDialog = false 
-                }) { Text("發起提案") } 
+                    showTradeFormDialog = false
+                }) { Text("發起提案") }
             }
-        ) 
+        )
     }
-    
+
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -596,15 +919,6 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
         }
     }
 
-    if (previewImageUrl != null) {
-        Dialog(onDismissRequest = { previewImageUrl = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) { 
-            Box(Modifier.fillMaxSize().background(Color.Black)) { 
-                AsyncImage(model = previewImageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
-                IconButton(onClick = { previewImageUrl = null }, modifier = Alignment.TopEnd.let { Modifier.align(it) }.padding(16.dp)) { Icon(Icons.Default.Close, null, tint = Color.White) }
-            } 
-        }
-    }
-    
     if (reviewMsgId != null) {
         var rating by remember { mutableStateOf(0) }
         var comment by remember { mutableStateOf("") }
@@ -632,6 +946,10 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
             confirmButton = {
                 Button(
                     onClick = {
+                        if (ProfanityFilter.containsProfanity(comment)) {
+                            Toast.makeText(context, "評價包含違禁詞，請修改後再送出", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
                         if (rating == 0) { Toast.makeText(context, "請選擇評分", Toast.LENGTH_SHORT).show(); return@Button }
                         isSubmitting = true
                         val reviewData = hashMapOf("reviewerId" to userId, "revieweeId" to otherId.value, "rating" to rating, "comment" to comment, "timestamp" to FieldValue.serverTimestamp())
@@ -661,26 +979,26 @@ fun TradeProposalItem(userId: String, m: ChatMessage, isMe: Boolean, onAccept: (
             Text(text = if (isMe) "📋 您的提案" else "📋 收到提案", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 15.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) { Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) { AsyncImage(model = m.tradeTargetImage, contentDescription = null, modifier = Modifier.size(50.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop); Text(text = "他的卡", fontSize = 9.sp, color = Color.Gray) }; Icon(Icons.Default.Sync, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 4.dp)); Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) { AsyncImage(model = m.tradeOfferImage, contentDescription = null, modifier = Modifier.size(50.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop); Text(text = m.tradeOfferMember.split(", ").joinToString(", ") { it.split("|").first() }, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1) } }
             HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFF0F0F0)); Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(vertical = 6.dp)) { Row { Text(text = "📍 方式：", fontSize = 11.sp, fontWeight = FontWeight.Bold); Text(text = m.meetingLocation, fontSize = 11.sp, color = Color.Gray) }; if (m.meetingDate.isNotEmpty()) Row { Text(text = "📅 時間：", fontSize = 11.sp, fontWeight = FontWeight.Bold); Text(text = m.meetingDate, fontSize = 11.sp, color = Color.Gray) }; if (m.recipientName.isNotEmpty()) Row { Text(text = "👤 收件：", fontSize = 11.sp, fontWeight = FontWeight.Bold); Text(text = m.recipientName, fontSize = 11.sp, color = Color.Gray) } }
-            
-            if (m.tradeStatus == "pending") { 
-                if (!isMe) Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { Button(onClick = onAccept, modifier = Modifier.weight(1f).height(30.dp), shape = RoundedCornerShape(15.dp), contentPadding = PaddingValues(0.dp)) { Text(text = "接受", fontSize = 11.sp) }; OutlinedButton(onClick = onDecline, modifier = Modifier.weight(1f).height(30.dp), shape = RoundedCornerShape(15.dp), contentPadding = PaddingValues(0.dp)) { Text(text = "拒絕", fontSize = 11.sp) } } 
-                else Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) { Box(modifier = Modifier.fillMaxWidth().background(Color(0xFFF9F9F9), RoundedCornerShape(6.dp)).padding(6.dp), contentAlignment = Alignment.Center) { Text(text = "⏳ 等待確認...", fontSize = 11.sp, color = Color.Gray) }; TextButton(onClick = onCancel, modifier = Modifier.height(30.dp)) { Text(text = "取消提案", color = Color.Red, fontSize = 11.sp) } } 
+
+            if (m.tradeStatus == "pending") {
+                if (!isMe) Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { Button(onClick = onAccept, modifier = Modifier.weight(1f).height(30.dp), shape = RoundedCornerShape(15.dp), contentPadding = PaddingValues(0.dp)) { Text(text = "接受", fontSize = 11.sp) }; OutlinedButton(onClick = onDecline, modifier = Modifier.weight(1f).height(30.dp), shape = RoundedCornerShape(15.dp), contentPadding = PaddingValues(0.dp)) { Text(text = "拒絕", fontSize = 11.sp) } }
+                else Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) { Box(modifier = Modifier.fillMaxWidth().background(Color(0xFFF9F9F9), RoundedCornerShape(6.dp)).padding(6.dp), contentAlignment = Alignment.Center) { Text(text = "⏳ 等待確認...", fontSize = 11.sp, color = Color.Gray) }; TextButton(onClick = onCancel, modifier = Modifier.height(30.dp)) { Text(text = "取消提案", color = Color.Red, fontSize = 11.sp) } }
             } else if (m.tradeStatus == "accepted") {
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) { Surface(color = Color(0xFFE3F2FD), shape = RoundedCornerShape(4.dp), modifier = Modifier.fillMaxWidth()) { Text(text = "🤝 交換進行中", modifier = Modifier.padding(6.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1976D2), textAlign = TextAlign.Center) }; Spacer(Modifier.height(8.dp)); Button(onClick = onComplete, modifier = Modifier.fillMaxWidth().height(32.dp), shape = RoundedCornerShape(16.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))) { Text(text = "結束交換 (已成交)", fontSize = 12.sp) } }
             } else if (m.tradeStatus == "completed") {
                 Column(Modifier.fillMaxWidth()) {
                     val hasIReviewed = m.reviewedBy.contains(userId)
                     if (hasIReviewed) {
-                        Surface(color = Color(0xFFE8F5E9), shape = RoundedCornerShape(4.dp), modifier = Modifier.fillMaxWidth()) { 
+                        Surface(color = Color(0xFFE8F5E9), shape = RoundedCornerShape(4.dp), modifier = Modifier.fillMaxWidth()) {
                             Text(text = "✅ 交換已完成", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF2E7D32), textAlign = TextAlign.Center)
                         }
                     } else {
-                        Surface(color = Color(0xFFE8F5E9), shape = RoundedCornerShape(4.dp), modifier = Modifier.fillMaxWidth()) { 
-                            Text(text = "✅ 已成交", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF2E7D32), textAlign = TextAlign.Center) 
+                        Surface(color = Color(0xFFE8F5E9), shape = RoundedCornerShape(4.dp), modifier = Modifier.fillMaxWidth()) {
+                            Text(text = "✅ 已成交", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF2E7D32), textAlign = TextAlign.Center)
                         }
                         Spacer(Modifier.height(8.dp))
-                        Button(onClick = onReview, modifier = Modifier.fillMaxWidth().height(32.dp), shape = RoundedCornerShape(16.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)) { 
-                            Text("給予評價", fontSize = 12.sp) 
+                        Button(onClick = onReview, modifier = Modifier.fillMaxWidth().height(32.dp), shape = RoundedCornerShape(16.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)) {
+                            Text("給予評價", fontSize = 12.sp)
                         }
                     }
                 }

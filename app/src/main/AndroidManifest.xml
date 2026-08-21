@@ -29,6 +29,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".VerificationActivity"
+            android:exported="false"
+            android:label="辨識小卡真偽"
+            android:theme="@style/Theme.KaOne.AppCompat" />
+
         <!-- 註冊 FCM 服務 -->
         <service
             android:name=".MyFirebaseMessagingService"
