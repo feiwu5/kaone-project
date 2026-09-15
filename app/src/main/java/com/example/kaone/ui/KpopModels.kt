@@ -69,6 +69,8 @@ data class KpopComment(
 data class ChatMessage(
     val id: String = "", 
     val senderId: String = "", 
+    val senderName: String = "", // 新增：發送者暱稱 (用於群組顯示)
+    val senderImage: String = "", // 新增：發送者頭像
     val text: String = "", 
     val messageType: String = "text",
     val mediaUrl: String = "", 
@@ -99,13 +101,19 @@ data class ChatRoom(
     val lastMessageTime: Timestamp? = null, 
     val activeInquiryCardId: String = "", 
     val unreadCount: Map<String, Int> = emptyMap(),
-    var otherNickname: String = ""
+    // --- 群組相關欄位 ---
+    @get:PropertyName("isGroup") val isGroup: Boolean = false,
+    val roomName: String = "", 
+    val roomImage: String = "",
+    val createdBy: String = "",
+    // ------------------
+    var otherNickname: String = "" // 保持用於私訊顯示
 )
 
 data class KaNotification(
     val id: String = "",
     val userId: String = "",
-    val type: String = "", // trade_proposal, match, chat, report, review
+    val type: String = "", // trade_proposal, match, chat, report, review, friend_request, friend_accept
     val title: String = "",
     val content: String = "",
     val timestamp: Timestamp? = null,

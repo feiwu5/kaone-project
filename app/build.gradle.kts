@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.kaone"
-        minSdk = 26
+        minSdk = 23
         targetSdk = 35 // 升級至 35 並搭配支援 16KB 的庫
         versionCode = 1
         versionName = "1.0"

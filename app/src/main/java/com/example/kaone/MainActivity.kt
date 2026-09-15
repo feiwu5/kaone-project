@@ -1,6 +1,7 @@
 package com.example.kaone
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -10,15 +11,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.cloudinary.android.MediaManager
 import com.example.kaone.ui.HomeScreen
 import com.example.kaone.ui.LoginScreen
+import com.example.kaone.ui.OnboardingScreen
 import com.example.kaone.ui.SignUpScreen
 import com.example.kaone.ui.createNotificationChannel
 import com.example.kaone.ui.showLocalNotification
@@ -67,6 +72,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             KaOneTheme {
+                val context = LocalContext.current
+                val sharedPrefs = remember { context.getSharedPreferences("kaone_prefs", Context.MODE_PRIVATE) }
+                var showOnboarding by remember { mutableStateOf(sharedPrefs.getBoolean("first_launch", true)) }
+
                 var currentScreen by remember { 
                     mutableStateOf(if (auth.currentUser != null) "home" else "login") 
                 }
@@ -86,126 +95,152 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    when (currentScreen) {
-                        "login" -> {
-                            LoginScreen(
-                                modifier = Modifier.padding(innerPadding),
-                                onLoginClick = { email, password ->
-                                    val cleanEmail = email.trim()
-                                    if (cleanEmail.isEmpty() || password.isEmpty()) {
-                                        Toast.makeText(this, "請填寫完整帳號密碼", Toast.LENGTH_SHORT).show()
-                                        return@LoginScreen
-                                    }
-                                    auth.signInWithEmailAndPassword(cleanEmail, password)
-                                        .addOnCompleteListener(this) { task ->
-                                            if (task.isSuccessful) {
-                                                val userId = auth.currentUser?.uid
-                                                if (userId != null) {
-                                                    db.collection("users").document(userId).get().addOnSuccessListener { d ->
-                                                        if (d.getBoolean("isBanned") == true) {
-                                                            Toast.makeText(this, "此帳號已被停權", Toast.LENGTH_LONG).show()
-                                                            auth.signOut()
-                                                        } else {
-                                                            Toast.makeText(this, "登入成功！", Toast.LENGTH_SHORT).show()
-                                                            isGuestMode = false
-                                                            currentScreen = "home"
-                                                        }
-                                                    }
-                                                }
-                                            } else {
-                                                Toast.makeText(this, "登入失敗: ${task.exception?.localizedMessage ?: "請確認帳密"}", Toast.LENGTH_LONG).show()
-                                            }
-                                        }
-                                },
-                                onSignUpClick = { currentScreen = "signup" },
-                                onGuestClick = { 
-                                    isGuestMode = true
-                                    currentScreen = "home" 
-                                },
-                                onForgotPasswordClick = { email ->
-                                    val cleanEmail = email.trim()
-                                    if (cleanEmail.isEmpty()) {
-                                        Toast.makeText(this, "請先輸入電子郵件", Toast.LENGTH_SHORT).show()
+                AnimatedContent(
+                    targetState = showOnboarding,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(700)) togetherWith fadeOut(animationSpec = tween(700))
+                    },
+                    label = "onboarding_transition"
+                ) { targetShowOnboarding ->
+                    if (targetShowOnboarding) {
+                        OnboardingScreen(onFinished = {
+                            sharedPrefs.edit().putBoolean("first_launch", false).apply()
+                            showOnboarding = false
+                        })
+                    } else {
+                        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                            AnimatedContent(
+                                targetState = currentScreen,
+                                transitionSpec = {
+                                    if (targetState == "home") {
+                                        (slideInHorizontally { it } + fadeIn()) togetherWith (slideOutHorizontally { -it } + fadeOut())
+                                    } else if (initialState == "home") {
+                                        (slideInHorizontally { -it } + fadeIn()) togetherWith (slideOutHorizontally { it } + fadeOut())
                                     } else {
-                                        auth.sendPasswordResetEmail(cleanEmail)
-                                            .addOnCompleteListener { task ->
-                                                if (task.isSuccessful) {
-                                                    Toast.makeText(this, "重設密碼郵件已寄出", Toast.LENGTH_SHORT).show()
-                                                } else {
-                                                    Toast.makeText(this, "寄送失敗: ${task.exception?.localizedMessage}", Toast.LENGTH_LONG).show()
-                                                }
-                                            }
+                                        fadeIn(animationSpec = tween(400)) togetherWith fadeOut(animationSpec = tween(400))
                                     }
-                                }
-                            )
-                        }
-                        "signup" -> {
-                            SignUpScreen(
-                                modifier = Modifier.padding(innerPadding),
-                                onSignUpClick = { email, password, name, gender, nickname, location, idHash ->
-                                    val cleanEmail = email.trim()
-
-                                    // 1. 先檢查這個身分證 Hash 是否已經被註冊過
-                                    db.collection("users")
-                                        .whereEqualTo("idHash", idHash)
-                                        .get()
-                                        .addOnSuccessListener { documents ->
-                                            if (!documents.isEmpty) {
-                                                Toast.makeText(this, "此身分證已被其他帳號綁定，無法重複註冊", Toast.LENGTH_LONG).show()
-                                            } else {
-                                                // 2. 執行 Firebase Auth 註冊
-                                                auth.createUserWithEmailAndPassword(cleanEmail, password)
-                                                    .addOnCompleteListener(this) { task ->
+                                },
+                                label = "screen_transition"
+                            ) { targetScreen ->
+                                when (targetScreen) {
+                                    "login" -> {
+                                        LoginScreen(
+                                            modifier = Modifier.padding(innerPadding),
+                                            onLoginClick = { email, password ->
+                                                val cleanEmail = email.trim()
+                                                if (cleanEmail.isEmpty() || password.isEmpty()) {
+                                                    Toast.makeText(this@MainActivity, "請填寫完整帳號密碼", Toast.LENGTH_SHORT).show()
+                                                    return@LoginScreen
+                                                }
+                                                auth.signInWithEmailAndPassword(cleanEmail, password)
+                                                    .addOnCompleteListener(this@MainActivity) { task ->
                                                         if (task.isSuccessful) {
                                                             val userId = auth.currentUser?.uid
                                                             if (userId != null) {
-                                                                val user = hashMapOf(
-                                                                    "name" to name,
-                                                                    "nickname" to nickname,
-                                                                    "gender" to gender,
-                                                                    "location" to location,
-                                                                    "email" to cleanEmail,
-                                                                    "idHash" to idHash,
-                                                                    "isVerified" to true,
-                                                                    "createdAt" to FieldValue.serverTimestamp(),
-                                                                    "favoriteCardIds" to emptyList<String>(),
-                                                                    "isAdmin" to false,
-                                                                    "isBanned" to false
-                                                                )
-                                                                // 3. 寫入資料庫
-                                                                db.collection("users").document(userId).set(user)
-                                                                    .addOnSuccessListener {
-                                                                        Toast.makeText(this, "實名認證註冊成功！", Toast.LENGTH_SHORT).show()
+                                                                db.collection("users").document(userId).get().addOnSuccessListener { d ->
+                                                                    if (d.getBoolean("isBanned") == true) {
+                                                                        Toast.makeText(this@MainActivity, "此帳號已被停權", Toast.LENGTH_LONG).show()
+                                                                        auth.signOut()
+                                                                    } else {
+                                                                        Toast.makeText(this@MainActivity, "登入成功！", Toast.LENGTH_SHORT).show()
+                                                                        isGuestMode = false
                                                                         currentScreen = "home"
                                                                     }
-                                                                    .addOnFailureListener { e ->
-                                                                        Toast.makeText(this, "資料庫寫入失敗: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                                                                    }
+                                                                }
                                                             }
                                                         } else {
-                                                            Toast.makeText(this, "帳號創建失敗: ${task.exception?.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                            Toast.makeText(this@MainActivity, "登入失敗: ${task.exception?.localizedMessage ?: "請確認帳密"}", Toast.LENGTH_LONG).show()
                                                         }
                                                     }
+                                            },
+                                            onSignUpClick = { currentScreen = "signup" },
+                                            onGuestClick = { 
+                                                isGuestMode = true
+                                                currentScreen = "home" 
+                                            },
+                                            onForgotPasswordClick = { email ->
+                                                val cleanEmail = email.trim()
+                                                if (cleanEmail.isEmpty()) {
+                                                    Toast.makeText(this@MainActivity, "請先輸入電子郵件", Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    auth.sendPasswordResetEmail(cleanEmail)
+                                                        .addOnCompleteListener { task ->
+                                                            if (task.isSuccessful) {
+                                                                Toast.makeText(this@MainActivity, "重設密碼郵件已寄出", Toast.LENGTH_SHORT).show()
+                                                            } else {
+                                                                Toast.makeText(this@MainActivity, "寄送失敗: ${task.exception?.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                            }
+                                                        }
+                                                }
                                             }
-                                        }
-                                        .addOnFailureListener { e ->
-                                            Toast.makeText(this, "網路錯誤: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
-                                        }
-                                },
-                                onBackToLoginClick = { currentScreen = "login" }
-                            )
-                        }
-                        "home" -> {
-                            HomeScreen(
-                                userId = if (isGuestMode) "" else (auth.currentUser?.uid ?: ""),
-                                modifier = Modifier.padding(innerPadding),
-                                onLogoutClick = {
-                                    auth.signOut()
-                                    isGuestMode = false
-                                    currentScreen = "login"
+                                        )
+                                    }
+                                    "signup" -> {
+                                        SignUpScreen(
+                                            modifier = Modifier.padding(innerPadding),
+                                            onSignUpClick = { email, password, name, gender, nickname, location, idHash ->
+                                                val cleanEmail = email.trim()
+
+                                                db.collection("users")
+                                                    .whereEqualTo("idHash", idHash)
+                                                    .get()
+                                                    .addOnSuccessListener { documents ->
+                                                        if (!documents.isEmpty) {
+                                                            Toast.makeText(this@MainActivity, "此身分證已被其他帳號綁定，無法重複註冊", Toast.LENGTH_LONG).show()
+                                                        } else {
+                                                            auth.createUserWithEmailAndPassword(cleanEmail, password)
+                                                                .addOnCompleteListener(this@MainActivity) { task ->
+                                                                    if (task.isSuccessful) {
+                                                                        val userId = auth.currentUser?.uid
+                                                                        if (userId != null) {
+                                                                            val user = hashMapOf(
+                                                                                "name" to name,
+                                                                                "nickname" to nickname,
+                                                                                "gender" to gender,
+                                                                                "location" to location,
+                                                                                "email" to cleanEmail,
+                                                                                "idHash" to idHash,
+                                                                                "isVerified" to true,
+                                                                                "createdAt" to FieldValue.serverTimestamp(),
+                                                                                "favoriteCardIds" to emptyList<String>(),
+                                                                                "isAdmin" to false,
+                                                                                "isBanned" to false
+                                                                            )
+                                                                            db.collection("users").document(userId).set(user)
+                                                                                .addOnSuccessListener {
+                                                                                    Toast.makeText(this@MainActivity, "實名認證註冊成功！", Toast.LENGTH_SHORT).show()
+                                                                                    currentScreen = "home"
+                                                                                }
+                                                                                .addOnFailureListener { e ->
+                                                                                    Toast.makeText(this@MainActivity, "資料庫寫入失敗: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                                                }
+                                                                        }
+                                                                    } else {
+                                                                        Toast.makeText(this@MainActivity, "帳號創建失敗: ${task.exception?.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                                    }
+                                                                }
+                                                        }
+                                                    }
+                                                    .addOnFailureListener { e ->
+                                                        Toast.makeText(this@MainActivity, "網路錯誤: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                                    }
+                                            },
+                                            onBackToLoginClick = { currentScreen = "login" }
+                                        )
+                                    }
+                                    "home" -> {
+                                        HomeScreen(
+                                            userId = if (isGuestMode) "" else (auth.currentUser?.uid ?: ""),
+                                            modifier = Modifier.padding(innerPadding),
+                                            onLogoutClick = {
+                                                auth.signOut()
+                                                isGuestMode = false
+                                                currentScreen = "login"
+                                            }
+                                        )
+                                    }
                                 }
-                            )
+                            }
                         }
                     }
                 }

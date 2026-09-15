@@ -77,17 +77,24 @@ fun ProfileScreen(
     var showFavs by remember { mutableStateOf(false) }
     var showTabSet by remember { mutableStateOf(false) }
     var showReviews by remember { mutableStateOf(false) }
+    var showFriends by remember { mutableStateOf(false) } // 新增：好友對話框狀態
     var selectedCard by remember { mutableStateOf<KpopCard?>(null) }
     var cardToDelete by remember { mutableStateOf<KpopCard?>(null) }
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
     var selectedStatusTab by remember { mutableIntStateOf(0) }
     val statusTabs = listOf("全部", "在架上", "交換中", "已成交")
 
-    // --- 實名認證狀態與自訂相機顯示狀態 ---
+    var friendsCount by remember { mutableIntStateOf(0) }
+    var friendStatus by remember { mutableStateOf("none") }
+    var friendRequestSenderId by remember { mutableStateOf("") }
+
+    var currentUserNickname by remember { mutableStateOf("") }
+    var currentUserProfileImageUrl by remember { mutableStateOf("") }
+
     var isVerified by remember { mutableStateOf(false) }
     var currentUserVerified by remember { mutableStateOf(false) }
     var isVerifyingId by remember { mutableStateOf(false) }
-    var showIdCamera by remember { mutableStateOf(false) } // <--- 控制實名認證相機顯示
+    var showIdCamera by remember { mutableStateOf(false) } 
 
     var showDeleteAccountConfirm by remember { mutableStateOf(false) }
     var isUploadingProfileImage by remember { mutableStateOf(false) }
@@ -135,6 +142,29 @@ fun ProfileScreen(
         if (currentUserId != null) {
             db.collection("users").document(currentUserId).addSnapshotListener { s, _ ->
                 currentUserVerified = s?.getBoolean("isVerified") ?: false
+                currentUserNickname = s?.getString("nickname") ?: "卡友"
+                currentUserProfileImageUrl = s?.getString("profileImageUrl") ?: ""
+            }
+        }
+
+        db.collection("friendships")
+            .whereArrayContains("uids", userId)
+            .whereEqualTo("status", "friends")
+            .addSnapshotListener { s, _ ->
+                friendsCount = s?.size() ?: 0
+            }
+
+        if (currentUserId != null && !isOwnProfile) {
+            val uids = listOf(currentUserId, userId).sorted()
+            val friendDocId = "${uids[0]}_${uids[1]}"
+            db.collection("friendships").document(friendDocId).addSnapshotListener { s, _ ->
+                if (s != null && s.exists()) {
+                    friendStatus = s.getString("status") ?: "none"
+                    friendRequestSenderId = s.getString("senderId") ?: ""
+                } else {
+                    friendStatus = "none"
+                    friendRequestSenderId = ""
+                }
             }
         }
 
@@ -207,6 +237,63 @@ fun ProfileScreen(
                             }
 
                             if (currentUserId != null) {
+                                Button(
+                                    onClick = {
+                                        val uids = listOf(currentUserId, userId).sorted()
+                                        val friendDocId = "${uids[0]}_${uids[1]}"
+                                        when (friendStatus) {
+                                            "none" -> {
+                                                db.collection("friendships").document(friendDocId).set(mapOf(
+                                                    "uids" to uids,
+                                                    "status" to "pending",
+                                                    "senderId" to currentUserId,
+                                                    "timestamp" to FieldValue.serverTimestamp()
+                                                )).addOnSuccessListener {
+                                                    sendNotification(
+                                                        userId = userId,
+                                                        type = "friend_request",
+                                                        title = "新的好友申請",
+                                                        content = "$currentUserNickname 想要加你為好友",
+                                                        relatedId = currentUserId,
+                                                        relatedImage = currentUserProfileImageUrl
+                                                    )
+                                                }
+                                            }
+                                            "pending" -> {
+                                                if (friendRequestSenderId != currentUserId) {
+                                                    db.collection("friendships").document(friendDocId).update("status", "friends")
+                                                        .addOnSuccessListener {
+                                                            Toast.makeText(context, "已成為好友！", Toast.LENGTH_SHORT).show()
+                                                            sendNotification(
+                                                                userId = friendRequestSenderId,
+                                                                type = "friend_accept",
+                                                                title = "好友申請已通過",
+                                                                content = "$currentUserNickname 已接受你的好友申請！",
+                                                                relatedId = currentUserId,
+                                                                relatedImage = currentUserProfileImageUrl
+                                                            )
+                                                        }
+                                                }
+                                            }
+                                            "friends" -> { Toast.makeText(context, "你們已經是好友了！", Toast.LENGTH_SHORT).show() }
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (friendStatus == "friends") Color(0xFF4CAF50) else MaterialTheme.colorScheme.secondary
+                                    ),
+                                    shape = RoundedCornerShape(24.dp)
+                                ) {
+                                    val btnText = when (friendStatus) {
+                                        "pending" -> if (friendRequestSenderId == currentUserId) "已發送申請" else "接受好友"
+                                        "friends" -> "好友"
+                                        else -> "加好友"
+                                    }
+                                    val btnIcon = if (friendStatus == "friends") Icons.Default.People else Icons.Default.PersonAdd
+                                    Icon(btnIcon, null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(btnText)
+                                }
+
                                 IconButton(onClick = { reportingTargetId = userId; reportingType = "user" }, modifier = Modifier.background(Color.LightGray.copy(0.3f), CircleShape)) {
                                     Icon(Icons.Default.Report, "檢舉用戶", tint = Color.Gray)
                                 }
@@ -218,6 +305,7 @@ fun ProfileScreen(
             Row(Modifier.padding(horizontal = 24.dp, vertical = 12.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color.White).padding(16.dp), Arrangement.SpaceEvenly) {
                 ProfileStatItem("已上架", uploadedCards.count { it.status == "available" }.toString())
                 ProfileStatItem("評價", reviewCount.toString(), onClick = { if (reviewCount > 0) showReviews = true })
+                ProfileStatItem("好友", friendsCount.toString(), onClick = { if (friendsCount > 0 && isOwnProfile) showFriends = true }) // 更新：加入點擊事件
                 ProfileStatItem("收藏", favoriteCardIds.size.toString())
             }
             Card(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
@@ -244,7 +332,7 @@ fun ProfileScreen(
                             containerColor = Color(0xFFFFEBEE)
                         ) {
                             if (!isVerifyingId) {
-                                showIdCamera = true // <--- 點擊後開啟自訂身分證相機
+                                showIdCamera = true 
                             }
                         }
                         HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFEEEEEE))
@@ -270,15 +358,9 @@ fun ProfileScreen(
         }
     }
 
-    // --- 實名認證自訂相機 Fullscreen Dialog (使用身分證專用橫式 IdCardCameraScreen) ---
+    if (showFriends) { FriendsListDialog(userId, onDismiss = { showFriends = false }) }
     if (showIdCamera) {
-        Dialog(
-            onDismissRequest = { showIdCamera = false },
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false, // 允許全螢幕
-                decorFitsSystemWindows = false  // 延伸到系統欄位下方
-            )
-        ) {
+        Dialog(onDismissRequest = { showIdCamera = false }, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
             IdCardCameraScreen(
                 onImageCaptured = { uri ->
                     showIdCamera = false
@@ -295,35 +377,20 @@ fun ProfileScreen(
                                             Toast.makeText(context, "此身分證已被其他帳號綁定", Toast.LENGTH_LONG).show()
                                             isVerifyingId = false
                                         } else {
-                                            db.collection("users").document(currentUserId!!).update(
-                                                mapOf(
-                                                    "idHash" to newHash,
-                                                    "isVerified" to true,
-                                                    "name" to detectedName
-                                                )
-                                            )
+                                            db.collection("users").document(currentUserId!!).update(mapOf("idHash" to newHash, "isVerified" to true, "name" to detectedName))
                                                 .addOnSuccessListener {
-                                                    name = detectedName // ✨ 自動填入姓名
+                                                    name = detectedName
                                                     Toast.makeText(context, "實名認證成功！姓名：$detectedName ✅", Toast.LENGTH_SHORT).show()
                                                     isVerifyingId = false
                                                     currentUserVerified = true
                                                 }
                                         }
                                     }
-                                    .addOnFailureListener {
-                                        isVerifyingId = false
-                                        Toast.makeText(context, "網路錯誤，請稍後再試", Toast.LENGTH_SHORT).show()
-                                    }
+                                    .addOnFailureListener { isVerifyingId = false; Toast.makeText(context, "網路錯誤，請稍後再試", Toast.LENGTH_SHORT).show() }
                             },
-                            onFailure = { e ->
-                                isVerifyingId = false
-                                Toast.makeText(context, "辨識失敗：${e.message}", Toast.LENGTH_LONG).show()
-                            }
+                            onFailure = { e -> isVerifyingId = false; Toast.makeText(context, "辨識失敗：${e.message}", Toast.LENGTH_LONG).show() }
                         )
-                    } catch (e: Exception) {
-                        isVerifyingId = false
-                        Toast.makeText(context, "圖片處理出錯: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
+                    } catch (e: Exception) { isVerifyingId = false; Toast.makeText(context, "圖片處理出錯: ${e.message}", Toast.LENGTH_SHORT).show() }
                 },
                 onDismiss = { showIdCamera = false }
             )
@@ -371,20 +438,13 @@ fun ProfileScreen(
                     if (card.userId != currentUserId) {
                         Button(
                             onClick = {
-                                if (!currentUserVerified) {
-                                    Toast.makeText(context, "為了交易安全，請先完成實名認證後再與卡友聊天！", Toast.LENGTH_LONG).show()
-                                } else {
-                                    scope.launch { findOrCreateChatRoomInProfile(currentUserId ?: "", card.userId, card.id) { roomId, _ -> onStartChat(roomId, card); selectedCard = null } }
-                                }
+                                if (!currentUserVerified) { Toast.makeText(context, "為了交易安全，請先完成實名認證後再與卡友聊天！", Toast.LENGTH_LONG).show() }
+                                else { scope.launch { findOrCreateChatRoomInProfile(currentUserId ?: "", card.userId, card.id) { roomId, _ -> onStartChat(roomId, card); selectedCard = null } } }
                             },
                             modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp).height(44.dp),
                             shape = RoundedCornerShape(22.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF586795))
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.6.dp))
-                            Text("與他聊聊", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-                        }
+                        ) { Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(16.dp)); Spacer(Modifier.width(6.6.dp)); Text("與他聊聊", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold) }
                     } else {
                         Row(modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             IconButton(onClick = { onEditCard(card); selectedCard = null }, modifier = Modifier.size(42.dp).background(Color(0xFFE8EAF6), CircleShape)) { Icon(Icons.Default.Edit, "編輯", tint = Color(0xFF5C6BC0), modifier = Modifier.size(20.dp)) }
@@ -397,26 +457,15 @@ fun ProfileScreen(
         }
     }
 
-    if (reportingTargetId != null) {
-        ReportDialog(reporterId = currentUserId ?: "", targetId = reportingTargetId!!, targetType = reportingType, onDismiss = { reportingTargetId = null })
-    }
-
+    if (reportingTargetId != null) { ReportDialog(reporterId = currentUserId ?: "", targetId = reportingTargetId!!, targetType = reportingType, onDismiss = { reportingTargetId = null }) }
     if (previewImageUrl != null) { Dialog(onDismissRequest = { previewImageUrl = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) { Box(modifier = Modifier.fillMaxSize().background(Color.Black).clickable { previewImageUrl = null }, contentAlignment = Alignment.Center) { AsyncImage(model = previewImageUrl, contentDescription = "預覽", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit) } } }
 
     if (showEdit) {
         var tFandoms by remember { mutableStateOf(fandoms) }; var tBio by remember { mutableStateOf(bio) }
         var tConcerts by remember { mutableStateOf(concerts) }; var tPreference by remember { mutableStateOf(preference) }
         AlertDialog(onDismissRequest = { showEdit = false }, properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.padding(24.dp).fillMaxWidth(), shape = RoundedCornerShape(32.dp), containerColor = Color.White, title = { Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) { Text("編輯追星名片", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp); Spacer(Modifier.height(4.dp)); HorizontalDivider(Modifier.width(40.dp), 3.dp, MaterialTheme.colorScheme.primary.copy(0.3f)) } }, text = { Column(Modifier.verticalScroll(rememberScrollState()).fillMaxWidth()) { Spacer(Modifier.height(8.dp)); EditField(tFandoms, { tFandoms = it }, "追蹤團體", Icons.Default.Groups, placeholder = "例：BTS, NewJeans"); EditField(tBio, { tBio = it }, "追星歷程", Icons.Default.AutoAwesome, singleLine = false); EditField(tConcerts, { tConcerts = it }, "演唱會紀錄", Icons.Default.ConfirmationNumber); EditField(tPreference, { tPreference = it }, "小卡偏好", Icons.Default.Diamond) } }, confirmButton = { Button(onClick = {
-            val fieldCheck = ProfanityFilter.checkFields(mapOf(
-                "追蹤團體" to tFandoms,
-                "追星歷程" to tBio,
-                "演唱會紀錄" to tConcerts,
-                "小卡偏好" to tPreference
-            ))
-            if (fieldCheck != null) {
-                Toast.makeText(context, "「$fieldCheck」包含違禁詞，請修正後再試", Toast.LENGTH_SHORT).show()
-                return@Button
-            }
+            val fieldCheck = ProfanityFilter.checkFields(mapOf("追蹤團體" to tFandoms, "追星歷程" to tBio, "演唱會紀錄" to tConcerts, "小卡偏好" to tPreference))
+            if (fieldCheck != null) { Toast.makeText(context, "「$fieldCheck」包含違禁詞，請修正後再試", Toast.LENGTH_SHORT).show(); return@Button }
             db.collection("users").document(userId).update(mapOf("fandoms" to tFandoms, "bio" to tBio, "concerts" to tConcerts, "preference" to tPreference)).addOnSuccessListener { Toast.makeText(context, "名片已更新 ✨", Toast.LENGTH_SHORT).show(); showEdit = false }
         }, Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) { Text("儲存變更", fontWeight = FontWeight.Bold) } }, dismissButton = { TextButton(onClick = { showEdit = false }, Modifier.fillMaxWidth()) { Text("取消修改", color = Color.Gray) } })
     }
@@ -451,11 +500,7 @@ fun ProfileScreen(
             }
         }, confirmButton = {
             Button(onClick = {
-                if (ProfanityFilter.containsProfanity(tNickname)) {
-                    Toast.makeText(context, "暱稱包含違禁詞，請修改後再試", Toast.LENGTH_SHORT).show()
-                    return@Button
-                }
-
+                if (ProfanityFilter.containsProfanity(tNickname)) { Toast.makeText(context, "暱稱包含違禁詞，請修改後再試", Toast.LENGTH_SHORT).show(); return@Button }
                 val finalLocation = if (tDistrict.isNotEmpty()) "$tCity $tDistrict" else tCity
                 scope.launch {
                     db.collection("users").document(userId).update(mapOf("nickname" to tNickname, "location" to finalLocation, "profileImageUrl" to profileImageUrl)).await()
@@ -487,6 +532,83 @@ fun ProfileScreen(
     }
 
     if (showReviews) { ReviewDetailsDialog(userId, currentUserId ?: "", onDismiss = { showReviews = false }) }
+}
+
+@Composable
+fun FriendsListDialog(userId: String, onDismiss: () -> Unit) {
+    val db = FirebaseFirestore.getInstance()
+    var friends by remember { mutableStateOf<List<Triple<String, String, String>>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(userId) {
+        db.collection("friendships")
+            .whereArrayContains("uids", userId)
+            .whereEqualTo("status", "friends")
+            .addSnapshotListener { snapshot, _ ->
+                snapshot?.let { s ->
+                    scope.launch {
+                        val list = mutableListOf<Triple<String, String, String>>()
+                        s.documents.forEach { doc ->
+                            val uids = @Suppress("UNCHECKED_CAST") (doc.get("uids") as? List<String>)
+                            val otherId = uids?.firstOrNull { it != userId } ?: ""
+                            if (otherId.isNotEmpty()) {
+                                try {
+                                    val userDoc = db.collection("users").document(otherId).get().await()
+                                    list.add(Triple(
+                                        otherId,
+                                        userDoc.getString("nickname") ?: "用戶",
+                                        userDoc.getString("profileImageUrl") ?: ""
+                                    ))
+                                } catch (_: Exception) {}
+                            }
+                        }
+                        friends = list
+                        isLoading = false
+                    }
+                }
+            }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("好友名單", fontWeight = FontWeight.Bold) },
+        text = {
+            Box(Modifier.heightIn(max = 450.dp).fillMaxWidth()) {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                } else if (friends.isEmpty()) {
+                    Text("目前尚無好友", color = Color.Gray, modifier = Modifier.padding(20.dp))
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(friends) { friend ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(Modifier.size(40.dp).clip(CircleShape).background(Color.LightGray)) {
+                                    if (friend.third.isNotEmpty()) AsyncImage(model = friend.third, contentDescription = null, contentScale = ContentScale.Crop)
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Text(friend.second, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                                IconButton(onClick = {
+                                    val uids = listOf(userId, friend.first).sorted()
+                                    val docId = "${uids[0]}_${uids[1]}"
+                                    db.collection("friendships").document(docId).delete().addOnSuccessListener {
+                                        Toast.makeText(context, "已解除好友關係", Toast.LENGTH_SHORT).show()
+                                    }
+                                }) {
+                                    Icon(Icons.Default.PersonRemove, "解除好友", tint = Color.Red.copy(alpha = 0.6f))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("關閉") } }
+    )
 }
 
 @Composable
@@ -528,10 +650,7 @@ fun ReviewDetailsDialog(revieweeId: String, currentUserId: String, onDismiss: ()
         var tRating by remember { mutableIntStateOf((editingReview!!["rating"] as? Long)?.toInt() ?: 0) }; var tComment by remember { mutableStateOf(editingReview!!["comment"] as? String ?: "") }
         AlertDialog(onDismissRequest = { editingReview = null }, title = { Text("編輯評價", fontWeight = FontWeight.Bold) }, text = { Column { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) { for (i in 1..5) { Icon(imageVector = if (i <= tRating) Icons.Default.Star else Icons.Default.StarBorder, contentDescription = null, tint = if (i <= tRating) Color(0xFFFFD700) else Color.Gray, modifier = Modifier.size(32.dp).clickable { tRating = i }) } }; Spacer(Modifier.height(16.dp)); OutlinedTextField(value = tComment, onValueChange = { tComment = it }, label = { Text("修改評價內容...") }, modifier = Modifier.fillMaxWidth().height(100.dp)) } }, confirmButton = {
             Button(onClick = {
-                if (ProfanityFilter.containsProfanity(tComment)) {
-                    Toast.makeText(context, "評價包含違禁詞，請修改後再試", Toast.LENGTH_SHORT).show()
-                    return@Button
-                }
+                if (ProfanityFilter.containsProfanity(tComment)) { Toast.makeText(context, "評價包含違禁詞，請修改後再試", Toast.LENGTH_SHORT).show(); return@Button }
                 db.collection("reviews").document(editingReview!!["id"] as String).update(mapOf("rating" to tRating, "comment" to tComment, "timestamp" to FieldValue.serverTimestamp())).addOnSuccessListener { Toast.makeText(context, "已更新", Toast.LENGTH_SHORT).show(); editingReview = null }
             }) { Text("儲存修改") }
         }, dismissButton = { TextButton(onClick = { editingReview = null }) { Text("取消") } })
@@ -551,13 +670,7 @@ fun EditField(value: String, onValueChange: (String) -> Unit, label: String, ico
         shape = RoundedCornerShape(16.dp),
         singleLine = singleLine,
         readOnly = readOnly,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
-            focusedLabelColor = MaterialTheme.colorScheme.primary,
-            focusedContainerColor = Color(0xFFFBFBFC),
-            unfocusedContainerColor = Color(0xFFFBFBFC)
-        )
+        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f), focusedLabelColor = MaterialTheme.colorScheme.primary, focusedContainerColor = Color(0xFFFBFBFC), unfocusedContainerColor = Color(0xFFFBFBFC))
     )
 }
 
@@ -572,32 +685,18 @@ fun ProfileStatItem(label: String, value: String, onClick: (() -> Unit)? = null)
 @Composable
 fun StanningSection(label: String, icon: String, isLast: Boolean = false, content: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(icon, fontSize = 14.sp)
-            Spacer(Modifier.width(8.dp))
-            Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF636E72))
-        }
-        Spacer(Modifier.height(8.dp))
-        content()
-        if (!isLast) {
-            Spacer(Modifier.height(16.dp))
-            HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFF1F3F5))
-            Spacer(Modifier.height(16.dp))
-        }
+        Row(verticalAlignment = Alignment.CenterVertically) { Text(icon, fontSize = 14.sp); Spacer(Modifier.width(8.dp)); Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF636E72)) }
+        Spacer(Modifier.height(8.dp)); content()
+        if (!isLast) { Spacer(Modifier.height(16.dp)); HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFF1F3F5)); Spacer(Modifier.height(16.dp)) }
     }
 }
 
 @Composable
 fun ProfileMenuItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String, containerColor: Color = Color.Transparent, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().background(containerColor, RoundedCornerShape(12.dp)).clickable { onClick() }.padding(vertical = 16.dp, horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)), Alignment.Center) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-        }
+        Box(Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)), Alignment.Center) { Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
         Spacer(Modifier.width(16.dp))
-        Column(Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            Text(subtitle, fontSize = 12.sp, color = Color.Gray)
-        }
+        Column(Modifier.weight(1f)) { Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp); Text(subtitle, fontSize = 12.sp, color = Color.Gray) }
         Icon(Icons.Default.ChevronRight, null, tint = Color.LightGray)
     }
 }
@@ -609,23 +708,16 @@ fun ProfileCardItem(card: KpopCard, onClick: () -> Unit) {
             Box {
                 AsyncImage(model = card.imageUrl, contentDescription = null, modifier = Modifier.fillMaxWidth().aspectRatio(0.95f).clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)), contentScale = ContentScale.Crop)
                 if (card.status != "available") Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.4f)), Alignment.Center) {
-                    Surface(color = if(card.status == "trading") Color(0xFF1976D2) else Color(0xFF2E7D32), shape = RoundedCornerShape(4.dp)) {
-                        Text(if(card.status == "trading") "🤝 交換中" else "✅ 已成交", color = Color.White, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontWeight = FontWeight.Bold)
-                    }
+                    Surface(color = if(card.status == "trading") Color(0xFF1976D2) else Color(0xFF2E7D32), shape = RoundedCornerShape(4.dp)) { Text(if(card.status == "trading") "🤝 交換中" else "✅ 已成交", color = Color.White, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontWeight = FontWeight.Bold) }
                 }
             }
             Column(Modifier.padding(12.dp)) {
                 Text(card.memberName.split(", ").joinToString(", ") { it.split("|").first() }, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black, maxLines = 1)
                 Text(card.groupName.split("|").first(), fontSize = 12.sp, color = Color.Gray, maxLines = 1)
-                if (card.cardType.isNotEmpty()) {
-                    Spacer(Modifier.height(4.dp))
-                    CardTypeBadge(card.cardType)
-                }
+                if (card.cardType.isNotEmpty()) { Spacer(Modifier.height(4.dp)); CardTypeBadge(card.cardType) }
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(16.dp).clip(CircleShape).background(Color.LightGray)) {
-                        if (card.ownerProfileImageUrl.isNotEmpty()) AsyncImage(model = card.ownerProfileImageUrl, contentDescription = null, contentScale = ContentScale.Crop)
-                    }
+                    Box(Modifier.size(16.dp).clip(CircleShape).background(Color.LightGray)) { if (card.ownerProfileImageUrl.isNotEmpty()) AsyncImage(model = card.ownerProfileImageUrl, contentDescription = null, contentScale = ContentScale.Crop) }
                     Text(" " + card.ownerName, fontSize = 11.sp, color = Color.Gray, maxLines = 1)
                 }
             }
@@ -634,21 +726,15 @@ fun ProfileCardItem(card: KpopCard, onClick: () -> Unit) {
 }
 
 @Composable
-fun CardTypeBadge(type: String) {
-    Surface(color = Color(0xFFF0F2F8), shape = RoundedCornerShape(4.dp)) {
-        Text(text = type, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5C6BC0))
-    }
-}
+fun CardTypeBadge(type: String) { Surface(color = Color(0xFFF0F2F8), shape = RoundedCornerShape(4.dp)) { Text(text = type, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5C6BC0)) } }
 
 suspend fun findOrCreateChatRoomInProfile(u1: String, u2: String, cid: String?, onComplete: (String, KpopCard?) -> Unit) {
     if (u1 == u2 || u1.isEmpty()) return
     val participants = listOf(u1, u2).sorted()
     val db = FirebaseFirestore.getInstance()
     val res = db.collection("chatRooms").whereEqualTo("participantIds", participants).get().await()
-    if (res.documents.isNotEmpty()) {
-        val roomId = res.documents.first().id
-        onComplete(roomId, null)
-    } else {
+    if (res.documents.isNotEmpty()) { val roomId = res.documents.first().id; onComplete(roomId, null) }
+    else {
         val nr = hashMapOf("participantIds" to participants, "createdAt" to FieldValue.serverTimestamp(), "lastMessage" to "", "lastMessageTime" to FieldValue.serverTimestamp(), "activeInquiryCardId" to (cid ?: ""), "unreadCount" to mapOf(u1 to 0, u2 to 0))
         val ar = db.collection("chatRooms").add(nr).await()
         onComplete(ar.id, null)
