@@ -94,7 +94,7 @@ fun ProfileScreen(
     var isVerified by remember { mutableStateOf(false) }
     var currentUserVerified by remember { mutableStateOf(false) }
     var isVerifyingId by remember { mutableStateOf(false) }
-    var showIdCamera by remember { mutableStateOf(false) } 
+    var showIdCamera by remember { mutableStateOf(false) }
 
     var showDeleteAccountConfirm by remember { mutableStateOf(false) }
     var isUploadingProfileImage by remember { mutableStateOf(false) }
@@ -305,7 +305,7 @@ fun ProfileScreen(
             Row(Modifier.padding(horizontal = 24.dp, vertical = 12.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color.White).padding(16.dp), Arrangement.SpaceEvenly) {
                 ProfileStatItem("已上架", uploadedCards.count { it.status == "available" }.toString())
                 ProfileStatItem("評價", reviewCount.toString(), onClick = { if (reviewCount > 0) showReviews = true })
-                ProfileStatItem("好友", friendsCount.toString(), onClick = { if (friendsCount > 0 && isOwnProfile) showFriends = true }) // 更新：加入點擊事件
+                ProfileStatItem("好友", friendsCount.toString(), onClick = { if (friendsCount > 0 && isOwnProfile) showFriends = true })
                 ProfileStatItem("收藏", favoriteCardIds.size.toString())
             }
             Card(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
@@ -332,7 +332,7 @@ fun ProfileScreen(
                             containerColor = Color(0xFFFFEBEE)
                         ) {
                             if (!isVerifyingId) {
-                                showIdCamera = true 
+                                showIdCamera = true
                             }
                         }
                         HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFEEEEEE))
@@ -733,8 +733,14 @@ suspend fun findOrCreateChatRoomInProfile(u1: String, u2: String, cid: String?, 
     val participants = listOf(u1, u2).sorted()
     val db = FirebaseFirestore.getInstance()
     val res = db.collection("chatRooms").whereEqualTo("participantIds", participants).get().await()
-    if (res.documents.isNotEmpty()) { val roomId = res.documents.first().id; onComplete(roomId, null) }
-    else {
+    if (res.documents.isNotEmpty()) {
+        val roomId = res.documents.first().id
+        // 第三部分新增：如果有點擊特定小卡，即使聊天室已存在也更新詢問目標
+        if (cid != null) {
+            db.collection("chatRooms").document(roomId).update("activeInquiryCardId", cid).await()
+        }
+        onComplete(roomId, null)
+    } else {
         val nr = hashMapOf("participantIds" to participants, "createdAt" to FieldValue.serverTimestamp(), "lastMessage" to "", "lastMessageTime" to FieldValue.serverTimestamp(), "activeInquiryCardId" to (cid ?: ""), "unreadCount" to mapOf(u1 to 0, u2 to 0))
         val ar = db.collection("chatRooms").add(nr).await()
         onComplete(ar.id, null)

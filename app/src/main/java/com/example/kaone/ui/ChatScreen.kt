@@ -1,5 +1,6 @@
 package com.example.kaone.ui
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -40,6 +41,8 @@ import com.example.kaone.VerificationActivity
 import com.example.kaone.ui.theme.CloudinaryUploader
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -64,6 +67,7 @@ fun ChatList(userId: String, onRoomClick: (String, String) -> Unit) {
     var roomToDelete by remember { mutableStateOf<ChatRoom?>(null) }
     var showCreateGroupDialog by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
     LaunchedEffect(userId) {
@@ -78,37 +82,45 @@ fun ChatList(userId: String, onRoomClick: (String, String) -> Unit) {
 
         db.collection("chatRooms").whereArrayContains("participantIds", userId).addSnapshotListener { s, _ ->
             s?.let { snapshot ->
-                val fetchedRooms = snapshot.documents.map { doc ->
-                    val raw = doc.get("unreadCount") as? Map<*, *>
-                    val mapped = mutableMapOf<String, Int>()
-                    raw?.forEach { (k, v) -> if (k is String) mapped[k] = (v as? Long)?.toInt() ?: 0 }
-                    ChatRoom(
-                        id = doc.id,
-                        participantIds = @Suppress("UNCHECKED_CAST") (doc.get("participantIds") as? List<String> ?: emptyList()),
-                        lastMessage = doc.getString("lastMessage") ?: "點擊開始聊天",
-                        lastMessageTime = doc.getTimestamp("lastMessageTime", DocumentSnapshot.ServerTimestampBehavior.ESTIMATE),
-                        activeInquiryCardId = doc.getString("activeInquiryCardId") ?: "",
-                        unreadCount = mapped,
-                        isGroup = doc.getBoolean("isGroup") ?: false,
-                        roomName = doc.getString("roomName") ?: "",
-                        roomImage = doc.getString("roomImage") ?: ""
-                    )
-                }
+                scope.launch {
+                    val fetchedRooms = snapshot.documents.map { doc ->
+                        val raw = doc.get("unreadCount") as? Map<*, *>
+                        val mapped = mutableMapOf<String, Int>()
+                        raw?.forEach { (k, v) -> if (k is String) mapped[k] = (v as? Long)?.toInt() ?: 0 }
 
-                fetchedRooms.forEach { room ->
-                    if (room.isGroup) {
-                        room.otherNickname = room.roomName.ifEmpty { "未命名群組" }
-                    } else {
-                        val otherId = room.participantIds.firstOrNull { it != userId } ?: ""
-                        if (otherId.isNotEmpty()) {
-                            db.collection("users").document(otherId).get().addOnSuccessListener { userDoc ->
-                                room.otherNickname = userDoc.getString("nickname") ?: "用戶"
-                                rooms = fetchedRooms.toList()
+                        val isGroup = doc.getBoolean("isGroup") ?: false
+                        val roomName = doc.getString("roomName") ?: ""
+                        val participantIds = @Suppress("UNCHECKED_CAST") (doc.get("participantIds") as? List<String> ?: emptyList())
+
+                        val room = ChatRoom(
+                            id = doc.id,
+                            participantIds = participantIds,
+                            lastMessage = doc.getString("lastMessage") ?: "點擊開始聊天",
+                            lastMessageTime = doc.getTimestamp("lastMessageTime", DocumentSnapshot.ServerTimestampBehavior.ESTIMATE),
+                            activeInquiryCardId = doc.getString("activeInquiryCardId") ?: "",
+                            unreadCount = mapped,
+                            isGroup = isGroup,
+                            roomName = roomName,
+                            roomImage = doc.getString("roomImage") ?: ""
+                        )
+
+                        if (isGroup) {
+                            room.otherNickname = roomName.ifEmpty { "未命名群組" }
+                        } else {
+                            val otherId = participantIds.firstOrNull { it != userId } ?: ""
+                            if (otherId.isNotEmpty()) {
+                                try {
+                                    val userDoc = db.collection("users").document(otherId).get().await()
+                                    room.otherNickname = userDoc.getString("nickname") ?: "用戶"
+                                } catch (_: Exception) {
+                                    room.otherNickname = "用戶"
+                                }
                             }
                         }
+                        room
                     }
+                    rooms = fetchedRooms.sortedByDescending { r -> r.lastMessageTime }
                 }
-                rooms = fetchedRooms.sortedByDescending { r -> r.lastMessageTime }
             }
         }
     }
@@ -353,7 +365,7 @@ private fun createChatRoomAndNavigate(db: FirebaseFirestore, myId: String, other
                     "lastMessageTime" to FieldValue.serverTimestamp(),
                     "unreadCount" to mapOf(myId to 0, otherId to 0)
                 )
-                db.collection("chatRooms").add(newRoom).addOnSuccessListener { 
+                db.collection("chatRooms").add(newRoom).addOnSuccessListener {
                     onNavigate(it.id, "好友")
                 }
             }
@@ -423,9 +435,7 @@ fun ChatListItem(userId: String, room: ChatRoom, isFriend: Boolean = false, onRo
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, initialCard: KpopCard? = null, onViewProfile: (String) -> Unit, onBack: () -> Unit) {
-    val db = FirebaseFirestore.getInstance()
-    var messages by remember { mutableStateOf<List<ChatMessage>>(emptyList()) }
-    var inputText by remember { mutableStateOf("") }
+    val db = FirebaseFirestore.getInstance(); var messages by remember { mutableStateOf<List<ChatMessage>>(emptyList()) }; var inputText by remember { mutableStateOf("") }
     var inquiryCard by remember { mutableStateOf(initialCard) }
 
     var showInquiry by rememberSaveable(roomId) { mutableStateOf(true) }
@@ -433,12 +443,8 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
 
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
     var previewVideoUrl by remember { mutableStateOf<String?>(null) }
-    val otherId = remember { mutableStateOf("") }
-    var otherImageUrl by remember { mutableStateOf("") }
+    val otherId = remember { mutableStateOf("") }; var otherImageUrl by remember { mutableStateOf("") }
     var otherUserName by remember { mutableStateOf(initialOtherUserName) }
-
-    var myNickname by remember { mutableStateOf("") }
-    var myProfileImage by remember { mutableStateOf("") }
 
     var isGroup by remember { mutableStateOf(false) }
     var roomName by remember { mutableStateOf("") }
@@ -448,26 +454,18 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     var showEditGroupDialog by remember { mutableStateOf(false) }
     var showMembersDialog by remember { mutableStateOf(false) }
     var showAddMemberDialog by remember { mutableStateOf(false) }
-    var showUnfriendConfirm by remember { mutableStateOf(false) }
     var friendsToAdd by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     var groupMembersInfo by remember { mutableStateOf<List<Triple<String, String, String>>>(emptyList()) }
 
-    var showMyCardsDialog by remember { mutableStateOf(false) }
-    var showTradeFormDialog by remember { mutableStateOf(false) }
-    var selectedOfferCard by remember { mutableStateOf<KpopCard?>(null) }
-    var myAvailableCards by remember { mutableStateOf<List<KpopCard>>(emptyList()) }
-    var tradeMethod by remember { mutableStateOf("面交") }
-    var mAddr by remember { mutableStateOf("") }
-    var mDate by remember { mutableStateOf("") }
-    var mTime by remember { mutableStateOf("") }
-    var sInfo by remember { mutableStateOf("") }
-    var rName by remember { mutableStateOf("") }
-    var rPhone by remember { mutableStateOf("") }
-    var oMethod by remember { mutableStateOf("") }
-    var tNotes by remember { mutableStateOf("") }
-    var cMember by remember { mutableStateOf("") }
-    var isUploading by remember { mutableStateOf(false) }
-    var isUploadingTrade by remember { mutableStateOf(false) }
+    var showMyCardsDialog by remember { mutableStateOf(false) }; var showTradeFormDialog by remember { mutableStateOf(false) }
+    var selectedOfferCard by remember { mutableStateOf<KpopCard?>(null) }; var myAvailableCards by remember { mutableStateOf<List<KpopCard>>(emptyList()) }
+    var tradeMethod by remember { mutableStateOf("面交") }; var mAddr by remember { mutableStateOf("") }; var mDate by remember { mutableStateOf("") }; var mTime by remember { mutableStateOf("") }; var sInfo by remember { mutableStateOf("") }
+    var rName by remember { mutableStateOf("") }; var rPhone by remember { mutableStateOf("") }; var oMethod by remember { mutableStateOf("") }; var tNotes by remember { mutableStateOf("") }; var cMember by remember { mutableStateOf("") }
+    var isUploading by remember { mutableStateOf(false) }; var isUploadingTrade by remember { mutableStateOf(false) }
+
+    // 新增：上傳進度狀態變數
+    var uploadProgress by remember { mutableStateOf(0f) }
+
     var reviewMsgId by remember { mutableStateOf<String?>(null) }
 
     val datePickerState = rememberDatePickerState()
@@ -476,19 +474,11 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     var showTimePicker by remember { mutableStateOf(false) }
 
     var chatBgColor by rememberSaveable { mutableLongStateOf(0xFF8BA2B5L) }
+
     var showMenu by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-
-    LaunchedEffect(userId) {
-        db.collection("users").document(userId).get().addOnSuccessListener {
-            myNickname = it.getString("nickname") ?: "用戶"
-            myProfileImage = it.getString("profileImageUrl") ?: ""
-        }
-    }
+    val listState = rememberLazyListState(); val scope = rememberCoroutineScope(); val context = LocalContext.current
 
     LaunchedEffect(roomId) {
         db.collection("chatRooms").document(roomId).update("unreadCount.$userId", 0)
@@ -533,6 +523,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                     showInquiry = true
                     lastInquiryCardId = cid
                 }
+
                 db.collection("cards").document(cid).get().addOnSuccessListener { d ->
                     if (d.exists()) {
                         inquiryCard = d.toKpopCard()
@@ -572,8 +563,8 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
 
         val data = mutableMapOf(
             "senderId" to userId,
-            "senderName" to myNickname,
-            "senderImage" to myProfileImage,
+            "senderName" to "",
+            "senderImage" to "",
             "messageType" to type,
             "timestamp" to FieldValue.serverTimestamp(),
             "isRead" to false
@@ -584,16 +575,14 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
 
         db.collection("chatRooms").document(roomId).collection("messages").add(data)
 
-        val lastMsgText = when(type) {
-            "text" -> t
-            "trade_proposal" -> "[交換提案]"
-            "video" -> "[影片]"
-            "video_request" -> "[要求對光影片]"
-            else -> "[媒體]"
-        }
-
         val roomUpdate = mutableMapOf<String, Any>(
-            "lastMessage" to lastMsgText,
+            "lastMessage" to when(type) {
+                "text" -> t
+                "trade_proposal" -> "[交換提案]"
+                "video" -> "[影片]"
+                "video_request" -> "[要求對光影片]"
+                else -> "[媒體]"
+            },
             "lastMessageTime" to FieldValue.serverTimestamp()
         )
         participantIds.filter { it != userId }.forEach { id ->
@@ -615,26 +604,86 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
         }
     }
 
+    // 修改上傳呼叫處，加入 onProgress 回調
     val mediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { u ->
         u?.let { uri ->
             isUploading = true
+            uploadProgress = 0f // 重置進度
             val isVideo = context.contentResolver.getType(uri)?.startsWith("video") == true
-            CloudinaryUploader.uploadMedia(context, uri, scope, onSuccess = { url ->
-                sendMsg("", if(isVideo) "video" else "image", url)
-                isUploading = false
-            }, onFailure = { isUploading = false })
+            CloudinaryUploader.uploadMedia(context, uri, scope,
+                onSuccess = { url ->
+                    sendMsg("", if(isVideo) "video" else "image", url)
+                    isUploading = false
+                },
+                onFailure = { isUploading = false },
+                onProgress = { progress -> uploadProgress = progress } // 更新進度
+            )
         }
     }
 
     val groupImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { u ->
         u?.let { uri ->
             isUploading = true
-            CloudinaryUploader.uploadMedia(context, uri, scope, onSuccess = { url ->
-                db.collection("chatRooms").document(roomId).update("roomImage", url)
-                isUploading = false
-            }, onFailure = { isUploading = false })
+            uploadProgress = 0f
+            CloudinaryUploader.uploadMedia(context, uri, scope,
+                onSuccess = { url ->
+                    db.collection("chatRooms").document(roomId).update("roomImage", url)
+                    isUploading = false
+                },
+                onFailure = { isUploading = false },
+                onProgress = { progress -> uploadProgress = progress }
+            )
         }
     }
+
+    val tradeLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { u ->
+        u?.let {
+            isUploadingTrade = true
+            uploadProgress = 0f
+            CloudinaryUploader.uploadMedia(context, it, scope,
+                onSuccess = { url ->
+                    selectedOfferCard = KpopCard(id = "custom", imageUrl = url)
+                    showMyCardsDialog = false
+                    showTradeFormDialog = true
+                    isUploadingTrade = false
+                },
+                onFailure = { isUploadingTrade = false },
+                onProgress = { progress -> uploadProgress = progress }
+            )
+        }
+    }
+
+    var tempTradeCameraUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraTradeLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) {
+            tempTradeCameraUri?.let { uri ->
+                isUploadingTrade = true
+                uploadProgress = 0f
+                CloudinaryUploader.uploadMedia(context, uri, scope,
+                    onSuccess = { url ->
+                        selectedOfferCard = KpopCard(id = "custom", imageUrl = url)
+                        showMyCardsDialog = false
+                        showTradeFormDialog = true
+                        isUploadingTrade = false
+                    },
+                    onFailure = { isUploadingTrade = false },
+                    onProgress = { progress -> uploadProgress = progress }
+                )
+            }
+        }
+    }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            val tempFile = File(context.cacheDir, "trade_capture_${UUID.randomUUID()}.jpg")
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
+            tempTradeCameraUri = uri
+            cameraTradeLauncher.launch(uri)
+        } else {
+            Toast.makeText(context, "需要相機權限才能拍照", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    var showTradeImageSourceDialog by remember { mutableStateOf(false) }
 
     fun handleTradeAction(msg: ChatMessage, newStatus: String) {
         db.collection("chatRooms").document(roomId).collection("messages").document(msg.id).update("tradeStatus", newStatus).addOnSuccessListener {
@@ -672,13 +721,13 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                 .whereEqualTo("status", "friends")
                 .get()
                 .addOnSuccessListener { snapshot ->
-                    val allFriendIds = snapshot.documents.flatMap { 
-                        @Suppress("UNCHECKED_CAST") (it.get("uids") as? List<String>) ?: emptyList() 
+                    val allFriendIds = snapshot.documents.flatMap {
+                        @Suppress("UNCHECKED_CAST") (it.get("uids") as? List<String>) ?: emptyList()
                     }.filter { it != userId && !participantIds.contains(it) }.toSet()
-                    
+
                     val list = mutableListOf<Pair<String, String>>()
                     if (allFriendIds.isEmpty()) { friendsToAdd = emptyList(); return@addOnSuccessListener }
-                    
+
                     var count = 0
                     allFriendIds.forEach { fid ->
                         db.collection("users").document(fid).get().addOnSuccessListener { d ->
@@ -711,7 +760,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                 Button(onClick = {
                     val batch = db.batch(); val roomRef = db.collection("chatRooms").document(roomId)
                     selectedFriendIds.forEach { fid -> batch.update(roomRef, "participantIds", FieldValue.arrayUnion(fid)); batch.update(roomRef, "unreadCount.$fid", 0) }
-                    batch.commit().addOnSuccessListener { showAddMemberDialog = false; Toast.makeText(context, "已成功邀請 ${selectedFriendIds.size} 位成員", Toast.LENGTH_SHORT).show(); sendMsg("${myNickname} 邀請了新成員加入群組", "text") }
+                    batch.commit().addOnSuccessListener { showAddMemberDialog = false; Toast.makeText(context, "已成功邀請 ${selectedFriendIds.size} 位成員", Toast.LENGTH_SHORT).show(); sendMsg("管理員 邀請了新成員加入群組", "text") }
                 }, enabled = selectedFriendIds.isNotEmpty()) { Text("確認邀請") }
             },
             dismissButton = { TextButton(onClick = { showAddMemberDialog = false }) { Text("取消") } }
@@ -776,33 +825,6 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
         )
     }
 
-    if (showUnfriendConfirm) {
-        AlertDialog(
-            onDismissRequest = { showUnfriendConfirm = false },
-            title = { Text("解除好友關係") },
-            text = { Text("確定要解除與 $otherUserName 的好友關係嗎？解除後對方將不再出現在你的好友清單中。") },
-            confirmButton = {
-                TextButton(onClick = {
-                    db.collection("friendships")
-                        .whereArrayContains("uids", userId)
-                        .whereEqualTo("status", "friends")
-                        .get()
-                        .addOnSuccessListener { snapshot ->
-                            val doc = snapshot.documents.find { 
-                                @Suppress("UNCHECKED_CAST") val uids = it.get("uids") as? List<String>
-                                uids?.contains(otherId.value) == true
-                            }
-                            doc?.reference?.delete()?.addOnSuccessListener {
-                                Toast.makeText(context, "已解除好友關係", Toast.LENGTH_SHORT).show()
-                                showUnfriendConfirm = false
-                            }
-                        }
-                }) { Text("確定解除好友", color = Color.Red) }
-            },
-            dismissButton = { TextButton(onClick = { showUnfriendConfirm = false }) { Text("取消") } }
-        )
-    }
-
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
@@ -840,11 +862,6 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                                     text = { Text("查看個人主頁") },
                                     onClick = { showMenu = false; if (otherId.value.isNotEmpty()) onViewProfile(otherId.value) },
                                     leadingIcon = { Icon(Icons.Default.Person, null) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("解除好友關係", color = Color.Red) },
-                                    onClick = { showMenu = false; showUnfriendConfirm = true },
-                                    leadingIcon = { Icon(Icons.Default.PersonRemove, null, tint = Color.Red) }
                                 )
                                 HorizontalDivider()
                                 val bgOptions = listOf(
@@ -892,7 +909,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                                             onBack()
                                         }
                                     },
-                                    leadingIcon = { Icon(Icons.Default.ExitToApp, null, tint = Color.Red) }
+                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, null, tint = Color.Red) }
                                 )
                             }
                         }
@@ -903,14 +920,33 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
         bottomBar = {
             Surface(tonalElevation = 4.dp) {
                 Column(modifier = Modifier.padding(bottom = 6.dp)) {
-                    if (isUploading || isUploadingTrade) LinearProgressIndicator(Modifier.fillMaxWidth())
+                    // 修改 UI 中的進度條與百分比顯示
+                    if (isUploading || isUploadingTrade) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+                            LinearProgressIndicator(
+                                progress = { uploadProgress },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Text(
+                                text = "上傳中: ${(uploadProgress * 100).toInt()}%",
+                                fontSize = 10.sp,
+                                modifier = Modifier.align(Alignment.End).padding(end = 4.dp, top = 2.dp)
+                            )
+                        }
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 0.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         AssistChip(
-                            onClick = { sendMsg("希望能看看這張小卡的對光影片，確認一下卡況和真偽，謝謝！", type = "video_request") },
+                            onClick = {
+                                sendMsg(
+                                    "希望能看看這張小卡的對光影片，確認一下卡況和真偽，謝謝！",
+                                    type = "video_request",
+                                    extra = mapOf("relatedCardId" to (inquiryCard?.id ?: ""))
+                                )
+                            },
                             label = { Text("要求對光影片", fontSize = 11.sp) },
                             leadingIcon = { Icon(Icons.Default.VideoCameraFront, null, Modifier.size(12.dp)) }
                         )
@@ -961,7 +997,12 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
         ) {
             val cardOwnerId = inquiryCard?.userId ?: ""
             val isMeOwner = cardOwnerId == userId
-            val lastVideoRequest = messages.lastOrNull { it.messageType == "video_request" }
+
+            val currentCardId = inquiryCard?.id ?: ""
+            val lastVideoRequest = messages.lastOrNull {
+                it.messageType == "video_request" && it.senderId != userId && (it.relatedCardId == currentCardId || it.relatedCardId.isNullOrEmpty())
+            }
+
             val isWaitingForVideo = lastVideoRequest != null && !messages.any {
                 it.messageType == "video" && it.senderId == cardOwnerId &&
                         (it.timestamp?.seconds ?: 0L) >= (lastVideoRequest.timestamp?.seconds ?: 0L)
@@ -1015,7 +1056,6 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                             } else if (!isMeOwner) {
                                 Button(
                                     onClick = { db.collection("cards").whereEqualTo("userId", userId).whereEqualTo("status", "available").get().addOnSuccessListener { myAvailableCards = it.documents.mapNotNull { d -> d.toKpopCard() }; showMyCardsDialog = true } },
-                                    enabled = !isWaitingForVideo,
                                     shape = RoundedCornerShape(16.dp),
                                     modifier = Modifier.height(30.dp)
                                 ) { Text(text = if (isWaitingForVideo) "等待對方影片" else "交換", fontSize = 11.sp) }
@@ -1032,8 +1072,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
 
             LazyColumn(state = listState, modifier = Modifier.weight(1f).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 16.dp)) {
                 itemsIndexed(messages) { index, m ->
-                    val isMe = m.senderId == userId
-                    val timeStr = m.timestamp?.let { SimpleDateFormat("HH:mm", Locale.getDefault()).format(it.toDate()) } ?: ""
+                    val isMe = m.senderId == userId; val timeStr = m.timestamp?.let { SimpleDateFormat("HH:mm", Locale.getDefault()).format(it.toDate()) } ?: ""
 
                     val showDate = if (index == 0) {
                         m.timestamp != null
@@ -1118,7 +1157,9 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     if (previewVideoUrl != null) {
         Dialog(onDismissRequest = { previewVideoUrl = null }) {
             Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.9f)),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f)),
                 contentAlignment = Alignment.Center
             ) {
                 AndroidView(
@@ -1135,17 +1176,238 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().aspectRatio(9f / 16f)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(9f / 16f)
                 )
 
                 IconButton(
                     onClick = { previewVideoUrl = null },
-                    modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
                 ) {
                     Icon(Icons.Default.Close, contentDescription = "關閉", tint = Color.White)
                 }
             }
         }
+    }
+
+    if (showMyCardsDialog) {
+        AlertDialog(
+            onDismissRequest = { showMyCardsDialog = false },
+            title = { Text("選擇提案小卡", fontWeight = FontWeight.Bold) },
+            text = {
+                LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.height(350.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item {
+                        Card(
+                            modifier = Modifier.height(130.dp).clickable { showTradeImageSourceDialog = true },
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(Icons.Default.AddAPhoto, null, tint = MaterialTheme.colorScheme.primary)
+                                Text(text = "上傳新圖片", fontSize = 12.sp)
+                            }
+                        }
+                    }
+                    items(myAvailableCards) { c -> Card(modifier = Modifier.clickable { selectedOfferCard = c; showMyCardsDialog = false; showTradeFormDialog = true }) { Column { AsyncImage(model = c.imageUrl, contentDescription = null, modifier = Modifier.fillMaxWidth().height(100.dp), contentScale = ContentScale.Crop); Text(text = c.memberName.split(", ").joinToString(", ") { it.split("|").first() }, fontSize = 12.sp, modifier = Modifier.padding(4.dp), maxLines = 1) } } }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showMyCardsDialog = false }) { Text("取消") } }
+        )
+    }
+
+    if (showTradeImageSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showTradeImageSourceDialog = false },
+            title = { Text("選取照片來源") },
+            text = { Text("請選擇要從相簿選取，或是直接開啟相機拍照。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showTradeImageSourceDialog = false
+                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.PhotoCamera, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("相機拍照")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showTradeImageSourceDialog = false
+                    tradeLauncher.launch("image/*")
+                }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.PhotoLibrary, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("相簿選取")
+                    }
+                }
+            }
+        )
+    }
+
+    if (showTradeFormDialog && selectedOfferCard != null) {
+        AlertDialog(
+            onDismissRequest = { showTradeFormDialog = false },
+            title = { Text("提案表", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (selectedOfferCard!!.id == "custom") OutlinedTextField(cMember, { cMember = it }, label = { Text("成員名") }, modifier = Modifier.fillMaxWidth())
+                    else Text(text = "卡片：${selectedOfferCard!!.memberName.split(", ").joinToString(", ") { it.split("|").first() }}", fontWeight = FontWeight.Bold)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("面交", "郵寄", "其他").forEach { m -> FilterChip(selected = tradeMethod == m, onClick = { tradeMethod = m }, label = { Text(m) }) } }
+                    when (tradeMethod) {
+                        "面交" -> {
+                            OutlinedTextField(mAddr, { mAddr = it }, label = { Text("地點") }, modifier = Modifier.fillMaxWidth())
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    OutlinedTextField(value = mDate, onValueChange = {}, label = { Text("日期") }, modifier = Modifier.fillMaxWidth(), readOnly = true, trailingIcon = { Icon(Icons.Default.CalendarMonth, null) })
+                                    Box(modifier = Modifier.matchParentSize().clickable { showDatePicker = true })
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    OutlinedTextField(value = mTime, onValueChange = {}, label = { Text("時間") }, modifier = Modifier.fillMaxWidth(), readOnly = true, trailingIcon = { Icon(Icons.Default.AccessTime, null) })
+                                    Box(modifier = Modifier.matchParentSize().clickable { showTimePicker = true })
+                                }
+                            }
+                        }
+                        "郵寄" -> { OutlinedTextField(sInfo, { sInfo = it }, label = { Text("地址/門市") }, modifier = Modifier.fillMaxWidth()); OutlinedTextField(rName, { rName = it }, label = { Text("姓名") }, modifier = Modifier.fillMaxWidth()); OutlinedTextField(rPhone, { rPhone = it }, label = { Text("電話") }, modifier = Modifier.fillMaxWidth()) }
+                        "其他" -> {
+                            OutlinedTextField(oMethod, { oMethod = it }, label = { Text("方式") }, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(mAddr, { mAddr = it }, label = { Text("詳情") }, modifier = Modifier.fillMaxWidth())
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    OutlinedTextField(value = mDate, onValueChange = {}, label = { Text("日期") }, modifier = Modifier.fillMaxWidth(), readOnly = true, trailingIcon = { Icon(Icons.Default.CalendarMonth, null) })
+                                    Box(modifier = Modifier.matchParentSize().clickable { showDatePicker = true })
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    OutlinedTextField(value = mTime, onValueChange = {}, label = { Text("時間") }, modifier = Modifier.fillMaxWidth(), readOnly = true, trailingIcon = { Icon(Icons.Default.AccessTime, null) })
+                                    Box(modifier = Modifier.matchParentSize().clickable { showTimePicker = true })
+                                }
+                            }
+                        }
+                    }
+                    OutlinedTextField(tNotes, { tNotes = it }, label = { Text("備註") }, modifier = Modifier.fillMaxWidth())
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val fieldCheck = ProfanityFilter.checkFields(mapOf(
+                        "成員名" to cMember,
+                        "地點/地址" to mAddr,
+                        "收件姓名" to rName,
+                        "備註" to tNotes
+                    ))
+                    if (fieldCheck != null) {
+                        Toast.makeText(context, "「$fieldCheck」包含違禁詞，請修正後再試", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
+                    val fn = if (selectedOfferCard!!.id == "custom") cMember else selectedOfferCard!!.memberName
+                    val loc = when(tradeMethod) { "面交" -> "面交: $mAddr"; "郵寄" -> "郵寄: $sInfo"; else -> "$oMethod: $mAddr" }
+                    val finalDateTime = if (mTime.isNotEmpty()) "$mDate $mTime" else mDate
+                    if (fn.isBlank() || (tradeMethod == "面交" && mAddr.isBlank()) || (tradeMethod == "郵寄" && sInfo.isBlank())) { Toast.makeText(context, "請填寫完整資訊", Toast.LENGTH_SHORT).show(); return@Button }
+                    sendMsg("", "trade_proposal", "", mapOf("tradeTargetCardId" to (inquiryCard?.id ?: ""), "tradeTargetImage" to (inquiryCard?.imageUrl ?: ""), "tradeOfferCardId" to selectedOfferCard!!.id, "tradeOfferImage" to selectedOfferCard!!.imageUrl, "tradeOfferMember" to fn, "meetingLocation" to loc, "meetingDate" to finalDateTime, "tradeNotes" to tNotes, "recipientName" to rName, "recipientPhone" to rPhone, "tradeStatus" to "pending"))
+                    showTradeFormDialog = false
+                }) { Text("發起提案") }
+            }
+        )
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val date = Date(millis)
+                        val formatter = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+                        mDate = formatter.format(date)
+                    }
+                    showDatePicker = false
+                }) { Text("確定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        Dialog(onDismissRequest = { showTimePicker = false }) {
+            Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp) {
+                Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = "選擇時間", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 20.dp))
+                    TimePicker(state = timePickerState)
+                    Row(modifier = Modifier.fillMaxWidth().padding(top = 24.dp), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+                        TextButton(onClick = {
+                            mTime = String.format(Locale.getDefault(), "%02d:%02d", timePickerState.hour, timePickerState.minute)
+                            showTimePicker = false
+                        }) { Text("確定") }
+                    }
+                }
+            }
+        }
+    }
+
+    if (reviewMsgId != null) {
+        var rating by remember { mutableStateOf(0) }
+        var comment by remember { mutableStateOf("") }
+        var isSubmitting by remember { mutableStateOf(false) }
+        AlertDialog(
+            onDismissRequest = { if (!isSubmitting) reviewMsgId = null },
+            title = { Text("給予評價", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("為這次交換評分", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 8.dp))
+                    Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+                        for (i in 1..5) {
+                            Icon(
+                                imageVector = if (i <= rating) Icons.Default.Star else Icons.Default.StarBorder,
+                                contentDescription = null,
+                                tint = if (i <= rating) Color(0xFFFFD700) else Color.Gray,
+                                modifier = Modifier.size(36.dp).clickable(enabled = !isSubmitting) { rating = i }
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(value = comment, onValueChange = { comment = it }, label = { Text("分享你的交換體驗...") }, modifier = Modifier.fillMaxWidth().height(100.dp), enabled = !isSubmitting)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (ProfanityFilter.containsProfanity(comment)) {
+                            Toast.makeText(context, "評價包含違禁詞，請修改後再送出", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        if (rating == 0) { Toast.makeText(context, "請選擇評分", Toast.LENGTH_SHORT).show(); return@Button }
+                        isSubmitting = true
+                        val reviewData = hashMapOf("reviewerId" to userId, "revieweeId" to otherId.value, "rating" to rating, "comment" to comment, "timestamp" to FieldValue.serverTimestamp())
+                        db.collection("reviews").add(reviewData).addOnSuccessListener {
+                            db.collection("chatRooms").document(roomId).collection("messages").document(reviewMsgId!!).update("reviewedBy", FieldValue.arrayUnion(userId))
+                            sendNotification(otherId.value, "chat_silent", "收到新的評價", "有人對您的交換進行了評價！", roomId)
+                            Toast.makeText(context, "評價已送出", Toast.LENGTH_SHORT).show()
+                            isSubmitting = false
+                            reviewMsgId = null
+                        }.addOnFailureListener {
+                            isSubmitting = false
+                            Toast.makeText(context, "評價送出失敗", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    enabled = !isSubmitting
+                ) { if (isSubmitting) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp) else Text("送出評價") }
+            },
+            dismissButton = { if (!isSubmitting) TextButton(onClick = { reviewMsgId = null }) { Text("取消") } }
+        )
     }
 }
 

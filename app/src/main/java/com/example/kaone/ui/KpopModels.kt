@@ -90,6 +90,7 @@ data class ChatMessage(
     val recipientPhone: String = "", 
     val meetingDate: String = "",
     val reviewedBy: List<String> = emptyList(),
+    val relatedCardId: String = "", // 關聯的小卡 ID，用於精確判斷對光影片狀態
     @get:PropertyName("isRead") @set:PropertyName("isRead") var isRead: Boolean = false
 )
 
