@@ -556,9 +556,16 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     LaunchedEffect(messages.size) { if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1) }
 
     fun sendMsg(t: String, type: String = "text", url: String = "", extra: Map<String, Any>? = null) {
-        if (type == "text" && ProfanityFilter.containsProfanity(t)) {
-            Toast.makeText(context, "訊息包含違禁詞，請修改後再傳送", Toast.LENGTH_SHORT).show()
-            return
+        if (type == "text") {
+            if (ProfanityFilter.containsProfanity(t)) {
+                Toast.makeText(context, "訊息包含違禁詞，請修改後再傳送", Toast.LENGTH_SHORT).show()
+                return
+            }
+            // 辨識釣魚網址
+            val urls = UrlSafetyFilter.extractUrls(t)
+            if (urls.any { UrlSafetyFilter.isSuspicious(it) }) {
+                Toast.makeText(context, "⚠️ 提醒：訊息中包含可疑連結，請確保來源安全", Toast.LENGTH_LONG).show()
+            }
         }
 
         val data = mutableMapOf(
@@ -608,16 +615,30 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     val mediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { u ->
         u?.let { uri ->
             isUploading = true
-            uploadProgress = 0f // 重置進度
+            uploadProgress = 0f
             val isVideo = context.contentResolver.getType(uri)?.startsWith("video") == true
-            CloudinaryUploader.uploadMedia(context, uri, scope,
-                onSuccess = { url ->
-                    sendMsg("", if(isVideo) "video" else "image", url)
-                    isUploading = false
-                },
-                onFailure = { isUploading = false },
-                onProgress = { progress -> uploadProgress = progress } // 更新進度
-            )
+
+            if (isVideo) {
+                // 💡 呼叫新的壓縮上傳方法
+                CloudinaryUploader.compressAndUploadVideo(context, uri, scope,
+                    onSuccess = { url ->
+                        sendMsg("", "video", url)
+                        isUploading = false
+                    },
+                    onFailure = { isUploading = false },
+                    onProgress = { progress -> uploadProgress = progress }
+                )
+            } else {
+                // 圖片維持原樣
+                CloudinaryUploader.uploadMedia(context, uri, scope,
+                    onSuccess = { url ->
+                        sendMsg("", "image", url)
+                        isUploading = false
+                    },
+                    onFailure = { isUploading = false },
+                    onProgress = { progress -> uploadProgress = progress }
+                )
+            }
         }
     }
 
@@ -1445,7 +1466,43 @@ fun MessageContent(
             )
         ) {
             when (m.messageType) {
-                "text", "video_request" -> Text(text = m.text, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), color = Color.Black, fontSize = 15.sp)
+                "text", "video_request" -> {
+                    val urls = UrlSafetyFilter.extractUrls(m.text)
+                    val hasSuspicious = urls.any { UrlSafetyFilter.isSuspicious(it) }
+
+                    Column {
+                        Text(
+                            text = m.text,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            color = Color.Black,
+                            fontSize = 15.sp
+                        )
+
+                        if (hasSuspicious) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
+                                    .background(Color.Red.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                                    .padding(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ReportProblem,
+                                    contentDescription = null,
+                                    tint = Color.Red,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    "此連結疑似釣魚網站，請勿隨意點擊",
+                                    color = Color.Red,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
                 "image" -> AsyncImage(model = m.mediaUrl, contentDescription = null, modifier = Modifier.sizeIn(maxWidth = 200.dp, maxHeight = 300.dp).clip(RoundedCornerShape(8.dp)).clickable { onPreviewImage(m.mediaUrl) }, contentScale = ContentScale.Crop)
             }
         }

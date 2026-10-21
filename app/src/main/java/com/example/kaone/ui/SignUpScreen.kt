@@ -53,6 +53,9 @@ fun SignUpScreen(
     val context = LocalContext.current
     val scrollState = rememberScrollState()
 
+    val genderOptions = listOf("男", "女", "不公開")
+    var selectedGender by remember { mutableStateOf<String?>(null) }
+
     // 自動比對邏輯：只比對身分證字號
     LaunchedEffect(idNumberInput, detectedIdByAI) {
         val userInputId = idNumberInput.trim().uppercase()
@@ -73,6 +76,19 @@ fun SignUpScreen(
         }
     }
 
+    // ✨ 新增：根據身分證字號自動判定性別
+    LaunchedEffect(idNumberInput) {
+        val id = idNumberInput.trim().uppercase()
+        if (id.length >= 2) {
+            val genderDigit = id[1]
+            if (genderDigit == '1') {
+                selectedGender = "男"
+            } else if (genderDigit == '2') {
+                selectedGender = "女"
+            }
+        }
+    }
+
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -83,8 +99,6 @@ fun SignUpScreen(
         }
     }
 
-    val genderOptions = listOf("男", "女", "不公開")
-    var selectedGender by remember { mutableStateOf<String?>(null) }
     val cityDistricts = KpopData.cityDistricts
     var cityExpanded by remember { mutableStateOf(false) }
     var selectedCity by remember { mutableStateOf("") }

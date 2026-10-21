@@ -9,30 +9,22 @@ import org.tensorflow.lite.support.common.ops.NormalizeOp
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.image.ops.ResizeOp
-import org.tensorflow.lite.support.model.Model as TFLiteModel
 import kotlin.math.sqrt
 
 class IdolClassifier(context: Context) {
 
-    // 1. 載入模型
     private var model: FacenetEmbeddingModel? = try {
-        val options = TFLiteModel.Options.Builder()
-            .setDevice(TFLiteModel.Device.CPU)
-            .setNumThreads(4)
-            .build()
-        FacenetEmbeddingModel.newInstance(context, options)
+        FacenetEmbeddingModel.newInstance(context)
     } catch (e: Exception) {
         Log.e("IDOL_AI", "❌ 模型載入失敗: ${e.message}")
         null
     }
 
-    // 2. 載入特徵資料庫
     private val featureDatabase: Map<String, FloatArray> by lazy {
         try {
-            val jsonString = context.assets.open("idol_features.json").bufferedReader().use { it.readText() }
+            val jsonString = context.assets.open("kpop_face_embeddings.json").bufferedReader().use { it.readText() }
             val jsonObject = JSONObject(jsonString)
             val map = mutableMapOf<String, FloatArray>()
-
             val keys = jsonObject.keys()
             while (keys.hasNext()) {
                 val key = keys.next()
@@ -41,7 +33,8 @@ class IdolClassifier(context: Context) {
                 for (i in 0 until jsonArray.length()) {
                     vector[i] = jsonArray.getDouble(i).toFloat()
                 }
-                map[key] = vector
+                // 💡 確保底庫向量也經過 L2 歸一化
+                map[key] = l2Normalize(vector)
             }
             Log.i("IDOL_AI", "✅ 成功載入 ${map.size} 個成員特徵")
             map
@@ -51,29 +44,20 @@ class IdolClassifier(context: Context) {
         }
     }
 
-    data class RecognitionResult(
-        val group: String,
-        val member: String,
-        val confidence: Float,
-        val allScores: String
-    )
-
     fun classify(bitmap: Bitmap): RecognitionResult? {
-        if (model == null) {
-            Log.e("IDOL_AI", "辨識失敗：模型未初始化")
-            return null
-        }
-        if (featureDatabase.isEmpty()) {
-            Log.e("IDOL_AI", "辨識失敗：特徵庫是空的")
-            return null
-        }
+        if (model == null || featureDatabase.isEmpty()) return null
 
         try {
-            val size = minOf(bitmap.width, bitmap.height)
-            val cropped = Bitmap.createBitmap(bitmap, (bitmap.width - size) / 2, (bitmap.height - size) / 2, size, size)
+            // 💡 調整 1: 更緊湊的裁切 (60%)。如果照片是遠照，這能大幅提升準確率
+            val minDim = minOf(bitmap.width, bitmap.height)
+            val cropSize = (minDim * 0.6).toInt()
+            val x = (bitmap.width - cropSize) / 2
+            val y = (bitmap.height - cropSize) / 2
+            val cropped = Bitmap.createBitmap(bitmap, x, y, cropSize, cropSize)
 
             val imageProcessor = ImageProcessor.Builder()
                 .add(ResizeOp(160, 160, ResizeOp.ResizeMethod.BILINEAR))
+                // 💡 調整 2: 修正為標準的 FaceNet 歸一化參數
                 .add(NormalizeOp(127.5f, 128f))
                 .build()
 
@@ -82,56 +66,55 @@ class IdolClassifier(context: Context) {
             val processedImage = imageProcessor.process(tensorImage)
 
             val outputs = model?.process(processedImage.tensorBuffer)
-            // 💡 如果這裡報紅，請檢查你的模型輸出名稱是否為 output_0
-            val currentVector = outputs?.outputFeature0AsTensorBuffer?.floatArray ?: return null
+            val rawVector = outputs?.outputFeature0AsTensorBuffer?.floatArray ?: return null
 
-            var bestLabel = ""
-            var maxSim = -1f
-            val details = StringBuilder("相似度分析：\n")
+            // 💡 執行 L2 歸一化，讓向量長度一致
+            val currentVector = l2Normalize(rawVector)
 
-            for ((label, refVector) in featureDatabase) {
-                val sim = cosineSimilarity(currentVector, refVector)
-                val displayName = label.split(":").last().trim().split("|").first()
-                details.append("${displayName}: ${"%.2f".format(sim * 100)}%\n")
+            // 計算所有匹配度並排序
+            val allMatches = featureDatabase.map { (label, refVector) ->
+                label to cosineSimilarity(currentVector, refVector)
+            }.sortedByDescending { it.second }
 
-                if (sim > maxSim) {
-                    maxSim = sim
-                    bestLabel = label
-                }
+            // 💡 診斷：查看前三名差距
+            Log.d("IDOL_AI", "--- 辨識診斷 ---")
+            allMatches.take(3).forEachIndexed { i, pair ->
+                Log.d("IDOL_AI", "Top ${i+1}: ${pair.first} (${pair.second})")
             }
 
-            Log.d("IDOL_AI", "最佳匹配: $bestLabel, 分數: $maxSim")
+            val (bestLabel, maxSim) = allMatches.first()
 
-            // 💡 除錯用：降低門檻到 0.3，看看有沒有反應
-            if (maxSim < 0.3f) {
-                Log.w("IDOL_AI", "相似度太低 ($maxSim)，無法確認身份")
+            // 💡 調整 3: 提高門檻，L2 歸一化後低於 0.45 通常是認錯
+            if (maxSim < 0.45f) {
+                Log.w("IDOL_AI", "❌ 匹配度過低 ($maxSim)，放棄辨識")
                 return null
             }
 
             val parts = bestLabel.split(":")
             return RecognitionResult(
-                group = if (parts.size >= 2) parts[0].trim() else "BTS",
-                member = if (parts.size >= 2) parts[1].split("|")[0].trim() else bestLabel,
-                confidence = maxSim,
-                allScores = details.toString()
+                group = if (parts.size >= 2) parts[0].trim() else "未知",
+                member = if (parts.size >= 2) parts[1].trim() else bestLabel,
+                confidence = maxSim
             )
-
         } catch (e: Exception) {
             Log.e("IDOL_AI", "辨識異常: ${e.message}")
             return null
         }
     }
 
+    private fun l2Normalize(v: FloatArray): FloatArray {
+        var sum = 0.0f
+        for (x in v) sum += x * x
+        val magnitude = sqrt(sum)
+        return if (magnitude == 0f) v else FloatArray(v.size) { i -> v[i] / magnitude }
+    }
+
     private fun cosineSimilarity(v1: FloatArray, v2: FloatArray): Float {
-        var dot = 0.0; var n1 = 0.0; var n2 = 0.0
-        for (i in v1.indices) {
-            dot += v1[i] * v2[i]
-            n1 += v1[i] * v1[i]
-            n2 += v2[i] * v2[i]
-        }
-        val score = (dot / (sqrt(n1) * sqrt(n2))).toFloat()
-        return if (score.isNaN()) 0f else score
+        var dot = 0.0f
+        for (i in v1.indices) dot += v1[i] * v2[i]
+        return dot
     }
 
     fun close() = model?.close()
+    data class RecognitionResult(val group: String, val member: String, val confidence: Float)
 }

@@ -11,12 +11,20 @@ sealed class EncyclopediaSearchResult {
     data class Album(val groupKey: String, val albumName: String) : EncyclopediaSearchResult()
 }
 
-// 輔助函式：從原始資料中安全提取名稱，精準過濾掉縮寫與網址
+// 在 KpopModels.kt 中修改
 fun String.getCleanName(): String {
-    return this.split("|")
+    return this.split("|", ",") // 增加逗號分割，因為有些欄位是用逗號隔開的
         .map { it.trim() }
-        .firstOrNull { it.isNotBlank() && !it.startsWith("http") } 
-        ?: this
+        .filter { part ->
+            part.isNotBlank() &&
+                    !part.startsWith("http") &&
+                    !part.contains("drive.google") &&
+                    !part.contains("imgbb") && // 增加常見圖床關鍵字
+                    !part.contains(".jpg") &&
+                    !part.contains(".png")
+        }
+        .joinToString(", ")
+        .ifBlank { this.split("|").first().trim() } // 如果過濾完是空的，至少顯示第一個片段
 }
 
 @Immutable
@@ -34,6 +42,8 @@ data class KpopCard(
     val status: String = "available",
     val createdAt: Timestamp? = null,
     val location: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val wishGroupList: List<String> = emptyList(),
     val wishMemberList: List<String> = emptyList(),
     val memberList: List<String> = emptyList(),
@@ -47,6 +57,8 @@ data class KpopEvent(
     val type: String = "生日咖啡廳",
     val groupName: String = "",
     val location: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val startDate: String = "",
     val endDate: String = "",
     val imageUrl: String = "",
@@ -143,6 +155,8 @@ fun DocumentSnapshot.toKpopCard(): KpopCard? {
             status = getString("status") ?: "available",
             createdAt = getTimestamp("createdAt"),
             location = getString("location") ?: "",
+            latitude = getDouble("latitude"),
+            longitude = getDouble("longitude"),
             wishGroupList = (get("wishGroupList") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList(),
             wishMemberList = (get("wishMemberList") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList(),
             memberList = (get("memberList") as? List<*>)?.mapNotNull { it.toString() } ?: emptyList(),

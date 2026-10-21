@@ -41,13 +41,14 @@ android {
     }
 
     packaging {
-        resources {
-            excludes += "/META-INF/AL2.0"
+        resources {excludes += "/META-INF/AL2.0"
             excludes += "/META-INF/LGPL2.1"
         }
         jniLibs {
-            // 讓系統在安裝時處理庫的對齊
-            useLegacyPackaging = false 
+            useLegacyPackaging = false
+            // 💡 加入以下這幾行來解決重複檔案衝突
+            pickFirsts += "lib/**/libtensorflowlite_jni.so"
+            pickFirsts += "lib/**/libtensorflowlite_gpu_jni.so"
         }
     }
 }
@@ -62,6 +63,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
+
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.9.0"))
     implementation("com.google.firebase:firebase-analytics")
@@ -70,11 +72,24 @@ dependencies {
     implementation("com.google.firebase:firebase-storage")
     implementation("com.google.firebase:firebase-messaging")
 
+    // Google Maps & Location
+    implementation(libs.google.maps.compose)
+    implementation(libs.play.services.maps)
+    implementation(libs.play.services.location)
+
+
     // 圖片載入與處理
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("com.cloudinary:cloudinary-android:3.1.2")
     implementation("androidx.compose.material:material-icons-extended:1.6.7")
-    
+    // 圖片壓縮
+    implementation("id.zelory:compressor:3.0.1")
+
+    // 影片壓縮（Media3 Transformer）
+    implementation("androidx.media3:media3-transformer:1.4.1")
+    implementation("androidx.media3:media3-effect:1.4.1")
+    implementation("androidx.media3:media3-common:1.4.1")
+
     // 強制更新 graphics-path 以修正 16KB 警告
     implementation("androidx.graphics:graphics-path:1.0.1")
 
@@ -91,18 +106,15 @@ dependencies {
 
     // TensorFlow Lite
     implementation("org.tensorflow:tensorflow-lite:2.17.0")
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.17.0")
 
-    // 💡 解決 Duplicate class 衝突的關鍵：從 Support 和 Metadata 庫中排除掉舊版的 API 庫
+// 💡 解決 Support 和 Metadata 的衝突
     implementation("org.tensorflow:tensorflow-lite-support:0.4.4") {
         exclude(group = "org.tensorflow", module = "tensorflow-lite-api")
     }
     implementation("org.tensorflow:tensorflow-lite-metadata:0.4.4") {
         exclude(group = "org.tensorflow", module = "tensorflow-lite-api")
     }
-    implementation("org.tensorflow:tensorflow-lite-gpu:2.17.0")
-
-
-
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

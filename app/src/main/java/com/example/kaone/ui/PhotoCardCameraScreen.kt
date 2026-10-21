@@ -72,14 +72,14 @@ fun PhotoCardCameraScreen(
             val canvasWidth = size.width
             val canvasHeight = size.height
 
-            // 1. 小卡外框 (調降高度比例至 0.55f)
+            // 1. 小卡外框
             val rectHeight = canvasHeight * 0.60f
             val rectWidth = rectHeight / 1.58f
             val left = (canvasWidth - rectWidth) / 2
-            // 將框框位置調低：設為 0.25f
+            // 2. 框框位置比例: 0.35f (以此為準)
             val top = (canvasHeight - rectHeight) * 0.35f
 
-            // 2. 繪製半透明遮罩
+            // 繪製半透明遮罩
             val combinedPath = Path().apply {
                 fillType = PathFillType.EvenOdd
                 addRect(Rect(0f, 0f, canvasWidth, canvasHeight))
@@ -176,12 +176,13 @@ private fun cropToPhotoCardRatio(bitmap: Bitmap): Bitmap {
     val w = bitmap.width
     val h = bitmap.height
 
-    val targetH = (h * 0.55f).toInt()
+    // 同步 UI 的高度比例 0.60f
+    val targetH = (h * 0.60f).toInt()
     val targetW = (targetH / 1.58f).toInt()
 
     val left = (w - targetW) / 2
-    // 這裡的 0.25f 必須與 UI 繪製的 top 邏輯完全一致，裁切才會準確
-    val top = (h - targetH) * 0.25f
+    // 同步 UI 的位置比例 0.35f (修正原本偏上的問題)
+    val top = (h - targetH) * 0.35f
 
     return Bitmap.createBitmap(
         bitmap,
