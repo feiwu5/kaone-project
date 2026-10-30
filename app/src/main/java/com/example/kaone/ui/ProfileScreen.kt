@@ -188,7 +188,10 @@ fun ProfileScreen(
         else -> uploadedCards
     }
 
-    Scaffold(topBar = { if (!isOwnProfile && onBack != null) TopAppBar(title = { Text(nickname) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } }) }) { padding ->
+    Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = { if (!isOwnProfile && onBack != null) TopAppBar(title = { Text(nickname) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } }) }
+    ) { padding ->
         Column(modifier = modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).background(Color(0xFFF8F9FA))) {
             Box(Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 12.dp), Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

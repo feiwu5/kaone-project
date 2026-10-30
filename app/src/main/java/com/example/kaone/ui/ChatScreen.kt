@@ -250,6 +250,7 @@ fun ChatList(userId: String, onRoomClick: (String, String) -> Unit) {
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
                 TopAppBar(title = { Text("我的對話", fontWeight = FontWeight.Bold) })
@@ -864,6 +865,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text(if (isGroup) roomName.ifEmpty { "群組聊天" } else otherUserName.ifEmpty { "聊天" }, fontWeight = FontWeight.Bold) },

@@ -41,7 +41,8 @@ android {
     }
 
     packaging {
-        resources {excludes += "/META-INF/AL2.0"
+        resources {
+            excludes += "/META-INF/AL2.0"
             excludes += "/META-INF/LGPL2.1"
         }
         jniLibs {
@@ -95,6 +96,9 @@ dependencies {
 
     // ML Kit 文字辨識 (繁體中文版)
     implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
+    // 🆕 ML Kit 人臉偵測
+    implementation("com.google.mlkit:face-detection:16.1.7")
+
     implementation(libs.androidx.appcompat)
 
     // CameraX 核心庫

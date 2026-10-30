@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.kaone.ml.IdolClassifier
+import kotlinx.coroutines.launch
 
 @Composable
 fun SearchCategoryHeader(title: String) {
@@ -71,6 +72,7 @@ fun KpopSearchField(
     contentColor: Color = Color.Gray
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val classifier = remember { IdolClassifier(context) }
     
     // 組件卸載時關閉模型，節省記憶體
@@ -80,23 +82,25 @@ fun KpopSearchField(
 
     val photoPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
-            try {
-                val bitmap = if (Build.VERSION.SDK_INT < 28) {
-                    @Suppress("DEPRECATION")
-                    MediaStore.Images.Media.getBitmap(context.contentResolver, it)
-                } else {
-                    val source = ImageDecoder.createSource(context.contentResolver, it)
-                    ImageDecoder.decodeBitmap(source) { decoder, _, _ -> decoder.isMutableRequired = true }
+            scope.launch {
+                try {
+                    val bitmap = if (Build.VERSION.SDK_INT < 28) {
+                        @Suppress("DEPRECATION")
+                        MediaStore.Images.Media.getBitmap(context.contentResolver, it)
+                    } else {
+                        val source = ImageDecoder.createSource(context.contentResolver, it)
+                        ImageDecoder.decodeBitmap(source) { decoder, _, _ -> decoder.isMutableRequired = true }
+                    }
+                    val result = classifier.classify(bitmap)
+                    if (result != null) {
+                        onQueryChange(result.member)
+                        Toast.makeText(context, "辨識成功：${result.group} ${result.member}", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "無法辨識照片中的偶像", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "圖片處理失敗", Toast.LENGTH_SHORT).show()
                 }
-                val result = classifier.classify(bitmap)
-                if (result != null) {
-                    onQueryChange(result.member)
-                    Toast.makeText(context, "辨識成功：${result.group} ${result.member}", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(context, "無法辨識照片中的偶像", Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(context, "圖片處理失敗", Toast.LENGTH_SHORT).show()
             }
         }
     }

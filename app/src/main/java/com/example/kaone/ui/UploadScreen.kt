@@ -549,7 +549,7 @@ fun UploadScreen(
             ) {
                 Text(if (isUploadingMain || isUploadingWishlist) "圖片上傳中..." else if (existingCard == null) "確認上傳" else "儲存修改", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.height(8.dp))
         }
 
         if (showCustomCamera) {

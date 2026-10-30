@@ -77,8 +77,9 @@ import android.content.pm.PackageManager
 import androidx.compose.foundation.Image
 import com.google.maps.android.compose.MarkerComposable
 import androidx.compose.runtime.key
-import coil.compose.AsyncImagePainter
-import coil.compose.rememberAsyncImagePainter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.ui.graphics.asImageBitmap
 
 
 
@@ -564,6 +565,7 @@ fun SmartMatchView(currentUserId: String, isVerified: Boolean, onBack: () -> Uni
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Column { Text("智慧配對", fontWeight = FontWeight.Bold, fontSize = 18.sp); Text("根據你的上傳標籤自動匹配", fontSize = 12.sp, color = Color.Gray) } },
@@ -802,6 +804,9 @@ fun NearbyExchangeView(
     var ownerAvgRating by remember { mutableDoubleStateOf(0.0) }
     var ownerReviewCount by remember { mutableIntStateOf(0) }
 
+    // userId -> 已載入完成的頭像 Bitmap
+    val avatarBitmaps = remember { mutableStateMapOf<String, androidx.compose.ui.graphics.ImageBitmap>() }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -842,6 +847,35 @@ fun NearbyExchangeView(
             }
     }
 
+    // 載入每位使用者的頭像 Bitmap(先從 users 抓最新網址,抓不到就用小卡上的網址)
+    LaunchedEffect(nearbyCards) {
+        val loader = coil.ImageLoader(context)
+        nearbyCards.groupBy { it.userId }.forEach { (uid, cards) ->
+            if (avatarBitmaps.containsKey(uid)) return@forEach
+
+            val urlFromUser = try {
+                db.collection("users").document(uid).get().await()
+                    .getString("profileImageUrl").orEmpty()
+            } catch (_: Exception) {
+                ""
+            }
+            val url = urlFromUser.ifEmpty { cards.firstOrNull()?.ownerProfileImageUrl.orEmpty() }
+            if (url.isEmpty()) return@forEach
+
+            try {
+                val request = coil.request.ImageRequest.Builder(context)
+                    .data(url)
+                    .allowHardware(false) // 地圖標記需要軟體 Bitmap
+                    .build()
+                val result = loader.execute(request)
+                val drawable = (result as? coil.request.SuccessResult)?.drawable
+                val bmp = (drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                if (bmp != null) avatarBitmaps[uid] = bmp.asImageBitmap()
+            } catch (_: Exception) {
+            }
+        }
+    }
+
     LaunchedEffect(selectedCard) {
         selectedCard?.let { card ->
             db.collection("reviews").whereEqualTo("revieweeId", card.userId).addSnapshotListener { s, _ ->
@@ -859,6 +893,7 @@ fun NearbyExchangeView(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text("鄰近交換地圖", fontWeight = FontWeight.Bold) },
@@ -870,34 +905,28 @@ fun NearbyExchangeView(
             .padding(p)
             .fillMaxSize()) {
             GoogleMap(
-                modifier = Modifier.fillMaxSize(),    cameraPositionState = cameraPositionState,
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState,
                 properties = MapProperties(
                     isMyLocationEnabled = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 )
             ) {
-                // 按用戶分組，每個用戶只顯示一個頭像
+                // 按用戶分組,每個用戶只顯示一個頭像
                 val userGroups = nearbyCards.groupBy { it.userId }
 
                 userGroups.forEach { (uid, cards) ->
                     val firstCard = cards.firstOrNull() ?: return@forEach
+                    val lat = firstCard.latitude
+                    val lng = firstCard.longitude
 
-                    if (firstCard.latitude != null && firstCard.longitude != null) {
-                        // 💡 使用 Painter 監聽載入狀態
-                        val painter = rememberAsyncImagePainter(
-                            model = coil.request.ImageRequest.Builder(LocalContext.current)
-                                .data(firstCard.ownerProfileImageUrl) // 這裡用頭像網址
-                                .allowHardware(false) // 👈 必須關閉硬體加速，地圖才抓得到圖
-                                .crossfade(true)
-                                .build()
-                        )
+                    if (lat != null && lng != null) {
+                        val avatar = avatarBitmaps[uid]
 
-                        // 監聽是否載入成功
-                        val isLoaded = painter.state is AsyncImagePainter.State.Success
-
-                        // 💡 關鍵：將 isLoaded 放入 key 中，一旦載入成功，key 變更會強迫地圖重繪標記
-                        key(uid, isLoaded) {
+                        // avatar 載入完成時 key 改變,標記會重新產生
+                        key(uid, avatar != null) {
                             MarkerComposable(
-                                state = MarkerState(position = LatLng(firstCard.latitude!!, firstCard.longitude!!)),
+                                uid, avatar != null, // vararg keys:任一個改變就重新產生標記圖示
+                                state = MarkerState(position = LatLng(lat, lng)),
                                 onClick = {
                                     selectedUserCards = cards
                                     true
@@ -910,15 +939,14 @@ fun NearbyExchangeView(
                                     shadowElevation = 4.dp,
                                     border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
                                 ) {
-                                    if (isLoaded) {
+                                    if (avatar != null) {
                                         Image(
-                                            painter = painter,
+                                            bitmap = avatar,
                                             contentDescription = null,
                                             modifier = Modifier.fillMaxSize(),
                                             contentScale = ContentScale.Crop
                                         )
                                     } else {
-                                        // 載入中顯示預設頭像或灰色底，避免框框消失
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxSize()
@@ -1005,7 +1033,7 @@ fun NearbyExchangeView(
         }
     }
 
-    // 單張卡片詳細資訊 Dialog (已套用 getCleanName)
+    // 單張卡片詳細資訊 Dialog
     if (selectedCard != null) {
         val card = selectedCard!!
         Dialog(onDismissRequest = { selectedCard = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -1192,6 +1220,7 @@ fun ExploreEventsView(currentUserId: String, isVerified: Boolean, onBack: () -> 
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text("最新應援活動", fontWeight = FontWeight.Bold) },
@@ -1271,7 +1300,7 @@ fun ExploreEventUploadView(userId: String, existingEvent: KpopEvent? = null, onB
         }
     }
 
-    Scaffold(topBar = { TopAppBar(title = { Text(if(existingEvent == null) "上傳應援活動" else "編輯活動", fontWeight = FontWeight.Bold) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } }) }) { p ->
+    Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0),topBar = { TopAppBar(title = { Text(if(existingEvent == null) "上傳應援活動" else "編輯活動", fontWeight = FontWeight.Bold) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } }) }) { p ->
         Column(modifier = Modifier
             .fillMaxSize()
             .padding(p)
@@ -1682,21 +1711,34 @@ fun MainDashboard(
     val classifier = remember { IdolClassifier(context) }
     val photoPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
-            val bitmap = if (Build.VERSION.SDK_INT < 28) {
-                MediaStore.Images.Media.getBitmap(context.contentResolver, it)
-            } else {
-                val source = ImageDecoder.createSource(context.contentResolver, it)
-                ImageDecoder.decodeBitmap(source) { decoder, _, _ -> decoder.isMutableRequired = true }
-            }
-            val result = classifier.classify(bitmap)
-            if (result != null) {
-                searchQuery = result.member.trim()
-                isSearchActive = true
-                onTabChange(0)
+            scope.launch {
+                try {
+                    // 解碼圖片放到背景執行緒,避免卡住 UI
+                    val bitmap = withContext(Dispatchers.IO) {
+                        if (Build.VERSION.SDK_INT < 28) {
+                            @Suppress("DEPRECATION")
+                            MediaStore.Images.Media.getBitmap(context.contentResolver, it)
+                        } else {
+                            val source = ImageDecoder.createSource(context.contentResolver, it)
+                            ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                                decoder.isMutableRequired = true
+                            }
+                        }
+                    }
 
-                Toast.makeText(context, "辨識成功：${result.group} ${result.member}", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "無法辨識照片中的偶像", Toast.LENGTH_SHORT).show()
+                    val result = classifier.classify(bitmap) // 現在在 coroutine 內,可以呼叫
+
+                    if (result != null) {
+                        searchQuery = result.member.trim()
+                        isSearchActive = true
+                        onTabChange(0)
+                        Toast.makeText(context, "辨識成功:${result.group} ${result.member}", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "無法辨識照片中的偶像", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "圖片處理失敗:${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -2212,6 +2254,7 @@ fun TrendingView(onBack: () -> Unit) {
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text("熱門趨勢排行", fontWeight = FontWeight.Bold) },

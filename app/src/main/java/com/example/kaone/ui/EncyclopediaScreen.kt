@@ -63,23 +63,37 @@ fun EncyclopediaScreen(
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
+    val scope = rememberCoroutineScope()
+
     // --- AI 辨識功能實作 ---
     val classifier = remember { IdolClassifier(context) }
+    
+    // 組件卸載時關閉模型
+    DisposableEffect(Unit) {
+        onDispose { classifier.close() }
+    }
+
     val photoPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
-            val bitmap = if (Build.VERSION.SDK_INT < 28) {
-                @Suppress("DEPRECATION")
-                MediaStore.Images.Media.getBitmap(context.contentResolver, it)
-            } else {
-                val source = ImageDecoder.createSource(context.contentResolver, it)
-                ImageDecoder.decodeBitmap(source) { decoder, _, _ -> decoder.isMutableRequired = true }
-            }
-            val result = classifier.classify(bitmap)
-            if (result != null) {
-                searchQuery = result.member
-                Toast.makeText(context, "辨識成功：${result.group} ${result.member}", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "無法辨識照片中的偶像", Toast.LENGTH_SHORT).show()
+            scope.launch {
+                try {
+                    val bitmap = if (Build.VERSION.SDK_INT < 28) {
+                        @Suppress("DEPRECATION")
+                        MediaStore.Images.Media.getBitmap(context.contentResolver, it)
+                    } else {
+                        val source = ImageDecoder.createSource(context.contentResolver, it)
+                        ImageDecoder.decodeBitmap(source) { decoder, _, _ -> decoder.isMutableRequired = true }
+                    }
+                    val result = classifier.classify(bitmap)
+                    if (result != null) {
+                        searchQuery = result.member
+                        Toast.makeText(context, "辨識成功：${result.group} ${result.member}", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "無法辨識照片中的偶像", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "圖片處理失敗", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -87,7 +101,6 @@ fun EncyclopediaScreen(
     // 提升滾動狀態以保持位置
     val groupGridState = rememberLazyGridState()
     val memberGridState = rememberLazyGridState()
-    val scope = rememberCoroutineScope()
 
     // 搜尋過濾邏輯
     val searchResults = remember(searchQuery) {
@@ -129,6 +142,7 @@ fun EncyclopediaScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = {
