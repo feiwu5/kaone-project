@@ -506,41 +506,43 @@ fun UploadScreen(
             Spacer(Modifier.height(32.dp))
             Button(
                 onClick = {
-                    // 1. 違禁詞檢查
-                    val fieldCheck = ProfanityFilter.checkFields(mapOf("想換的小卡描述" to wishlist, "備註" to remarks))
-                    if (fieldCheck != null) {
-                        Toast.makeText(context, "「$fieldCheck」包含違禁詞，請修正", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
+                    scope.launch {
+                        // 1. 違禁詞檢查 (結合本地詞庫與 OpenAI Moderation API)
+                        val fieldCheck = ProfanityFilter.checkFieldsAsync(mapOf("想換的小卡描述" to wishlist, "備註" to remarks))
+                        if (fieldCheck != null) {
+                            Toast.makeText(context, "「$fieldCheck」包含違禁或不當用語，請修正", Toast.LENGTH_SHORT).show()
+                            return@launch
+                        }
 
-                    // 2. 釣魚網址檢查
-                    val suspiciousUrlField = mapOf("想換的小卡描述" to wishlist, "備註" to remarks)
-                        .entries.find { UrlSafetyFilter.extractUrls(it.value).any { url -> UrlSafetyFilter.isSuspicious(url) } }
+                        // 2. 釣魚網址檢查 (結合本地規則與 Google Safe Browsing API)
+                        val textFields = mapOf("想換的小卡描述" to wishlist, "備註" to remarks)
+                        for ((fieldName, textValue) in textFields) {
+                            if (UrlSafetyFilter.hasSuspiciousUrlAsync(textValue)) {
+                                Toast.makeText(context, "「$fieldName」包含可疑或釣魚連結，請移除以保護交易安全", Toast.LENGTH_LONG).show()
+                                return@launch
+                            }
+                        }
 
-                    if (suspiciousUrlField != null) {
-                        Toast.makeText(context, "「${suspiciousUrlField.key}」包含可疑連結，請移除以保護交易安全", Toast.LENGTH_LONG).show()
-                        return@Button
-                    }
-
-                    if (!isVerified) {
-                        Toast.makeText(context, "請先完成 AI 實名認證再發布作品！", Toast.LENGTH_LONG).show()
-                        return@Button
-                    }
-                    if (imageUrl.isEmpty() || groupInput.isEmpty() || selectedMembers.isEmpty() || wishlist.trim().isEmpty()) {
-                        Toast.makeText(context, "請填完必填欄位！", Toast.LENGTH_SHORT).show()
-                    } else {
-                        val data = hashMapOf(
-                            "userId" to userId, "ownerNickname" to userNickname, "ownerProfileImageUrl" to userProfileImageUrl,
-                            "location" to userLocation, "latitude" to currentLatitude, "longitude" to currentLongitude,
-                            "imageUrl" to imageUrl, "groupName" to (currentMatchedGroupKey ?: groupInput),
-                            "memberName" to selectedMembers.joinToString(", "), "memberList" to selectedMembers.toList(),
-                            "cardType" to typeInput, "wishlist" to wishlist, "wishlistImageUrls" to wishlistImageUrls.toList(),
-                            "wishGroupList" to selectedWishGroups.toList(), "wishMemberList" to selectedWishMembers.toList(),
-                            "remarks" to remarks, "status" to (existingCard?.status ?: "available"),
-                            "createdAt" to (existingCard?.createdAt ?: FieldValue.serverTimestamp())
-                        )
-                        val task = if (existingCard == null) db.collection("cards").add(data) else db.collection("cards").document(existingCard.id).set(data)
-                        task.addOnSuccessListener { Toast.makeText(context, "上傳成功！", Toast.LENGTH_SHORT).show(); onUploadSuccess() }
+                        if (!isVerified) {
+                            Toast.makeText(context, "請先完成 AI 實名認證再發布作品！", Toast.LENGTH_LONG).show()
+                            return@launch
+                        }
+                        if (imageUrl.isEmpty() || groupInput.isEmpty() || selectedMembers.isEmpty() || wishlist.trim().isEmpty()) {
+                            Toast.makeText(context, "請填完必填欄位！", Toast.LENGTH_SHORT).show()
+                        } else {
+                            val data = hashMapOf(
+                                "userId" to userId, "ownerNickname" to userNickname, "ownerProfileImageUrl" to userProfileImageUrl,
+                                "location" to userLocation, "latitude" to currentLatitude, "longitude" to currentLongitude,
+                                "imageUrl" to imageUrl, "groupName" to (currentMatchedGroupKey ?: groupInput),
+                                "memberName" to selectedMembers.joinToString(", "), "memberList" to selectedMembers.toList(),
+                                "cardType" to typeInput, "wishlist" to wishlist, "wishlistImageUrls" to wishlistImageUrls.toList(),
+                                "wishGroupList" to selectedWishGroups.toList(), "wishMemberList" to selectedWishMembers.toList(),
+                                "remarks" to remarks, "status" to (existingCard?.status ?: "available"),
+                                "createdAt" to (existingCard?.createdAt ?: FieldValue.serverTimestamp())
+                            )
+                            val task = if (existingCard == null) db.collection("cards").add(data) else db.collection("cards").document(existingCard.id).set(data)
+                            task.addOnSuccessListener { Toast.makeText(context, "上傳成功！", Toast.LENGTH_SHORT).show(); onUploadSuccess() }
+                        }
                     }
                 },
                 enabled = !isUploadingMain && !isUploadingWishlist,

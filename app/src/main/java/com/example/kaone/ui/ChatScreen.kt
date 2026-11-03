@@ -6,6 +6,7 @@ import android.net.Uri
 import android.widget.Toast
 import android.widget.VideoView
 import android.widget.MediaController
+import android.util.Patterns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,6 +16,7 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -28,10 +30,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import android.content.Context
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.zIndex
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.*
@@ -48,6 +62,52 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SystemGuideMessageItem(modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFE1F5FE) 
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lightbulb,
+                    contentDescription = "提示",
+                    tint = Color(0xFF007A99)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "KaOne 交易小幫手",
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF007A99),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Text(
+                text = "👋 歡迎來到聊天室！\n\n" +
+                       "1. 確認好卡況後，點擊右上角的「交換」按鈕即可發起正式提案！\n\n" +
+                       "2. 擔心卡片真偽？可隨時點擊下方「要求對光影片」或查看「鑑定指南」保障權益喔！",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF424242),
+                lineHeight = 22.sp
+            )
+        }
+    }
+}
+
 @Composable
 fun ChatScreen(userId: String, targetRoomId: String? = null, inquiryCard: KpopCard? = null, onViewProfile: (String) -> Unit = {}, modifier: Modifier = Modifier) {
     var activeChatRoomId by remember { mutableStateOf(targetRoomId) }
@@ -458,11 +518,47 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     var friendsToAdd by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     var groupMembersInfo by remember { mutableStateOf<List<Triple<String, String, String>>>(emptyList()) }
 
+    // 因為後面已經有定義 context，這裡先不重複定義，移到後面一點的地方。
     var showMyCardsDialog by remember { mutableStateOf(false) }; var showTradeFormDialog by remember { mutableStateOf(false) }
+    var showTutorialMask by remember { mutableStateOf(false) } 
+    
     var selectedOfferCard by remember { mutableStateOf<KpopCard?>(null) }; var myAvailableCards by remember { mutableStateOf<List<KpopCard>>(emptyList()) }
     var tradeMethod by remember { mutableStateOf("面交") }; var mAddr by remember { mutableStateOf("") }; var mDate by remember { mutableStateOf("") }; var mTime by remember { mutableStateOf("") }; var sInfo by remember { mutableStateOf("") }
     var rName by remember { mutableStateOf("") }; var rPhone by remember { mutableStateOf("") }; var oMethod by remember { mutableStateOf("") }; var tNotes by remember { mutableStateOf("") }; var cMember by remember { mutableStateOf("") }
     var isUploading by remember { mutableStateOf(false) }; var isUploadingTrade by remember { mutableStateOf(false) }
+    var suggestedGeminiLocations by remember { mutableStateOf<List<GeminiMeetupRecommendation>>(emptyList()) }
+    var isGeminiLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showTradeFormDialog) {
+        if (showTradeFormDialog) {
+            isGeminiLoading = true
+            val currentUserId = userId
+            val targetUserId = otherId.value
+            var myLoc = ""
+            var otherLoc = ""
+
+            try {
+                if (currentUserId.isNotEmpty()) {
+                    val d = db.collection("users").document(currentUserId).get().await()
+                    myLoc = d.getString("location") ?: ""
+                }
+                if (targetUserId.isNotEmpty()) {
+                    val d = db.collection("users").document(targetUserId).get().await()
+                    otherLoc = d.getString("location") ?: ""
+                }
+                suggestedGeminiLocations = MeetupLocationHelper.getGeminiMeetupRecommendations(
+                    userALocation = myLoc,
+                    userBLocation = otherLoc,
+                    userAName = "我",
+                    userBName = otherUserName.ifBlank { "對方" }
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isGeminiLoading = false
+            }
+        }
+    }
 
     // 新增：上傳進度狀態變數
     var uploadProgress by remember { mutableStateOf(0f) }
@@ -480,6 +576,15 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState(); val scope = rememberCoroutineScope(); val context = LocalContext.current
+    
+    val sharedPreferences = context.getSharedPreferences("KaOnePrefs", Context.MODE_PRIVATE)
+    
+    LaunchedEffect(Unit) {
+        val hasSeen = sharedPreferences.getBoolean("has_seen_chat_tutorial", false)
+        if (!hasSeen) {
+            showTutorialMask = true
+        }
+    }
 
     LaunchedEffect(roomId) {
         db.collection("chatRooms").document(roomId).update("unreadCount.$userId", 0)
@@ -557,58 +662,58 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     LaunchedEffect(messages.size) { if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1) }
 
     fun sendMsg(t: String, type: String = "text", url: String = "", extra: Map<String, Any>? = null) {
-        if (type == "text") {
-            if (ProfanityFilter.containsProfanity(t)) {
-                Toast.makeText(context, "訊息包含違禁詞，請修改後再傳送", Toast.LENGTH_SHORT).show()
-                return
+        scope.launch {
+            if (type == "text") {
+                if (ProfanityFilter.containsProfanityAsync(t)) {
+                    Toast.makeText(context, "訊息包含違禁或不當用語，請修改後再傳送", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                if (UrlSafetyFilter.hasSuspiciousUrlAsync(t)) {
+                    Toast.makeText(context, "⚠️ 提醒：訊息中包含可疑或釣魚連結，請確保來源安全", Toast.LENGTH_LONG).show()
+                }
             }
-            // 辨識釣魚網址
-            val urls = UrlSafetyFilter.extractUrls(t)
-            if (urls.any { UrlSafetyFilter.isSuspicious(it) }) {
-                Toast.makeText(context, "⚠️ 提醒：訊息中包含可疑連結，請確保來源安全", Toast.LENGTH_LONG).show()
+
+            val data = mutableMapOf(
+                "senderId" to userId,
+                "senderName" to "",
+                "senderImage" to "",
+                "messageType" to type,
+                "timestamp" to FieldValue.serverTimestamp(),
+                "isRead" to false
+            )
+            if (t.isNotEmpty()) data["text"] = t
+            if (url.isNotEmpty()) data["mediaUrl"] = url
+            extra?.let { data.putAll(it) }
+
+            db.collection("chatRooms").document(roomId).collection("messages").add(data)
+
+            val roomUpdate = mutableMapOf<String, Any>(
+                "lastMessage" to when(type) {
+                    "text" -> t
+                    "trade_proposal" -> "[交換提案]"
+                    "video" -> "[影片]"
+                    "video_request" -> "[要求對光影片]"
+                    else -> "[媒體]"
+                },
+                "lastMessageTime" to FieldValue.serverTimestamp()
+            )
+            participantIds.filter { it != userId }.forEach { id ->
+                roomUpdate["unreadCount.$id"] = FieldValue.increment(1)
             }
-        }
+            db.collection("chatRooms").document(roomId).update(roomUpdate)
 
-        val data = mutableMapOf(
-            "senderId" to userId,
-            "senderName" to "",
-            "senderImage" to "",
-            "messageType" to type,
-            "timestamp" to FieldValue.serverTimestamp(),
-            "isRead" to false
-        )
-        if (t.isNotEmpty()) data["text"] = t
-        if (url.isNotEmpty()) data["mediaUrl"] = url
-        extra?.let { data.putAll(it) }
-
-        db.collection("chatRooms").document(roomId).collection("messages").add(data)
-
-        val roomUpdate = mutableMapOf<String, Any>(
-            "lastMessage" to when(type) {
-                "text" -> t
-                "trade_proposal" -> "[交換提案]"
-                "video" -> "[影片]"
-                "video_request" -> "[要求對光影片]"
-                else -> "[媒體]"
-            },
-            "lastMessageTime" to FieldValue.serverTimestamp()
-        )
-        participantIds.filter { it != userId }.forEach { id ->
-            roomUpdate["unreadCount.$id"] = FieldValue.increment(1)
-        }
-        db.collection("chatRooms").document(roomId).update(roomUpdate)
-
-        val notifTitle: String = if (isGroup) roomName.ifEmpty { "群組訊息" } else otherUserName
-        val notifContent: String = when (type) {
-            "trade_proposal" -> "收到新的交換提案"
-            "image" -> "傳送了一張圖片"
-            "video" -> "傳送了一段影片"
-            "video_request" -> "傳送了對光影片請求"
-            "card" -> "分享了一張小卡"
-            else -> t
-        }
-        participantIds.filter { it != userId }.forEach { id ->
-            sendNotification(id, "chat_silent", notifTitle, notifContent, roomId)
+            val notifTitle: String = if (isGroup) roomName.ifEmpty { "群組訊息" } else otherUserName
+            val notifContent: String = when (type) {
+                "trade_proposal" -> "收到新的交換提案"
+                "image" -> "傳送了一張圖片"
+                "video" -> "傳送了一段影片"
+                "video_request" -> "傳送了對光影片請求"
+                "card" -> "分享了一張小卡"
+                else -> t
+            }
+            participantIds.filter { it != userId }.forEach { id ->
+                sendNotification(id, "chat_silent", notifTitle, notifContent, roomId)
+            }
         }
     }
 
@@ -1095,6 +1200,11 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
 
             LazyColumn(state = listState, modifier = Modifier.weight(1f).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 16.dp)) {
                 itemsIndexed(messages) { index, m ->
+                    if (m.isSystemGuide) {
+                        SystemGuideMessageItem()
+                        return@itemsIndexed
+                    }
+
                     val isMe = m.senderId == userId; val timeStr = m.timestamp?.let { SimpleDateFormat("HH:mm", Locale.getDefault()).format(it.toDate()) } ?: ""
 
                     val showDate = if (index == 0) {
@@ -1216,6 +1326,37 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
         }
     }
 
+    if (previewImageUrl != null) {
+        Dialog(onDismissRequest = { previewImageUrl = null }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f))
+                    .clickable { previewImageUrl = null },
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = previewImageUrl,
+                    contentDescription = "照片預覽",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .padding(16.dp),
+                    contentScale = ContentScale.Fit
+                )
+
+                IconButton(
+                    onClick = { previewImageUrl = null },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "關閉", tint = Color.White)
+                }
+            }
+        }
+    }
+
     if (showMyCardsDialog) {
         AlertDialog(
             onDismissRequest = { showMyCardsDialog = false },
@@ -1288,6 +1429,52 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                     when (tradeMethod) {
                         "面交" -> {
                             OutlinedTextField(mAddr, { mAddr = it }, label = { Text("地點") }, modifier = Modifier.fillMaxWidth())
+                            if (isGeminiLoading) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                    Text("Gemini 正在分析最佳面交地點...", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                                }
+                            } else if (suggestedGeminiLocations.isNotEmpty()) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    val isRealGemini = MeetupLocationHelper.lastErrorMsg == null
+                                    Text(
+                                        if (isRealGemini) "Gemini 面交地點推薦（點擊帶入）：" else "💡 備用面交地點推薦（點擊帶入）：",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isRealGemini) MaterialTheme.colorScheme.primary else Color(0xFFD84315)
+                                    )
+                                    if (!isRealGemini) {
+                                        Text(
+                                            "⚠️ API 連線提示: ${MeetupLocationHelper.lastErrorMsg}",
+                                            fontSize = 10.sp,
+                                            color = Color.Red
+                                        )
+                                    }
+                                    suggestedGeminiLocations.forEach { sug ->
+                                        Card(
+                                            modifier = Modifier.fillMaxWidth().clickable { mAddr = sug.locationName },
+                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Column(modifier = Modifier.padding(8.dp)) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                                                    Spacer(Modifier.width(4.dp))
+                                                    Text(sug.locationName, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                                Text(sug.reason, fontSize = 10.sp, color = Color.Gray, modifier = Modifier.padding(top = 2.dp))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Box(modifier = Modifier.weight(1f)) {
                                     OutlinedTextField(value = mDate, onValueChange = {}, label = { Text("日期") }, modifier = Modifier.fillMaxWidth(), readOnly = true, trailingIcon = { Icon(Icons.Default.CalendarMonth, null) })
@@ -1432,6 +1619,77 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
             dismissButton = { if (!isSubmitting) TextButton(onClick = { reviewMsgId = null }) { Text("取消") } }
         )
     }
+
+    // --- 在 Box 的最後面加入高亮遮罩 ---
+    if (showTutorialMask) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.7f)) // 黑色半透明遮罩
+                .zIndex(100f) // 確保在最上層
+                .clickable { 
+                    showTutorialMask = false 
+                    sharedPreferences.edit().putBoolean("has_seen_chat_tutorial", true).apply()
+                } 
+        ) {
+            // 提示 1：指向右側的交換按鈕
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 100.dp, bottom = 160.dp),
+                horizontalAlignment = Alignment.End
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowUpward,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "點擊「交換」\n發起正式提案！",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    textAlign = TextAlign.End
+                )
+            }
+
+            // 提示 2：指向左下方的要求對光與鑑定指南按鈕
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(bottom = 90.dp, start = 16.dp), // 調整 bottom padding
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = "擔心小卡狀況？\n善用「對光影片」與「鑑定指南」", // 🌟 這裡文字改一下
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    textAlign = TextAlign.Start
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Icon(
+                    imageVector = Icons.Default.ArrowDownward,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(48.dp)
+                    // 如果你覺得箭頭對不太準這兩個按鈕的中間，可以在這裡加 .padding(start = 30.dp) 把箭頭往右推一點點
+                )
+            }
+
+            // 中間的點擊繼續提示
+            Text(
+                text = "點擊任意處繼續",
+                color = Color.White.copy(alpha = 0.5f),
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(top = 100.dp)
+            )
+        }
+    }
 }
 
 @Composable
@@ -1448,6 +1706,7 @@ fun MessageContent(
     onReview: () -> Unit,
     userId: String
 ) {
+    val context = LocalContext.current
     when (m.messageType) {
         "trade_proposal" -> TradeProposalItem(userId, m, isMe, onAccept, onDecline, onCancel, onComplete, onReview)
         "card" -> Card(shape = RoundedCornerShape(12.dp), modifier = Modifier.width(200.dp).clickable { onPreviewImage(m.cardImage) }, colors = CardDefaults.cardColors(containerColor = Color.White)) { Column { AsyncImage(model = m.cardImage, contentDescription = null, modifier = Modifier.fillMaxWidth().height(150.dp), contentScale = ContentScale.Crop); Column(Modifier.padding(12.dp)) { Text(text = m.cardMember.split(", ").joinToString(", ") { it.split("|").first() }, fontWeight = FontWeight.Bold, fontSize = 14.sp); Text(text = m.cardGroup.split("|").first(), fontSize = 12.sp, color = Color.Gray) } } }
@@ -1470,39 +1729,191 @@ fun MessageContent(
             when (m.messageType) {
                 "text", "video_request" -> {
                     val urls = UrlSafetyFilter.extractUrls(m.text)
-                    val hasSuspicious = urls.any { UrlSafetyFilter.isSuspicious(it) }
+                    var isChecking by remember(m.text) { mutableStateOf(urls.isNotEmpty()) }
+                    var hasSuspicious by remember(m.text) { mutableStateOf(false) }
+                    val uriHandler = LocalUriHandler.current
+                    var showPhishingWarningDialog by remember { mutableStateOf<String?>(null) }
 
-                    Column {
-                        Text(
-                            text = m.text,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            color = Color.Black,
-                            fontSize = 15.sp
-                        )
+                    LaunchedEffect(m.text) {
+                        if (urls.isNotEmpty()) {
+                            val isDangerous = UrlSafetyFilter.hasSuspiciousUrlAsync(m.text)
+                            hasSuspicious = isDangerous
+                            isChecking = false
+                        }
+                    }
 
-                        if (hasSuspicious) {
-                            Row(
-                                modifier = Modifier
-                                    .padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
-                                    .background(Color.Red.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
-                                    .padding(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.ReportProblem,
-                                    contentDescription = null,
-                                    tint = Color.Red,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    "此連結疑似釣魚網站，請勿隨意點擊",
-                                    color = Color.Red,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                    val annotatedText = remember(m.text) {
+                        buildAnnotatedString {
+                            if (urls.isEmpty()) {
+                                append(m.text)
+                            } else {
+                                var lastIdx = 0
+                                val matcher = Patterns.WEB_URL.matcher(m.text)
+                                while (matcher.find()) {
+                                    val start = matcher.start()
+                                    var end = matcher.end()
+                                    var urlText = matcher.group()
+
+                                    while (urlText.endsWith('.') || urlText.endsWith(',') || urlText.endsWith('!') || urlText.endsWith(';')) {
+                                        urlText = urlText.dropLast(1)
+                                        end--
+                                    }
+
+                                    if (start > lastIdx) {
+                                        append(m.text.substring(lastIdx, start))
+                                    }
+
+                                    pushStringAnnotation(tag = "URL", annotation = urlText)
+                                    withStyle(
+                                        style = SpanStyle(
+                                            color = Color(0xFF1E88E5),
+                                            textDecoration = TextDecoration.Underline,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    ) {
+                                        append(urlText)
+                                    }
+                                    pop()
+                                    lastIdx = end
+                                }
+                                if (lastIdx < m.text.length) {
+                                    append(m.text.substring(lastIdx))
+                                }
                             }
                         }
+                    }
+
+                    Column {
+                        if (urls.isNotEmpty()) {
+                            ClickableText(
+                                text = annotatedText,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                style = TextStyle(color = Color.Black, fontSize = 15.sp),
+                                onClick = { offset ->
+                                    annotatedText.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                                        .firstOrNull()?.let { annotation ->
+                                            var targetUrl = annotation.item
+                                            if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
+                                                targetUrl = "http://$targetUrl"
+                                            }
+                                            if (hasSuspicious) {
+                                                showPhishingWarningDialog = targetUrl
+                                            } else {
+                                                try {
+                                                    uriHandler.openUri(targetUrl)
+                                                } catch (e: Exception) {
+                                                    Toast.makeText(context, "無法開啟此連結", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        }
+                                }
+                            )
+                        } else {
+                            Text(
+                                text = m.text,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                color = Color.Black,
+                                fontSize = 15.sp
+                            )
+                        }
+
+                        if (urls.isNotEmpty()) {
+                            when {
+                                isChecking -> {
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
+                                            .background(Color(0xFFF5F5F5), RoundedCornerShape(4.dp))
+                                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Search,
+                                            contentDescription = null,
+                                            tint = Color.Gray,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(
+                                            "🔍 Google Safe Browsing 檢測中...",
+                                            color = Color.Gray,
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
+                                hasSuspicious -> {
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
+                                            .background(Color(0xFFFFEBEE), RoundedCornerShape(4.dp))
+                                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ReportProblem,
+                                            contentDescription = null,
+                                            tint = Color(0xFFD32F2F),
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(
+                                            "⚠️ 警告：Google 檢測此連結為高風險釣魚網站",
+                                            color = Color(0xFFD32F2F),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                                else -> {
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
+                                            .background(Color(0xFFE8F5E9), RoundedCornerShape(4.dp))
+                                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.VerifiedUser,
+                                            contentDescription = null,
+                                            tint = Color(0xFF2E7D32),
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(
+                                            "Google Safe Browsing 驗證安全",
+                                            color = Color(0xFF2E7D32),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    showPhishingWarningDialog?.let { targetUrl ->
+                        AlertDialog(
+                            onDismissRequest = { showPhishingWarningDialog = null },
+                            title = { Text("⚠️ 釣魚網站警告", fontWeight = FontWeight.Bold, color = Color.Red) },
+                            text = { Text("Google Safe Browsing 偵測此連結 ($targetUrl) 疑似為釣魚或高風險詐騙網站！\n\n確定仍要開啟嗎？") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    showPhishingWarningDialog = null
+                                    try {
+                                        uriHandler.openUri(targetUrl)
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "無法開啟連結", Toast.LENGTH_SHORT).show()
+                                    }
+                                }) {
+                                    Text("仍要開啟", color = Color.Red)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showPhishingWarningDialog = null }) {
+                                    Text("取消 (推薦)", color = Color.Gray)
+                                }
+                            }
+                        )
                     }
                 }
                 "image" -> AsyncImage(model = m.mediaUrl, contentDescription = null, modifier = Modifier.sizeIn(maxWidth = 200.dp, maxHeight = 300.dp).clip(RoundedCornerShape(8.dp)).clickable { onPreviewImage(m.mediaUrl) }, contentScale = ContentScale.Crop)

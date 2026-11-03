@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,6 +42,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -265,9 +267,32 @@ fun AdminUserListView() {
                 trailingContent = {
                     TextButton(
                         onClick = {
-                            db.collection("users").document(userId).update("isBanned", !isBanned)
+                            val userEmail = email.trim().lowercase()
+                            val userIdHash = (user["idHash"] as? String ?: "").trim()
+                            val newBannedState = !isBanned
+
+                            db.collection("users").document(userId).update("isBanned", newBannedState)
                                 .addOnSuccessListener {
-                                    Toast.makeText(context, if (isBanned) "已解除封鎖" else "已封鎖該用戶", Toast.LENGTH_SHORT).show()
+                                    if (newBannedState) {
+                                        if (userEmail.isNotEmpty()) {
+                                            db.collection("bannedEmails").document(userEmail).set(
+                                                mapOf("bannedAt" to FieldValue.serverTimestamp(), "reason" to "管理員封鎖")
+                                            )
+                                        }
+                                        if (userIdHash.isNotEmpty()) {
+                                            db.collection("bannedIdentities").document(userIdHash).set(
+                                                mapOf("bannedAt" to FieldValue.serverTimestamp(), "reason" to "管理員封鎖")
+                                            )
+                                        }
+                                    } else {
+                                        if (userEmail.isNotEmpty()) {
+                                            db.collection("bannedEmails").document(userEmail).delete()
+                                        }
+                                        if (userIdHash.isNotEmpty()) {
+                                            db.collection("bannedIdentities").document(userIdHash).delete()
+                                        }
+                                    }
+                                    Toast.makeText(context, if (newBannedState) "已封鎖用戶並同步存入黑名單" else "已解除封鎖與黑名單", Toast.LENGTH_SHORT).show()
                                 }
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = if (isBanned) Color.Green else Color.Red)
@@ -289,11 +314,14 @@ fun AdminUserListView() {
 fun AdminReportListView() {
     val db = FirebaseFirestore.getInstance()
     var reportList by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
+    var userNicknames by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var targetNames by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     val context = LocalContext.current
     val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
 
     var inspectingCardId by remember { mutableStateOf<String?>(null) }
     var inspectingCardData by remember { mutableStateOf<KpopCard?>(null) }
+    var punishReporterTarget by remember { mutableStateOf<Triple<String, String, String>?>(null) }
 
     LaunchedEffect(Unit) {
         db.collection("reports")
@@ -301,6 +329,39 @@ fun AdminReportListView() {
             .addSnapshotListener { snapshot, _ ->
                 reportList = snapshot?.documents?.map { it.data?.plus("id" to it.id) ?: emptyMap() } ?: emptyList()
             }
+    }
+
+    LaunchedEffect(reportList) {
+        if (reportList.isNotEmpty()) {
+            reportList.forEach { report ->
+                val rId = report["reporterId"] as? String ?: ""
+                val tId = report["targetId"] as? String ?: ""
+                val tType = report["targetType"] as? String ?: ""
+
+                if (rId.isNotEmpty() && !userNicknames.containsKey(rId)) {
+                    db.collection("users").document(rId).get().addOnSuccessListener { doc ->
+                        val nick = doc.getString("nickname") ?: doc.getString("name") ?: "未知用戶"
+                        userNicknames = userNicknames + (rId to nick)
+                    }
+                }
+
+                if (tId.isNotEmpty() && !targetNames.containsKey(tId)) {
+                    if (tType == "user") {
+                        db.collection("users").document(tId).get().addOnSuccessListener { doc ->
+                            val nick = doc.getString("nickname") ?: doc.getString("name") ?: "未知用戶"
+                            targetNames = targetNames + (tId to "用戶: $nick")
+                        }
+                    } else if (tType == "card") {
+                        db.collection("cards").document(tId).get().addOnSuccessListener { doc ->
+                            val rawName = doc.getString("memberName") ?: "未命名小卡"
+                            val cardName = rawName.split("|").first().trim()
+                            val ownerNick = doc.getString("ownerNickname") ?: doc.getString("ownerName") ?: "未知用戶"
+                            targetNames = targetNames + (tId to "用戶: $ownerNick (小卡: $cardName)")
+                        }
+                    }
+                }
+            }
+        }
     }
 
     LaunchedEffect(inspectingCardId) {
@@ -328,11 +389,25 @@ fun AdminReportListView() {
             val status = report["status"] as? String ?: "pending"
             val timestamp = report["timestamp"] as? Timestamp
             val targetId = report["targetId"] as? String ?: ""
+            val reporterId = report["reporterId"] as? String ?: ""
+
+            // 取得名稱顯示
+            val targetNameDisplay = targetNames[targetId] ?: if (targetId.isEmpty()) "無" else "載入中..."
+            val reporterNameDisplay = if (reporterId.isEmpty()) "匿名/未知" else (userNicknames[reporterId] ?: "載入中...")
+
+            // 計算與統計：同目標檢舉數、同目標獨立檢舉用戶數、同檢舉者發起的總檢舉數
+            val sameTargetReports = reportList.filter { (it["targetId"] as? String) == targetId }
+            val uniqueReporters = sameTargetReports.mapNotNull { it["reporterId"] as? String }.filter { it.isNotEmpty() }.distinct()
+            val sameReporterTotalCount = if (reporterId.isNotEmpty()) reportList.count { (it["reporterId"] as? String) == reporterId } else 0
+
+            val isSingleUserSpam = sameTargetReports.size > 1 && uniqueReporters.size == 1
+            val isMultiUserReport = sameTargetReports.size > 1 && uniqueReporters.size > 1
+            val isFrequentReporter = sameReporterTotalCount >= 3
 
             Card(
                 modifier = Modifier.padding(8.dp).fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (status == "pending") Color(0xFFFFF9C4) else Color(0xFFF5F5F5)
+                    containerColor = if (isSingleUserSpam && status == "pending") Color(0xFFFFEBEE) else if (status == "pending") Color(0xFFFFF9C4) else Color(0xFFF5F5F5)
                 )
             ) {
                 Column(Modifier.padding(16.dp)) {
@@ -350,35 +425,86 @@ fun AdminReportListView() {
                         }
                         Spacer(Modifier.width(8.dp))
                         Text("狀態: ${if (status == "pending") "待處理" else "已結案"}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+
+                        if (isSingleUserSpam) {
+                            Spacer(Modifier.width(8.dp))
+                            Surface(
+                                color = Color(0xFFD32F2F),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    "⚠️ 疑惡意刷檢舉 (${sameTargetReports.size}則全來自同一人)",
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                )
+                            }
+                        } else if (isMultiUserReport) {
+                            Spacer(Modifier.width(8.dp))
+                            Surface(
+                                color = Color(0xFFE65100),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    "👥 累計 ${sameTargetReports.size} 則檢舉 (${uniqueReporters.size} 位用戶)",
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
                         Spacer(Modifier.weight(1f))
                         Text(timestamp?.let { sdf.format(it.toDate()) } ?: "", fontSize = 12.sp, color = Color.Gray)
                     }
                     Spacer(Modifier.height(8.dp))
                     Text("原因: $reason", fontWeight = FontWeight.Medium)
-                    Text("目標ID: $targetId", fontSize = 11.sp, color = Color.Gray)
+                    Text("目標: $targetNameDisplay (${if (targetId.length > 8) targetId.take(8) + "..." else targetId})", fontSize = 11.sp, color = Color.Gray)
+                    Text(
+                        "檢舉人: $reporterNameDisplay (${if (reporterId.isEmpty()) "無ID" else if (reporterId.length > 8) reporterId.take(8) + "..." else reporterId})${if (isFrequentReporter) " ⚠️ (該帳號累計檢舉 $sameReporterTotalCount 次)" else ""}",
+                        fontSize = 11.sp,
+                        color = if (isFrequentReporter) Color(0xFFD32F2F) else Color.Gray,
+                        fontWeight = if (isFrequentReporter) FontWeight.Bold else FontWeight.Normal
+                    )
                     
-                    Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         if (targetType == "card") {
                             FilledTonalButton(
                                 onClick = { inspectingCardId = targetId },
                                 modifier = Modifier.height(32.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                             ) {
                                 Icon(Icons.Default.Visibility, null, modifier = Modifier.size(14.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("查看內容", fontSize = 12.sp)
+                                Text("查看內容", fontSize = 11.sp)
                             }
                         }
 
                         if (status == "pending") {
                             Spacer(Modifier.weight(1f))
+
+                            if (reporterId.isNotEmpty()) {
+                                TextButton(
+                                    onClick = {
+                                        punishReporterTarget = Triple(reporterId, reporterNameDisplay, reportId)
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD32F2F)),
+                                    modifier = Modifier.height(32.dp),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                                ) {
+                                    Icon(Icons.Default.Warning, null, Modifier.size(14.dp))
+                                    Spacer(Modifier.width(2.dp))
+                                    Text("懲處惡意者", fontSize = 11.sp)
+                                }
+                            }
+
                             TextButton(onClick = {
                                 db.collection("reports").document(reportId).update("status", "resolved")
                                     .addOnSuccessListener { Toast.makeText(context, "已標記為已處理", Toast.LENGTH_SHORT).show() }
-                            }, modifier = Modifier.height(32.dp)) {
-                                Icon(Icons.Default.CheckCircle, null, Modifier.size(16.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text("忽略/標記處理", fontSize = 12.sp)
+                            }, modifier = Modifier.height(32.dp), contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)) {
+                                Icon(Icons.Default.CheckCircle, null, Modifier.size(14.dp))
+                                Spacer(Modifier.width(2.dp))
+                                Text("忽略", fontSize = 11.sp)
                             }
                             
                             if (targetType == "card") {
@@ -394,11 +520,12 @@ fun AdminReportListView() {
                                             }
                                     },
                                     colors = ButtonDefaults.textButtonColors(contentColor = Color.Red),
-                                    modifier = Modifier.height(32.dp)
+                                    modifier = Modifier.height(32.dp),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
                                 ) {
-                                    Icon(Icons.Default.Delete, null, Modifier.size(16.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("刪除", fontSize = 12.sp)
+                                    Icon(Icons.Default.Delete, null, Modifier.size(14.dp))
+                                    Spacer(Modifier.width(2.dp))
+                                    Text("刪除卡片", fontSize = 11.sp)
                                 }
                             }
                         }
@@ -406,6 +533,84 @@ fun AdminReportListView() {
                 }
             }
         }
+    }
+
+    if (punishReporterTarget != null) {
+        val (repId, repName, repReportId) = punishReporterTarget!!
+        AlertDialog(
+            onDismissRequest = { punishReporterTarget = null },
+            title = { Text("懲處惡意檢舉者", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("檢舉人：$repName", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("請選擇對該檢舉人的懲處處置手段：", fontSize = 12.sp, color = Color.Gray)
+
+                    OutlinedButton(
+                        onClick = {
+                            sendNotification(
+                                repId,
+                                "system",
+                                "檢舉規範警告通知",
+                                "您近期提交的檢舉已被判定為無效或惡意檢舉。請遵守社區規範，切勿濫用檢舉功能。",
+                                repReportId
+                            )
+                            db.collection("reports").document(repReportId).update("status", "resolved_malicious")
+                            Toast.makeText(context, "已發送警告通知並結案該檢舉", Toast.LENGTH_SHORT).show()
+                            punishReporterTarget = null
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("發送警告通知", fontSize = 13.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            val cal = java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_MONTH, 7) }
+                            val banUntil = com.google.firebase.Timestamp(cal.time)
+                            db.collection("users").document(repId).update("reportBannedUntil", banUntil)
+                            sendNotification(
+                                repId,
+                                "system",
+                                "檢舉功能停權通知",
+                                "因您惡意/濫用檢舉功能，您的檢舉權限已被暫停 7 天。",
+                                repReportId
+                            )
+                            db.collection("reports").document(repReportId).update("status", "resolved_malicious")
+                            Toast.makeText(context, "已暫停該用戶檢舉權限 7 天", Toast.LENGTH_SHORT).show()
+                            punishReporterTarget = null
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE65100))
+                    ) {
+                        Text("暫停檢舉權限 7 天", fontSize = 13.sp)
+                    }
+
+                    Button(
+                        onClick = {
+                            db.collection("users").document(repId).update("isBanned", true)
+                            sendNotification(
+                                repId,
+                                "system",
+                                "帳號停權通知",
+                                "您的帳號因多次惡意濫用系統檢舉功能，已被管理員全站停權。",
+                                repReportId
+                            )
+                            db.collection("reports").document(repReportId).update("status", "resolved_malicious")
+                            Toast.makeText(context, "已全站封鎖該惡意帳號", Toast.LENGTH_SHORT).show()
+                            punishReporterTarget = null
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                    ) {
+                        Text("直接封鎖該帳號", color = Color.White, fontSize = 13.sp)
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { punishReporterTarget = null }) { Text("取消") }
+            }
+        )
     }
 
     if (inspectingCardData != null) {

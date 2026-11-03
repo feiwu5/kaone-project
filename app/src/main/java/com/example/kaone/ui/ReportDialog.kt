@@ -93,56 +93,108 @@ fun ReportDialog(
                     }
 
                     isSubmitting = true
-                    val finalReason = if (selectedReason == "其他") otherReason else selectedReason
-                    val reportData = hashMapOf(
-                        "reporterId" to reporterId,
-                        "targetId" to targetId,
-                        "targetType" to targetType,
-                        "reason" to finalReason,
-                        "timestamp" to Timestamp.now(),
-                        "status" to "pending"
-                    )
-                    db.collection("reports").add(reportData)
-                        .addOnSuccessListener {
-                            Toast.makeText(context, "感謝您的檢舉，我們將盡快處理", Toast.LENGTH_SHORT).show()
-
-                            if (targetType == "user") {
-                                db.collection("users").document(targetId).get().addOnSuccessListener { userDoc ->
-                                    val profileUrl = userDoc.getString("profileImageUrl") ?: ""
-                                    sendNotification(
-                                        targetId,
-                                        "report",
-                                        "帳號檢舉通知",
-                                        "您的帳號因「$finalReason」收到一則檢舉。管理員將審核您的個人檔案。",
-                                        targetId,
-                                        profileUrl
-                                    )
-                                }
-                            } else if (targetType == "card") {
-                                db.collection("cards").document(targetId).get().addOnSuccessListener { cardDoc ->
-                                    val cardOwnerId = cardDoc.getString("userId") ?: ""
-                                    val rawCardName = cardDoc.getString("memberName") ?: "未命名小卡"
-                                    val cardName = rawCardName.split("|").first()
-                                    val cardImageUrl = cardDoc.getString("imageUrl") ?: ""
-                                    if (cardOwnerId.isNotEmpty()) {
-                                        sendNotification(
-                                            cardOwnerId,
-                                            "report",
-                                            "內容檢舉通知",
-                                            "您發佈的《$cardName》因「$finalReason」收到一則檢舉。請遵守社區規範。",
-                                            targetId,
-                                            cardImageUrl
-                                        )
-                                    }
-                                }
-                            }
-
-                            onDismiss()
-                        }
-                        .addOnFailureListener {
+                    
+                    // 1. 檢查用戶是否處於「懲處暫停檢舉」狀態
+                    db.collection("users").document(reporterId).get().addOnSuccessListener { userDoc ->
+                        val reportBannedUntil = userDoc.getTimestamp("reportBannedUntil")
+                        if (reportBannedUntil != null && reportBannedUntil.toDate().after(java.util.Date())) {
+                            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
                             isSubmitting = false
-                            Toast.makeText(context, "提交失敗，請重試", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "您因濫用檢舉功能，檢舉權限已被暫停至 ${sdf.format(reportBannedUntil.toDate())}", Toast.LENGTH_LONG).show()
+                            return@addOnSuccessListener
                         }
+
+                        // 2. 防重複檢舉：檢查該用戶是否已經檢舉過同一目標
+                        db.collection("reports")
+                            .whereEqualTo("reporterId", reporterId)
+                            .whereEqualTo("targetId", targetId)
+                            .get()
+                            .addOnSuccessListener { querySnapshot ->
+                                if (!querySnapshot.isEmpty) {
+                                    isSubmitting = false
+                                    Toast.makeText(context, "您已經檢舉過此內容，請勿重複提交", Toast.LENGTH_SHORT).show()
+                                    return@addOnSuccessListener
+                                }
+
+                                val finalReason = if (selectedReason == "其他") otherReason else selectedReason
+                                val reportData = hashMapOf(
+                                    "reporterId" to reporterId,
+                                    "targetId" to targetId,
+                                    "targetType" to targetType,
+                                    "reason" to finalReason,
+                                    "timestamp" to Timestamp.now(),
+                                    "status" to "pending"
+                                )
+                                db.collection("reports").add(reportData)
+                                    .addOnSuccessListener {
+                                        Toast.makeText(context, "感謝您的檢舉，我們將盡快處理", Toast.LENGTH_SHORT).show()
+
+                                        if (targetType == "user") {
+                                            db.collection("users").document(targetId).get().addOnSuccessListener { targetUserDoc ->
+                                                val profileUrl = targetUserDoc.getString("profileImageUrl") ?: ""
+                                                sendNotification(
+                                                    targetId,
+                                                    "report",
+                                                    "帳號檢舉通知",
+                                                    "您的帳號因「$finalReason」收到一則檢舉。管理員將審核您的個人檔案。",
+                                                    targetId,
+                                                    profileUrl
+                                                )
+                                            }
+                                        } else if (targetType == "card") {
+                                            db.collection("cards").document(targetId).get().addOnSuccessListener { cardDoc ->
+                                                val cardOwnerId = cardDoc.getString("userId") ?: ""
+                                                val rawCardName = cardDoc.getString("memberName") ?: "未命名小卡"
+                                                val cardName = rawCardName.split("|").first()
+                                                val cardImageUrl = cardDoc.getString("imageUrl") ?: ""
+                                                if (cardOwnerId.isNotEmpty()) {
+                                                    sendNotification(
+                                                        cardOwnerId,
+                                                        "report",
+                                                        "內容檢舉通知",
+                                                        "您發佈的《$cardName》因「$finalReason」收到一則檢舉。請遵守社區規範。",
+                                                        targetId,
+                                                        cardImageUrl
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // 自動檢查：若 24 小時內同一人檢舉達 5 次(含)以上，自動發送提醒通知給檢舉人
+                                        db.collection("reports")
+                                            .whereEqualTo("reporterId", reporterId)
+                                            .get()
+                                            .addOnSuccessListener { reportsSnapshot ->
+                                                val twentyFourHoursAgoMs = System.currentTimeMillis() - (24 * 60 * 60 * 1000L)
+                                                val count24h = reportsSnapshot.documents.count { doc ->
+                                                    val ts = doc.getTimestamp("timestamp")
+                                                    ts != null && ts.toDate().time >= twentyFourHoursAgoMs
+                                                }
+                                                if (count24h >= 5) {
+                                                    sendNotification(
+                                                        reporterId,
+                                                        "system",
+                                                        "檢舉提醒通知",
+                                                        "您已檢舉數次，若違規屬實我們會刪除貼文，若是惡意檢舉，請停止您的動作以免被停權。"
+                                                    )
+                                                }
+                                            }
+
+                                        onDismiss()
+                                    }
+                                    .addOnFailureListener {
+                                        isSubmitting = false
+                                        Toast.makeText(context, "提交失敗，請重試", Toast.LENGTH_SHORT).show()
+                                    }
+                            }
+                            .addOnFailureListener {
+                                isSubmitting = false
+                                Toast.makeText(context, "檢查檢舉紀錄失敗，請重試", Toast.LENGTH_SHORT).show()
+                            }
+                    }.addOnFailureListener {
+                        isSubmitting = false
+                        Toast.makeText(context, "檢查用戶狀態失敗，請重試", Toast.LENGTH_SHORT).show()
+                    }
                 }
             ) {
                 if (isSubmitting) CircularProgressIndicator(Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)

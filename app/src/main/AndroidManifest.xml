@@ -9,6 +9,15 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- 宣告要查詢的外部應用程式 (如 Google Maps)，確保 Android 11+ 可以正確開啟 -->
+    <queries>
+        <package android:name="com.google.android.apps.maps" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="google.navigation" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -18,18 +27,19 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.KaOne"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="false">
 
-
+        <!-- 請換成你「重新產生」並已設定 Android 應用程式限制的 Maps key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBC6JvcbmsENuaUyn_h-qOknd4KYaWIwlE" />
+            android:value="在這裡貼上新的MAPS_API_KEY" />
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.KaOne">
+            android:theme="@style/Theme.KaOne"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

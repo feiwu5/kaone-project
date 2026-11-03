@@ -1,8 +1,16 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
+}
+
+// 從 local.properties 讀取 API Key（local.properties 不要提交到 Git）
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
 }
 
 android {
@@ -17,6 +25,27 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Google Safe Browsing API Key
+        buildConfigField(
+            "String",
+            "SAFE_BROWSING_API_KEY",
+            "\"${localProps.getProperty("SAFE_BROWSING_API_KEY", "AIzaSyBC6JvcbmsENuaUyn_h-qOknd4KYaWIwlE")}\""
+        )
+
+        // OpenAI API Key
+        buildConfigField(
+            "String",
+            "OPENAI_API_KEY",
+            "\"${localProps.getProperty("OPENAI_API_KEY", "")}\""
+        )
+
+        // Gemini API Key
+        buildConfigField(
+            "String",
+            "GEMINI_API_KEY",
+            "\"${localProps.getProperty("GEMINI_API_KEY", "")}\""
+        )
     }
 
     buildTypes {
@@ -38,6 +67,7 @@ android {
     buildFeatures {
         compose = true
         mlModelBinding = true
+        buildConfig = true // 產生 BuildConfig 類別（必須）
     }
 
     packaging {
@@ -77,6 +107,9 @@ dependencies {
     implementation(libs.google.maps.compose)
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)
+
+    // Gemini AI SDK
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
 
 
     // 圖片載入與處理

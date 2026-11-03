@@ -13,6 +13,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -111,6 +112,7 @@ class MainActivity : ComponentActivity() {
                         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                             AnimatedContent(
                                 targetState = currentScreen,
+                                modifier = Modifier.consumeWindowInsets(innerPadding),
                                 transitionSpec = {
                                     if (targetState == "home") {
                                         (slideInHorizontally { it } + fadeIn()) togetherWith (slideOutHorizontally { -it } + fadeOut())
@@ -179,15 +181,70 @@ class MainActivity : ComponentActivity() {
                                         SignUpScreen(
                                             modifier = Modifier.padding(innerPadding),
                                             onSignUpClick = { email, password, name, gender, nickname, location, idHash ->
-                                                val cleanEmail = email.trim()
+                                                val cleanEmail = email.trim().lowercase()
 
-                                                db.collection("users")
-                                                    .whereEqualTo("idHash", idHash)
-                                                    .get()
-                                                    .addOnSuccessListener { documents ->
-                                                        if (!documents.isEmpty) {
-                                                            Toast.makeText(this@MainActivity, "此身分證已被其他帳號綁定，無法重複註冊", Toast.LENGTH_LONG).show()
+                                                // 1. 檢查 Email 是否在黑名單中 (方案 4)
+                                                db.collection("bannedEmails").document(cleanEmail).get()
+                                                    .addOnSuccessListener { emailDoc ->
+                                                        if (emailDoc.exists()) {
+                                                            Toast.makeText(this@MainActivity, "⚠️ 此 Email 已被系統列入黑名單，無法重新註冊", Toast.LENGTH_LONG).show()
+                                                            return@addOnSuccessListener
+                                                        }
+
+                                                        // 2. 檢查身分證 Hash (idHash) 是否在黑名單中 (方案 2)
+                                                        if (idHash.isNotEmpty()) {
+                                                            db.collection("bannedIdentities").document(idHash).get()
+                                                                .addOnSuccessListener { identityDoc ->
+                                                                    if (identityDoc.exists()) {
+                                                                        Toast.makeText(this@MainActivity, "⚠️ 此身分證號已被系統列入黑名單，無法重新註冊", Toast.LENGTH_LONG).show()
+                                                                        return@addOnSuccessListener
+                                                                    }
+
+                                                                    // 3. 檢查身分證是否已被現有帳號綁定
+                                                                    db.collection("users")
+                                                                        .whereEqualTo("idHash", idHash)
+                                                                        .get()
+                                                                        .addOnSuccessListener { documents ->
+                                                                            if (!documents.isEmpty) {
+                                                                                Toast.makeText(this@MainActivity, "此身分證已被其他帳號綁定，無法重複註冊", Toast.LENGTH_LONG).show()
+                                                                            } else {
+                                                                                // 4. 通過黑名單與綁定檢測，創建帳號
+                                                                                auth.createUserWithEmailAndPassword(cleanEmail, password)
+                                                                                    .addOnCompleteListener(this@MainActivity) { task ->
+                                                                                        if (task.isSuccessful) {
+                                                                                            val userId = auth.currentUser?.uid
+                                                                                            if (userId != null) {
+                                                                                                val user = hashMapOf(
+                                                                                                    "name" to name,
+                                                                                                    "nickname" to nickname,
+                                                                                                    "gender" to gender,
+                                                                                                    "location" to location,
+                                                                                                    "email" to cleanEmail,
+                                                                                                    "idHash" to idHash,
+                                                                                                    "isVerified" to true,
+                                                                                                    "createdAt" to FieldValue.serverTimestamp(),
+                                                                                                    "favoriteCardIds" to emptyList<String>(),
+                                                                                                    "isAdmin" to false,
+                                                                                                    "isBanned" to false
+                                                                                                )
+                                                                                                db.collection("users").document(userId).set(user)
+                                                                                                    .addOnSuccessListener {
+                                                                                                        Toast.makeText(this@MainActivity, "實名認證註冊成功！", Toast.LENGTH_SHORT).show()
+                                                                                                        currentScreen = "home"
+                                                                                                    }
+                                                                                                    .addOnFailureListener { e ->
+                                                                                                        Toast.makeText(this@MainActivity, "資料庫寫入失敗: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                                                                    }
+                                                                                            }
+                                                                                        } else {
+                                                                                            Toast.makeText(this@MainActivity, "帳號創建失敗: ${task.exception?.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                                                        }
+                                                                                    }
+                                                                            }
+                                                                        }
+                                                                }
                                                         } else {
+                                                            // 未提供 idHash 時直接註冊
                                                             auth.createUserWithEmailAndPassword(cleanEmail, password)
                                                                 .addOnCompleteListener(this@MainActivity) { task ->
                                                                     if (task.isSuccessful) {
@@ -199,8 +256,8 @@ class MainActivity : ComponentActivity() {
                                                                                 "gender" to gender,
                                                                                 "location" to location,
                                                                                 "email" to cleanEmail,
-                                                                                "idHash" to idHash,
-                                                                                "isVerified" to true,
+                                                                                "idHash" to "",
+                                                                                "isVerified" to false,
                                                                                 "createdAt" to FieldValue.serverTimestamp(),
                                                                                 "favoriteCardIds" to emptyList<String>(),
                                                                                 "isAdmin" to false,
@@ -208,11 +265,8 @@ class MainActivity : ComponentActivity() {
                                                                             )
                                                                             db.collection("users").document(userId).set(user)
                                                                                 .addOnSuccessListener {
-                                                                                    Toast.makeText(this@MainActivity, "實名認證註冊成功！", Toast.LENGTH_SHORT).show()
+                                                                                    Toast.makeText(this@MainActivity, "註冊成功！", Toast.LENGTH_SHORT).show()
                                                                                     currentScreen = "home"
-                                                                                }
-                                                                                .addOnFailureListener { e ->
-                                                                                    Toast.makeText(this@MainActivity, "資料庫寫入失敗: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                                                                                 }
                                                                         }
                                                                     } else {

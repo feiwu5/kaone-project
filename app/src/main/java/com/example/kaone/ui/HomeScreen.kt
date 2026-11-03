@@ -537,13 +537,13 @@ fun SmartMatchView(currentUserId: String, isVerified: Boolean, onBack: () -> Uni
 
                 if (heHasWhatIWant && iHaveWhatHeWants) {
                     maxScore = maxOf(maxScore, 1.0f)
-                    reasons.add("雙向成員匹配：你們互有對方想要的成員！")
+                    reasons.add("雙向匹配：你們互有對方想要的成員！")
                 } else if (heHasWhatIWant) {
                     maxScore = maxOf(maxScore, 0.6f)
                     reasons.add("心願成員：他有你想要的成員！")
                 } else if (iHaveWhatHeWants) {
                     maxScore = maxOf(maxScore, 0.4f)
-                    reasons.add("符合對方的成員心願：你有他想要的成員！")
+                    reasons.add("符合對方的心願：你有他想要的成員！")
                 }
             }
             if (maxScore > 0) results.add(KpopMatchResult(otherCard, maxScore, reasons.distinct().sortedByDescending { it.length }))
@@ -586,17 +586,49 @@ fun SmartMatchView(currentUserId: String, isVerified: Boolean, onBack: () -> Uni
                     Spacer(Modifier.height(16.dp)); Text("目前尚無匹配對象", fontWeight = FontWeight.Bold, color = Color.Gray)
                 }
             } else {
-                LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    items(matches) { match ->
-                        MatchCardItem(
-                            match,
-                            onStartChat,
-                            onViewProfile,
-                            currentUserId,
-                            isVerified,
-                            onCardClick = { selectedCard = it },
-                            displayName = formatMatchMemberName(match.card.memberName)
-                        )
+                val groupedMatches = matches.groupBy {
+                    when {
+                        it.score >= 0.9f -> "雙向成員匹配：你們互有對方想要的成員！"
+                        it.score >= 0.5f -> "心願成員：他有你想要的成員！"
+                        else -> "符合對方的成員心願：你有他想要的成員！"
+                    }
+                }
+
+                LazyColumn(contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                    groupedMatches.forEach { (category, categoryMatches) ->
+                        item {
+                            Column {
+                                val titleColor = when {
+                                    category.contains("雙向") -> Color(0xFFE91E63)
+                                    category.contains("心願成員") -> Color(0xFF1976D2)
+                                    else -> Color.DarkGray
+                                }
+                                Text(
+                                    text = category,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = titleColor,
+                                    modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 12.dp)
+                                )
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    contentPadding = PaddingValues(horizontal = 16.dp)
+                                ) {
+                                    items(categoryMatches) { match ->
+                                        MatchCardItem(
+                                            match,
+                                            onStartChat,
+                                            onViewProfile,
+                                            currentUserId,
+                                            isVerified,
+                                            onCardClick = { selectedCard = it },
+                                            displayName = formatMatchMemberName(match.card.memberName),
+                                            modifier = Modifier.width(320.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -650,6 +682,18 @@ fun SmartMatchView(currentUserId: String, isVerified: Boolean, onBack: () -> Uni
                         Spacer(Modifier.height(16.dp))
                         DetailSection(label = "WISH LIST", icon = Icons.Default.Favorite) {
                             Text(card.wishlist, fontSize = 14.sp, color = Color(0xFF2D3748), lineHeight = 20.sp)
+                            if (card.wishlistImageUrls.isNotEmpty()) {
+                                Spacer(Modifier.height(8.dp))
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    items(card.wishlistImageUrls) { url ->
+                                        AsyncImage(model = url, contentDescription = null, modifier = Modifier
+                                            .size(90.dp, 120.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color.White)
+                                            .clickable { previewImageUrl = url }, contentScale = ContentScale.Crop)
+                                    }
+                                }
+                            }
                         }
                         DetailSection(label = "REMARKS", icon = Icons.AutoMirrored.Filled.Notes) {
                             Text(card.remarks.ifBlank { "無備註" }, fontSize = 14.sp, color = Color(0xFF4A5568))
@@ -682,6 +726,17 @@ fun SmartMatchView(currentUserId: String, isVerified: Boolean, onBack: () -> Uni
             }
         }
     }
+
+    if (previewImageUrl != null) {
+        Dialog(onDismissRequest = { previewImageUrl = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .clickable { previewImageUrl = null }, contentAlignment = Alignment.Center) {
+                AsyncImage(model = previewImageUrl, contentDescription = "預覽圖片", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+            }
+        }
+    }
 }
 
 @Composable
@@ -692,19 +747,25 @@ fun MatchCardItem(
     currentUserId: String,
     isVerified: Boolean,
     onCardClick: (KpopCard) -> Unit,
-    displayName: String
+    displayName: String,
+    modifier: Modifier = Modifier
 ) {
     val card = match.card
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable { onCardClick(card) },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, when {
+            match.score >= 0.9f -> Color(0xFFFFCDD2) // 雙向匹配為粉紅框
+            match.score >= 0.5f -> Color(0xFFBBDEFB) // 心願成員為淡藍框
+            else -> Color(0xFFE0E0E0) // 其他為灰色框
+        })
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -712,26 +773,6 @@ fun MatchCardItem(
                 Spacer(Modifier.width(8.dp))
                 Text(card.ownerName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Spacer(Modifier.weight(1f))
-                Surface(
-                    color = when {
-                        match.score >= 0.9f -> Color(0xFFFFEBEE)
-                        match.score >= 0.5f -> Color(0xFFE3F2FD)
-                        else -> Color(0xFFF5F5F5)
-                    },
-                    shape = CircleShape
-                ) {
-                    Text(
-                        text = match.reasons.firstOrNull() ?: "初步匹配",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = when {
-                            match.score >= 0.9f -> Color(0xFFE91E63)
-                            match.score >= 0.5f -> Color(0xFF1976D2)
-                            else -> Color.Gray
-                        }
-                    )
-                }
             }
 
             Spacer(Modifier.height(12.dp))
@@ -984,6 +1025,22 @@ fun NearbyExchangeView(
                             Text(firstCard.ownerName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             Text("共有 ${cards.size} 張小卡在此地點", fontSize = 12.sp, color = Color.Gray)
                         }
+                        
+                        if (firstCard.latitude != null && firstCard.longitude != null) {
+                            IconButton(onClick = {
+                                val uri = Uri.parse("google.navigation:q=${firstCard.latitude},${firstCard.longitude}&mode=w")
+                                val mapIntent = Intent(Intent.ACTION_VIEW, uri)
+                                mapIntent.setPackage("com.google.android.apps.maps")
+                                try {
+                                    context.startActivity(mapIntent)
+                                } catch (e: android.content.ActivityNotFoundException) {
+                                    Toast.makeText(context, "請先安裝 Google Maps", Toast.LENGTH_SHORT).show()
+                                }
+                            }) {
+                                Icon(Icons.Default.Map, null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                        
                         IconButton(onClick = { selectedUserCards = null }) {
                             Icon(Icons.Default.Close, null)
                         }
@@ -1086,6 +1143,18 @@ fun NearbyExchangeView(
                         Spacer(Modifier.height(12.dp))
                         DetailSection(label = "WISH LIST", icon = Icons.Default.Favorite) {
                             Text(card.wishlist.getCleanName(), fontSize = 14.sp, color = Color(0xFF2D3748), lineHeight = 20.sp)
+                            if (card.wishlistImageUrls.isNotEmpty()) {
+                                Spacer(Modifier.height(8.dp))
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    items(card.wishlistImageUrls) { url ->
+                                        AsyncImage(model = url, contentDescription = null, modifier = Modifier
+                                            .size(90.dp, 120.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color.White)
+                                            .clickable { previewImageUrl = url }, contentScale = ContentScale.Crop)
+                                    }
+                                }
+                            }
                         }
 
                         if (card.location.isNotEmpty()) {
@@ -1097,18 +1166,58 @@ fun NearbyExchangeView(
                         }
                         Spacer(Modifier.height(60.dp))
                     }
-                    Button(onClick = {
-                        if (!isVerified) { Toast.makeText(context, "請先完成認證", Toast.LENGTH_SHORT).show() }
-                        else { scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card); selectedCard = null } } }
-                    }, modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                        .height(48.dp), shape = RoundedCornerShape(24.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.Chat, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("立即私訊")
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (card.latitude != null && card.longitude != null) {
+                            OutlinedButton(
+                                onClick = {
+                                    val uri = Uri.parse("google.navigation:q=${card.latitude},${card.longitude}&mode=w")
+                                    val mapIntent = Intent(Intent.ACTION_VIEW, uri)
+                                    mapIntent.setPackage("com.google.android.apps.maps")
+                                    try {
+                                        context.startActivity(mapIntent)
+                                    } catch (e: android.content.ActivityNotFoundException) {
+                                        Toast.makeText(context, "請先安裝 Google Maps", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                modifier = Modifier.height(48.dp),
+                                shape = RoundedCornerShape(24.dp)
+                            ) {
+                                Icon(Icons.Default.Map, null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("導航前往")
+                            }
+                        } else {
+                            Spacer(Modifier.weight(1f))
+                        }
+                        
+                        Button(onClick = {
+                            if (!isVerified) { Toast.makeText(context, "請先完成認證", Toast.LENGTH_SHORT).show() }
+                            else { scope.launch { findOrCreateChatRoom(currentUserId, card.userId, card.id) { roomId -> onStartChat(roomId, card); selectedCard = null } } }
+                        }, modifier = Modifier.height(48.dp), shape = RoundedCornerShape(24.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.Chat, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("立即私訊")
+                        }
                     }
                 }
+            }
+        }
+    }
+
+    if (previewImageUrl != null) {
+        Dialog(onDismissRequest = { previewImageUrl = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .clickable { previewImageUrl = null }, contentAlignment = Alignment.Center) {
+                AsyncImage(model = previewImageUrl, contentDescription = "預覽圖片", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
             }
         }
     }
@@ -1340,42 +1449,44 @@ fun ExploreEventUploadView(userId: String, existingEvent: KpopEvent? = null, onB
             Spacer(Modifier.height(12.dp)); OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("活動詳情描述") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
             Spacer(Modifier.height(32.dp)); Button(
             onClick = {
-                // 1. 先做原本的空白檢查
-                if (title.isBlank() || imageUrl.isEmpty()) {
-                    Toast.makeText(context, "請填寫名稱並上傳圖片", Toast.LENGTH_SHORT).show()
-                    return@Button
-                }
+                scope.launch {
+                    // 1. 先做原本的空白檢查
+                    if (title.isBlank() || imageUrl.isEmpty()) {
+                        Toast.makeText(context, "請填寫名稱並上傳圖片", Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
 
-                // 2. 加入違禁詞檢查
-                val fieldCheck = ProfanityFilter.checkFields(mapOf(
-                    "活動名稱" to title,
-                    "所屬團體" to groupName,
-                    "地點" to location,
-                    "活動詳情" to description
-                ))
+                    // 2. 加入違禁詞檢查 (結合本地詞庫與 OpenAI Moderation API)
+                    val fieldCheck = ProfanityFilter.checkFieldsAsync(mapOf(
+                        "活動名稱" to title,
+                        "所屬團體" to groupName,
+                        "地點" to location,
+                        "活動詳情" to description
+                    ))
 
-                if (fieldCheck != null) {
-                    Toast.makeText(context, "「$fieldCheck」包含違禁詞，請修正", Toast.LENGTH_SHORT).show()
-                    return@Button
-                }
+                    if (fieldCheck != null) {
+                        Toast.makeText(context, "「$fieldCheck」包含違禁或不當用語，請修正", Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
 
-                // 3. 原本的資料處理邏輯...
-                val eventData = mutableMapOf(
-                    "title" to title,
-                    "type" to type,
-                    "groupName" to groupName,
-                    "location" to location,
-                    "startDate" to startDate,
-                    "endDate" to endDate,
-                    "description" to description,
-                    "imageUrl" to imageUrl,
-                    "userId" to userId,
-                    "createdAt" to (existingEvent?.createdAt ?: FieldValue.serverTimestamp())
-                )
-                val task = if (existingEvent == null) db.collection("events").add(eventData) else db.collection("events").document(existingEvent.id).set(eventData)
-                task.addOnSuccessListener {
-                    Toast.makeText(context, if(existingEvent == null) "發佈成功！" else "更新成功！", Toast.LENGTH_SHORT).show()
-                    onSuccess()
+                    // 3. 原本的資料處理邏輯...
+                    val eventData = mutableMapOf(
+                        "title" to title,
+                        "type" to type,
+                        "groupName" to groupName,
+                        "location" to location,
+                        "startDate" to startDate,
+                        "endDate" to endDate,
+                        "description" to description,
+                        "imageUrl" to imageUrl,
+                        "userId" to userId,
+                        "createdAt" to (existingEvent?.createdAt ?: FieldValue.serverTimestamp())
+                    )
+                    val task = if (existingEvent == null) db.collection("events").add(eventData) else db.collection("events").document(existingEvent.id).set(eventData)
+                    task.addOnSuccessListener {
+                        Toast.makeText(context, if(existingEvent == null) "發佈成功！" else "更新成功！", Toast.LENGTH_SHORT).show()
+                        onSuccess()
+                    }
                 }
             },
             modifier = Modifier
