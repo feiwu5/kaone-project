@@ -4,9 +4,12 @@ import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
-import android.widget.VideoView
 import android.widget.MediaController
 import android.util.Patterns
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -502,6 +505,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
     var showInquiry by rememberSaveable(roomId) { mutableStateOf(true) }
     var lastInquiryCardId by rememberSaveable(roomId) { mutableStateOf("") }
 
+    var isInitialLoad by remember(roomId) { mutableStateOf(true) }
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
     var previewVideoUrl by remember { mutableStateOf<String?>(null) }
     val otherId = remember { mutableStateOf("") }; var otherImageUrl by remember { mutableStateOf("") }
@@ -659,7 +663,16 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
         }
     }
 
-    LaunchedEffect(messages.size) { if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1) }
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            if (isInitialLoad) {
+                listState.scrollToItem(messages.size - 1)
+                isInitialLoad = false
+            } else {
+                listState.animateScrollToItem(messages.size - 1)
+            }
+        }
+    }
 
     fun sendMsg(t: String, type: String = "text", url: String = "", extra: Map<String, Any>? = null) {
         scope.launch {
@@ -1128,7 +1141,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
 
             val currentCardId = inquiryCard?.id ?: ""
             val lastVideoRequest = messages.lastOrNull {
-                it.messageType == "video_request" && it.senderId != userId && (it.relatedCardId == currentCardId || it.relatedCardId.isNullOrEmpty())
+                it.messageType == "video_request" && it.senderId != cardOwnerId && currentCardId.isNotEmpty() && it.relatedCardId == currentCardId
             }
 
             val isWaitingForVideo = lastVideoRequest != null && !messages.any {
@@ -1295,18 +1308,25 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
                     .background(Color.Black.copy(alpha = 0.9f)),
                 contentAlignment = Alignment.Center
             ) {
+                val context = LocalContext.current
+                val exoPlayer = remember {
+                    ExoPlayer.Builder(context).build().apply {
+                        setMediaItem(MediaItem.fromUri(Uri.parse(previewVideoUrl)))
+                        repeatMode = Player.REPEAT_MODE_ALL
+                        prepare()
+                        playWhenReady = true
+                    }
+                }
+                DisposableEffect(Unit) {
+                    onDispose {
+                        exoPlayer.release()
+                    }
+                }
                 AndroidView(
                     factory = { ctx ->
-                        VideoView(ctx).apply {
-                            setVideoURI(Uri.parse(previewVideoUrl))
-                            val mc = MediaController(ctx)
-                            mc.setAnchorView(this)
-                            setMediaController(mc)
-
-                            setOnPreparedListener {
-                                it.isLooping = true
-                                start()
-                            }
+                        PlayerView(ctx).apply {
+                            player = exoPlayer
+                            useController = true
                         }
                     },
                     modifier = Modifier
