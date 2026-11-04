@@ -236,20 +236,20 @@ fun SearchResultItem(
 
     when(result) {
         is EncyclopediaSearchResult.Group -> {
-            title = result.groupKey.getCleanName()
+            title = result.groupKey.split("|")[0].trim()
             subtitle = "團體"
             imageUrl = result.groupKey.split("|").find { it.startsWith("http") }
             icon = Icons.Default.Groups
         }
         is EncyclopediaSearchResult.Member -> {
-            title = result.memberKey.getCleanName()
-            subtitle = "成員 (${result.groupKey.getCleanName()})"
+            title = result.memberKey.split("|")[0].trim()
+            subtitle = "成員 (${result.groupKey.split("|")[0].trim()})"
             imageUrl = result.memberKey.split("|").find { it.startsWith("http") }
             icon = Icons.Default.Person
         }
         is EncyclopediaSearchResult.Album -> {
             title = result.albumName
-            subtitle = "專輯 (${result.groupKey.getCleanName()})"
+            subtitle = "專輯 (${result.groupKey.split("|")[0].trim()})"
             imageUrl = null
             icon = Icons.Default.Album
         }

@@ -124,7 +124,7 @@ fun EncyclopediaScreen(
         }
 
         KpopData.groupAlbumData.forEach { (groupPureName, albums) ->
-            val groupKey = KpopData.groupMembersData.keys.find { it.getCleanName() == groupPureName } ?: groupPureName
+            val groupKey = KpopData.groupMembersData.keys.find { it.split("|")[0].trim() == groupPureName } ?: groupPureName
             albums.forEach { albumName ->
                 if (albumName.lowercase().contains(query)) {
                     results.add(EncyclopediaSearchResult.Album(groupKey, albumName))
@@ -182,8 +182,8 @@ fun EncyclopediaScreen(
                         val currentMember = selectedMember
                         val currentGroup = selectedGroup
                         val displayTitle = when {
-                            currentMember != null -> currentMember.getCleanName()
-                            currentGroup != null -> currentGroup.getCleanName()
+                            currentMember != null -> currentMember.split("|")[0].trim()
+                            currentGroup != null -> currentGroup.split("|")[0].trim()
                             else -> "探索圖鑑百科"
                         }
                         Text(
@@ -395,7 +395,7 @@ fun GroupGrid(state: LazyGridState, onGroupSelected: (String) -> Unit) {
                 }
             }
             items(groupsInLetter) { group ->
-                val groupName = group.getCleanName()
+                val groupName = group.split("|")[0].trim()
                 val groupImageUrl = group.split("|").find { it.startsWith("http") }
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().clickable { onGroupSelected(group) }) {
                     Surface(modifier = Modifier.size(90.dp), shape = CircleShape, color = Color.White, shadowElevation = 8.dp, border = BorderStroke(3.dp, MaterialTheme.colorScheme.primaryContainer)) {
@@ -429,7 +429,7 @@ fun MemberGrid(state: LazyGridState, groupName: String, onMemberSelected: (Strin
     val members = remember(groupName) { KpopData.groupMembersData[groupName] ?: emptyList() }
 
     // 取得專輯資料 (過濾掉純名稱)
-    val pureGroupName = groupName.getCleanName()
+    val pureGroupName = groupName.split("|")[0].trim()
     val albums = remember(pureGroupName) {
         KpopData.groupAlbumData[pureGroupName] ?: emptyList()
     }
@@ -454,7 +454,7 @@ fun MemberGrid(state: LazyGridState, groupName: String, onMemberSelected: (Strin
 
         // --- 2. 成員頭像列表 ---
         items(members) { member ->
-            val name = member.getCleanName()
+            val name = member.split("|")[0].trim()
             val imageUrl = member.split("|").find { it.startsWith("http") }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -556,7 +556,7 @@ fun MemberGrid(state: LazyGridState, groupName: String, onMemberSelected: (Strin
 
 @Composable
 fun MemberChecklist(groupName: String, memberName: String) {
-    val pureGroupName = groupName.getCleanName()
+    val pureGroupName = groupName.split("|")[0].trim()
     val scrollState = rememberScrollState()
 
     // 清洗成員名稱

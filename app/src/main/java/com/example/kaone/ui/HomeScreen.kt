@@ -269,7 +269,10 @@ fun HomeScreen(
                 }
             }
         ) { innerPadding ->
-            Box(modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())) {
+            Box(modifier = Modifier
+                .padding(bottom = innerPadding.calculateBottomPadding())
+                .consumeWindowInsets(PaddingValues(bottom = innerPadding.calculateBottomPadding()))
+            ) {
                 if (viewingOtherUserId != null) {
                     ProfileScreen(
                         userId = viewingOtherUserId!!,
@@ -1413,6 +1416,7 @@ fun ExploreEventUploadView(userId: String, existingEvent: KpopEvent? = null, onB
         Column(modifier = Modifier
             .fillMaxSize()
             .padding(p)
+            .imePadding()
             .padding(20.dp)
             .verticalScroll(rememberScrollState())) {
             Box(modifier = Modifier

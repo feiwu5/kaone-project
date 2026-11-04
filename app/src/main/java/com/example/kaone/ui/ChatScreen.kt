@@ -1046,7 +1046,7 @@ fun ChatRoomView(userId: String, roomId: String, initialOtherUserName: String, i
             )
         },
         bottomBar = {
-            Surface(tonalElevation = 4.dp) {
+            Surface(tonalElevation = 4.dp, modifier = Modifier.imePadding()) {
                 Column(modifier = Modifier.padding(bottom = 6.dp)) {
                     // 修改 UI 中的進度條與百分比顯示
                     if (isUploading || isUploadingTrade) {
