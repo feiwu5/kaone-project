@@ -86,8 +86,12 @@ fun EncyclopediaScreen(
                     }
                     val result = classifier.classify(bitmap)
                     if (result != null) {
-                        searchQuery = result.member
-                        Toast.makeText(context, "辨識成功：${result.group} ${result.member}", Toast.LENGTH_SHORT).show()
+                        val englishName = result.member
+                            .split("|", " ", "・", "/")
+                            .firstOrNull { it.isNotBlank() && it.matches(Regex("^[a-zA-Z0-9.\\-_]+$")) }
+                            ?: result.member.split("|").first().split(" ").first().trim()
+                        searchQuery = englishName
+                        Toast.makeText(context, "辨識成功：${result.group} $englishName", Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(context, "無法辨識照片中的偶像", Toast.LENGTH_SHORT).show()
                     }

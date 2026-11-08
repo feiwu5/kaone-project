@@ -1,5 +1,6 @@
 package com.example.kaone.ui
 
+import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
@@ -48,6 +49,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -1812,6 +1814,8 @@ fun MainDashboard(
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
     var showTabSettingsDialog by remember { mutableStateOf(false) }; var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
+    var searchCategory by remember { mutableIntStateOf(0) } // 0: 全部, 1: 小卡, 2: 使用者
+    var userList by remember { mutableStateOf<List<KaUser>>(emptyList()) }
     val focusRequester = remember { FocusRequester() }
     val isGuest = userId.isEmpty()
     val allGroups = listOf("&TEAM", "aespa", "AHOF", "ALLDAY PROJECT", "ALPHA DRIVE ONE", "Apink", "ARrC", "ASTRO", "ATEEZ", "BSS", "BABYMONSTER", "Billlie", "BOYNEXTDOOR", "BTS", "BIGBANG", "CLASS:y", "CLOSE YOUR EYES", "CNBLUE", "CORTIS", "CRAVITY", "Dreamcatcher", "ENHYPEN", "EXO", "fromis_9", "G-Dragon", "Girls' Generation", "GFRIEND", "GOT the beat", "GOT7", "Heart2Hearts", "I-DLE", "IDID", "ITZY", "IVE", "izna", "IZ*ONE", "KiiiKiii", "KISS OF LIFE", "LE SSERAFIM", "LIGHTSUM", "MAMAMOO", "MAMAMOO+", "MEOVV", "MONSTA X", "NCT 127", "NCT DOJAEJUNG", "NCT DREAM", "NCT WISH", "NewJeans", "NEXZ", "NiziU", "NMIXX", "P1Harmony", "PURPLE K!SS", "QWER", "Red Velvet", "Red Velvet - IRENE & SEULGI", "SAY MY NAME", "SEVENTEEN", "SF9", "STAYC", "Stray Kids", "SuperM", "TEMPEST", "THE BOYZ", "TOMORROW X TOGETHER", "tripleS", "TWICE", "TWS", "VERIVERY", "VIVIZ", "WANNA ONE", "WayV", "WEi", "WJSN", "ZEROBASEONE").sorted()
@@ -1823,10 +1827,71 @@ fun MainDashboard(
 
     var reportingCardId by remember { mutableStateOf<String?>(null) }
 
+    var lastSearchedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var cardSimilarityMap by remember { mutableStateOf<Map<String, Float>>(emptyMap()) }
+    var isRecognizing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(lastSearchedBitmap, cardList) {
+        val searchBmp = lastSearchedBitmap
+        if (searchBmp == null) {
+            cardSimilarityMap = emptyMap()
+            return@LaunchedEffect
+        }
+
+        fun getBitmapPixels(bmp: Bitmap): FloatArray {
+            val scaled = Bitmap.createScaledBitmap(bmp, 16, 16, true)
+            val pixels = FloatArray(256)
+            var idx = 0
+            for (y in 0 until 16) {
+                for (x in 0 until 16) {
+                    val pixel = scaled.getPixel(x, y)
+                    val r = (pixel shr 16).and(0xff)
+                    val g = (pixel shr 8).and(0xff)
+                    val b = pixel.and(0xff)
+                    pixels[idx++] = (0.299f * r + 0.587f * g + 0.114f * b)
+                }
+            }
+            if (scaled != bmp) scaled.recycle()
+            return pixels
+        }
+
+        val searchPixels = withContext(Dispatchers.IO) { getBitmapPixels(searchBmp) }
+        val imageLoader = coil.ImageLoader(context)
+        val newMap = mutableMapOf<String, Float>()
+
+        withContext(Dispatchers.IO) {
+            cardList.forEach { card ->
+                if (card.imageUrl.isNotEmpty()) {
+                    try {
+                        val request = coil.request.ImageRequest.Builder(context)
+                            .data(card.imageUrl)
+                            .allowHardware(false)
+                            .build()
+                        val result = imageLoader.execute(request)
+                        val bmp = (result.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                        if (bmp != null) {
+                            val cardPixels = getBitmapPixels(bmp)
+                            var mse = 0f
+                            for (i in 0 until 256) {
+                                val diff = searchPixels[i] - cardPixels[i]
+                                mse += diff * diff
+                            }
+                            mse /= 256f
+                            val similarity = 1.0f / (1.0f + mse / 100f)
+                            newMap[card.id] = similarity
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        }
+        cardSimilarityMap = newMap
+    }
+
     val classifier = remember { IdolClassifier(context) }
     val photoPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             scope.launch {
+                isRecognizing = true
                 try {
                     // 解碼圖片放到背景執行緒,避免卡住 UI
                     val bitmap = withContext(Dispatchers.IO) {
@@ -1841,18 +1906,50 @@ fun MainDashboard(
                         }
                     }
 
+                    lastSearchedBitmap = bitmap
                     val result = classifier.classify(bitmap) // 現在在 coroutine 內,可以呼叫
 
                     if (result != null) {
-                        searchQuery = result.member.trim()
+                        val englishName = result.member
+                            .split("|", " ", "・", "/")
+                            .firstOrNull { it.isNotBlank() && it.matches(Regex("^[a-zA-Z0-9.\\-_]+$")) }
+                            ?: result.member.split("|").first().split(" ").first().trim()
+                        searchQuery = englishName
                         isSearchActive = true
                         onTabChange(0)
-                        Toast.makeText(context, "辨識成功:${result.group} ${result.member}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "辨識成功:${result.group} $englishName", Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(context, "無法辨識照片中的偶像", Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
                     Toast.makeText(context, "圖片處理失敗:${e.message}", Toast.LENGTH_SHORT).show()
+                } finally {
+                    isRecognizing = false
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(isSearchActive) {
+        if (isSearchActive && userList.isEmpty()) {
+            db.collection("users").addSnapshotListener { snapshot, error ->
+                if (error == null && snapshot != null) {
+                    userList = snapshot.documents.mapNotNull { doc ->
+                        val isBanned = doc.getBoolean("isBanned") ?: false
+                        if (isBanned) return@mapNotNull null
+                        val nickname = doc.getString("nickname") ?: doc.getString("name") ?: ""
+                        if (nickname.isBlank()) return@mapNotNull null
+                        KaUser(
+                            uid = doc.id,
+                            nickname = nickname,
+                            email = doc.getString("email") ?: "",
+                            profileImageUrl = doc.getString("profileImageUrl") ?: "",
+                            location = doc.getString("location") ?: "",
+                            bio = doc.getString("bio") ?: "",
+                            fandoms = doc.getString("fandoms") ?: "",
+                            isVerified = doc.getBoolean("isVerified") ?: false
+                        )
+                    }
                 }
             }
         }
@@ -1892,16 +1989,33 @@ fun MainDashboard(
             val cleanGroupName = card.groupName.replace(Regex("[\\s|/()]+"), "").lowercase()
             val cleanCardType = card.cardType.replace(Regex("[\\s|/()]+"), "").lowercase()
 
-            cleanMemberName.contains(query) || query.contains(cleanMemberName) ||
-                    cleanGroupName.contains(query) || query.contains(cleanGroupName) ||
-                    cleanCardType.contains(query) || query.contains(cleanCardType) ||
+            cleanMemberName.contains(query) ||
+                    cleanGroupName.contains(query) ||
+                    cleanCardType.contains(query) ||
                     card.memberList.any {
                         val m = it.replace(Regex("[\\s|/()]+"), "").lowercase()
-                        m.contains(query) || query.contains(m)
+                        m.contains(query)
                     }
         }
 
         isAvailable && matchesTab && matchesSearch
+    }.sortedByDescending { card ->
+        cardSimilarityMap[card.id] ?: 0f
+    }
+
+    val filteredUsers = if (searchQuery.trim().isEmpty()) emptyList() else userList.filter { user ->
+        val query = searchQuery.replace(" ", "").lowercase().trim()
+        val cleanNickname = user.nickname.replace(Regex("[\\s|/()]+"), "").lowercase()
+        val cleanFandoms = user.fandoms.replace(Regex("[\\s|/()]+"), "").lowercase()
+        val cleanLocation = user.location.replace(Regex("[\\s|/()]+"), "").lowercase()
+        val cleanBio = user.bio.replace(Regex("[\\s|/()]+"), "").lowercase()
+        val cleanEmail = user.email.lowercase()
+
+        cleanNickname.contains(query) ||
+                cleanFandoms.contains(query) ||
+                cleanLocation.contains(query) ||
+                cleanBio.contains(query) ||
+                cleanEmail.contains(query)
     }
 
     fun formatMemberName(raw: String): String {
@@ -1935,7 +2049,7 @@ fun MainDashboard(
                         .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { isSearchActive = false; searchQuery = "" }) {
+                    IconButton(onClick = { isSearchActive = false; searchQuery = ""; lastSearchedBitmap = null; searchCategory = 0 }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
                     }
                     Box(modifier = Modifier
@@ -1951,18 +2065,26 @@ fun MainDashboard(
                             textStyle = TextStyle(fontSize = 16.sp, color = Color.White),
                             cursorBrush = SolidColor(Color.White),
                             decorationBox = { innerTextField ->
-                                if (searchQuery.isEmpty()) {
-                                    Text("搜尋團體、成員、專輯...", color = Color.White.copy(alpha = 0.6f), fontSize = 16.sp)
+                                if (isRecognizing) {
+                                    Text("辨識中...", color = Color.White.copy(alpha = 0.8f), fontSize = 16.sp)
+                                } else if (searchQuery.isEmpty()) {
+                                    Text("搜尋小卡、成員、使用者...", color = Color.White.copy(alpha = 0.6f), fontSize = 16.sp)
                                 }
                                 innerTextField()
                             }
                         )
                     }
-                    IconButton(onClick = { photoPickerLauncher.launch("image/*") }) {
-                        Icon(Icons.Default.PhotoCamera, null, tint = Color.White)
+                    if (isRecognizing) {
+                        Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                        }
+                    } else {
+                        IconButton(onClick = { photoPickerLauncher.launch("image/*") }) {
+                            Icon(Icons.Default.PhotoCamera, null, tint = Color.White)
+                        }
                     }
                     if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
+                        IconButton(onClick = { searchQuery = ""; lastSearchedBitmap = null; searchCategory = 0 }) {
                             Icon(Icons.Default.Close, null, tint = Color.White)
                         }
                     }
@@ -2011,6 +2133,31 @@ fun MainDashboard(
             VerificationReminderBanner(onVerifyClick = onGoToProfile)
         }
 
+        if (isSearchActive && searchQuery.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SearchCategoryChip(
+                    text = "全部 (${filteredCards.size + filteredUsers.size})",
+                    selected = searchCategory == 0,
+                    onClick = { searchCategory = 0 }
+                )
+                SearchCategoryChip(
+                    text = "小卡 (${filteredCards.size})",
+                    selected = searchCategory == 1,
+                    onClick = { searchCategory = 1 }
+                )
+                SearchCategoryChip(
+                    text = "使用者 (${filteredUsers.size})",
+                    selected = searchCategory == 2,
+                    onClick = { searchCategory = 2 }
+                )
+            }
+        }
+
         if (isSearchActive && searchQuery.isEmpty()) {
             Box(modifier = Modifier
                 .fillMaxSize()
@@ -2024,7 +2171,36 @@ fun MainDashboard(
                     )
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        text = "想要探索哪個偶像 or 專輯？",
+                        text = "想要探索小卡、偶像或使用者？",
+                        color = Color.Gray,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        } else if (isSearchActive && (
+                    (searchCategory == 0 && filteredCards.isEmpty() && filteredUsers.isEmpty()) ||
+                    (searchCategory == 1 && filteredCards.isEmpty()) ||
+                    (searchCategory == 2 && filteredUsers.isEmpty())
+                )) {
+            val emptyMsg = when (searchCategory) {
+                1 -> "找不到與「$searchQuery」相關的小卡"
+                2 -> "找不到與「$searchQuery」相關的使用者"
+                else -> "找不到與「$searchQuery」相關的小卡或使用者"
+            }
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 100.dp), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.SearchOff,
+                        contentDescription = null,
+                        modifier = Modifier.size(80.dp),
+                        tint = Color.LightGray.copy(alpha = 0.5f)
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = emptyMsg,
                         color = Color.Gray,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
@@ -2036,15 +2212,41 @@ fun MainDashboard(
                 ScrollableTabRow(selectedTabIndex = selectedTab, edgePadding = 16.dp, divider = {}, containerColor = Color.Transparent, contentColor = MaterialTheme.colorScheme.primary) { tabs.forEachIndexed { index, title -> Tab(selected = selectedTab == index, onClick = { onTabChange(index) }, text = { Text(title, fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal) }) } }
             }
             LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                items(filteredCards) { card ->
-                    CardItem(card = card, isFavorite = card.id in favoriteIds, showFavorite = card.userId != userId, onClick = { selectedCard = card }, onFavoriteClick = {
-                        if (isGuest) {
-                            Toast.makeText(context, "請先登入後再收藏", Toast.LENGTH_SHORT).show()
-                        } else {
-                            val update = if (card.id in favoriteIds) FieldValue.arrayRemove(card.id) else FieldValue.arrayUnion(card.id)
-                            db.collection("users").document(userId).update("favoriteCardIds", update)
+                if (isSearchActive) {
+                    if ((searchCategory == 0 || searchCategory == 2) && filteredUsers.isNotEmpty()) {
+                        if (searchCategory == 0) {
+                            item(span = { GridItemSpan(2) }) { SearchCategoryHeader("使用者 (${filteredUsers.size})") }
                         }
-                    }, memberNameDisplay = formatMemberName(card.memberName))
+                        items(items = filteredUsers, key = { "user_${it.uid}" }, span = { GridItemSpan(2) }) { user ->
+                            UserSearchResultItem(user = user, onViewProfile = onViewProfile)
+                        }
+                    }
+                    if ((searchCategory == 0 || searchCategory == 1) && filteredCards.isNotEmpty()) {
+                        if (searchCategory == 0 && filteredUsers.isNotEmpty()) {
+                            item(span = { GridItemSpan(2) }) { SearchCategoryHeader("小卡 (${filteredCards.size})") }
+                        }
+                        items(items = filteredCards, key = { "card_${it.id}" }) { card ->
+                            CardItem(card = card, isFavorite = card.id in favoriteIds, showFavorite = card.userId != userId, onClick = { selectedCard = card }, onFavoriteClick = {
+                                if (isGuest) {
+                                    Toast.makeText(context, "請先登入後再收藏", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    val update = if (card.id in favoriteIds) FieldValue.arrayRemove(card.id) else FieldValue.arrayUnion(card.id)
+                                    db.collection("users").document(userId).update("favoriteCardIds", update)
+                                }
+                            }, memberNameDisplay = formatMemberName(card.memberName))
+                        }
+                    }
+                } else {
+                    items(filteredCards) { card ->
+                        CardItem(card = card, isFavorite = card.id in favoriteIds, showFavorite = card.userId != userId, onClick = { selectedCard = card }, onFavoriteClick = {
+                            if (isGuest) {
+                                Toast.makeText(context, "請先登入後再收藏", Toast.LENGTH_SHORT).show()
+                            } else {
+                                val update = if (card.id in favoriteIds) FieldValue.arrayRemove(card.id) else FieldValue.arrayUnion(card.id)
+                                db.collection("users").document(userId).update("favoriteCardIds", update)
+                            }
+                        }, memberNameDisplay = formatMemberName(card.memberName))
+                    }
                 }
             }
         }
@@ -2438,6 +2640,115 @@ fun TrendingSection(title: String, items: List<Pair<String, Int>>, icon: ImageVe
                     }
                 }
                 if (index < items.size - 1) HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray.copy(alpha = 0.3f))
+            }
+        }
+    }
+}
+
+@Composable
+fun SearchCategoryChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = if (selected) MaterialTheme.colorScheme.primary else Color.White,
+        contentColor = if (selected) Color.White else Color.Gray,
+        shadowElevation = if (selected) 2.dp else 0.dp,
+        border = if (selected) null else androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
+    ) {
+        Text(
+            text = text,
+            fontSize = 13.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+        )
+    }
+}
+
+@Composable
+fun UserSearchResultItem(
+    user: KaUser,
+    onViewProfile: (String) -> Unit
+) {
+    Surface(
+        onClick = { onViewProfile(user.uid) },
+        shape = RoundedCornerShape(14.dp),
+        color = Color.White,
+        shadowElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFF0F2F5))
+            ) {
+                UserAvatar(userId = user.uid, size = 48, defaultUrl = user.profileImageUrl)
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = user.nickname,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color(0xFF2E3440),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (user.isVerified) {
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.Verified,
+                            contentDescription = "已認證",
+                            tint = Color(0xFF1DA1F2),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                val subtitle = when {
+                    user.location.isNotBlank() && user.fandoms.isNotBlank() -> "${user.location} ・ ${user.fandoms}"
+                    user.location.isNotBlank() -> user.location
+                    user.fandoms.isNotBlank() -> "本命：${user.fandoms}"
+                    user.bio.isNotBlank() -> user.bio
+                    else -> "這名卡友還沒有填寫簡介"
+                }
+
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            Surface(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(
+                    text = "查看主頁",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                )
             }
         }
     }

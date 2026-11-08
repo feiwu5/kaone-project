@@ -11,6 +11,18 @@ sealed class EncyclopediaSearchResult {
     data class Album(val groupKey: String, val albumName: String) : EncyclopediaSearchResult()
 }
 
+@Immutable
+data class KaUser(
+    val uid: String = "",
+    val nickname: String = "",
+    val email: String = "",
+    val profileImageUrl: String = "",
+    val location: String = "",
+    val bio: String = "",
+    val fandoms: String = "",
+    val isVerified: Boolean = false
+)
+
 // 在 KpopModels.kt 中修改
 fun String.getCleanName(): String {
     return this.split("|", ",") // 增加逗號分割，因為有些欄位是用逗號隔開的
