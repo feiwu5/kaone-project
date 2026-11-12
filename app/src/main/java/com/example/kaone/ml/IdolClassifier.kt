@@ -21,18 +21,23 @@ class IdolClassifier(context: Context) {
 
     private var model: FacenetEmbeddingModel? = try {
         FacenetEmbeddingModel.newInstance(context)
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
         Log.e("IDOL_AI", "❌ 模型載入失敗: ${e.message}")
         null
     }
 
     // 🆕 ML Kit 人臉偵測器設定
-    private val detectorOptions = FaceDetectorOptions.Builder()
-        .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-        .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
-        .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
-        .build()
-    private val detector = FaceDetection.getClient(detectorOptions)
+    private val detector = try {
+        val detectorOptions = FaceDetectorOptions.Builder()
+            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+            .build()
+        FaceDetection.getClient(detectorOptions)
+    } catch (e: Throwable) {
+        Log.e("IDOL_AI", "❌ FaceDetector 載入失敗: ${e.message}")
+        null
+    }
 
     // 🆕 資料結構：每個明星對應一組特徵向量 (List<FloatArray>)
     private val featureDatabase: Map<String, List<FloatArray>> by lazy {
@@ -76,7 +81,7 @@ class IdolClassifier(context: Context) {
             // 🆕 1. 使用 ML Kit 偵測人臉並裁切
             val faceBitmap = try {
                 val inputImage = InputImage.fromBitmap(bitmap, 0)
-                val faces = Tasks.await(detector.process(inputImage))
+                val faces = if (detector != null) Tasks.await(detector.process(inputImage)) else emptyList()
                 
                 if (faces.isNotEmpty()) {
                     // 取面積最大的臉
@@ -171,8 +176,8 @@ class IdolClassifier(context: Context) {
     }
 
     fun close() {
-        model?.close()
-        detector.close()
+        try { model?.close() } catch (_: Throwable) {}
+        try { detector?.close() } catch (_: Throwable) {}
     }
     
     data class RecognitionResult(val group: String, val member: String, val confidence: Float)
